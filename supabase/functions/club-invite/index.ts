@@ -35,11 +35,12 @@ const SITE = "https://coachsmart.app/club/";
 const PLANNER = (clubId: number) => `https://coachsmart-v3.web.app/pitches?club=${clubId}&look=club`;
 const DAYS = 30;
 // One tick per club tool (Ken 2026-11-25, coachsmart.app/club/officers.html).
-const TICKS = ["can_dashboard", "can_pitches", "can_newsletter", "can_sponsors", "can_officers", "can_spend", "can_lotto"] as const;
+const TICKS = ["can_dashboard", "can_pitches", "can_newsletter", "can_sponsors", "can_officers", "can_spend", "can_lotto", "can_messages"] as const;
 const MONEY = ["can_spend", "can_lotto"];
 const TOOL: Record<string, string> = {
   can_dashboard: "the club dashboard", can_pitches: "the pitch planner", can_newsletter: "the newsletter",
   can_sponsors: "club partners", can_officers: "club officers", can_spend: "spend & gear", can_lotto: "the club lotto",
+  can_messages: "club messages",
 };
 const ticksOf = (r: any) => Object.fromEntries(TICKS.map((k) => [k, !!r?.[k]]));
 const pitchesOnly = (t: any) => !!t.can_pitches && TICKS.every((k) => k === "can_pitches" || !t[k]);

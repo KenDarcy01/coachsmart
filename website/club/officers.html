@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Club officers</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/club/home-pill.js"></script>
 <!--
   Club officers (Ken 2026-11-25): coachsmart.app/club/officers.html?club=ID.
   Who can open which club tool. Officers with the "Club officers" tick (and
@@ -119,17 +120,18 @@ const TOOLS = [
   ['can_pitches', 'Pitch planner', 'Book matches and training onto pitches and publish the week.', 'club'],
   ['can_newsletter', 'Newsletter', 'Pick, write and approve the weekly club newsletter.', 'club'],
   ['can_sponsors', 'Club partners', 'Add the club sponsor and see the reach report.', 'club'],
+  ['can_messages', 'Messages', 'Send pop-up messages and news bar lines to the club in the app.', 'club'],
   ['can_officers', 'Club officers', 'Invite officers and change what they can open (not the money tools, and not their own).', 'admin'],
   ['can_spend', 'Spend & gear', 'Coach expenses, receipts, team budgets and gear orders.', 'money'],
   ['can_lotto', 'Club lotto', 'Lotto sales, draws, prizes and winners.', 'money'],
 ];
 const SHORT = { can_dashboard: 'Dashboard', can_pitches: 'Pitches', can_newsletter: 'Newsletter', can_sponsors: 'Partners',
-  can_officers: 'Officers', can_spend: 'Spend & gear', can_lotto: 'Lotto' };
+  can_officers: 'Officers', can_spend: 'Spend & gear', can_lotto: 'Lotto', can_messages: 'Messages' };
 const PRESETS = {
-  'Chairperson':      ['can_dashboard', 'can_pitches', 'can_newsletter', 'can_sponsors', 'can_officers', 'can_spend', 'can_lotto'],
-  'Secretary':        ['can_dashboard', 'can_pitches', 'can_officers'],
+  'Chairperson':      ['can_dashboard', 'can_pitches', 'can_newsletter', 'can_sponsors', 'can_messages', 'can_officers', 'can_spend', 'can_lotto'],
+  'Secretary':        ['can_dashboard', 'can_pitches', 'can_messages', 'can_officers'],
   'Treasurer':        ['can_dashboard', 'can_sponsors', 'can_spend', 'can_lotto'],
-  'PRO':              ['can_newsletter', 'can_sponsors'],
+  'PRO':              ['can_newsletter', 'can_sponsors', 'can_messages'],
   'Pitch officer':    ['can_pitches'],
   'Juvenile officer': ['can_dashboard'],
 };
@@ -214,8 +216,7 @@ function chips(o) {
 // ── Views ─────────────────────────────────────────────────────────
 function band(title, sub, back) {
   return `<div class="band"><div class="top">
-    <button class="back" onclick="${back ? 'go(\'list\')' : `location.href='/club/?club=${clubId}'`}" aria-label="Back">‹</button>
-    ${P.club.crest ? `<img class="crest" src="${esc(P.club.crest)}" alt="">` : ''}
+    ${back ? `<button class="back" onclick="go('list')" aria-label="Back">‹</button>${P.club.crest ? `<img class="crest" src="${esc(P.club.crest)}" alt="">` : ''}` : clubHomePill(clubId, P.club.crest)}
     <div><h1>${esc(title)}</h1><div class="sub">${esc(sub)}</div></div></div></div>`;
 }
 function render() {

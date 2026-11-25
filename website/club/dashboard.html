@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Club dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/club/home-pill.js"></script>
 <style>
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
@@ -1162,8 +1163,8 @@ function sidebar(sel) {
 // ── Shell ─────────────────────────────────────────────────────────
 function shell(sel, body) {
   const c = D.club;
-  return `<div class="band">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club dashboard · ${period === 'week' ? (tab === 'fixtures' ? 'fixtures' : 'the week') : periodLabel()}</div>${period === 'week' ? weekStepper() : ''}</div>
-   <div class="right">${chips()}<div class="links"><a href="/club/?club=${clubId}" style="text-decoration:underline;opacity:.9">Club home</a>${newsOn ? newsLink() : ''}${spendOn ? spendLink() : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+  return `<div class="band">${clubHomePill(clubId, c.crest)}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club dashboard · ${period === 'week' ? (tab === 'fixtures' ? 'fixtures' : 'the week') : periodLabel()}</div>${period === 'week' ? weekStepper() : ''}</div>
+   <div class="right">${chips()}<div class="links">${newsOn ? newsLink() : ''}${spendOn ? spendLink() : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
    <div class="layout"><nav class="side" id="side">${sidebar(sel)}</nav><main class="main"><button class="menu-btn" onclick="$('side').classList.toggle('open')">Teams and groups<span>▾</span></button>${body}</main></div>`;
 }
 

@@ -12,6 +12,7 @@
      and approves. coachsmart.app/club/newsletter.html?club=ID. Data via the
      `newsletter` edge function; the paper itself is drawn by newsletter/paper.js. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/club/home-pill.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="/club/newsletter/paper.js"></script>
@@ -182,9 +183,9 @@ const shareUrl = i => location.origin + '/club/news.html?i=' + i.share_token;
 function setIssueParam(id) { const u = new URL(location); if (id) u.searchParams.set('issue', id); else u.searchParams.delete('issue'); history.replaceState(null, '', u); }
 const story = id => I.stories.find(s => s.story_id === id);
 function band(title, sub, back) {
-  return `<div class="band">${back ? `<button class="back" data-a="${back}" aria-label="Back">‹</button>` : (C.club.crest ? `<img class="crest" src="${esc(C.club.crest)}" alt="">` : '')}
+  return `<div class="band">${back ? `<button class="back" data-a="${back}" aria-label="Back">‹</button>` : clubHomePill(clubId, C.club.crest)}
     <div><h1>${esc(title)}</h1><div class="sub">${esc(sub)}</div></div>
-    ${back ? '' : `<div class="links"><a href="/club/?club=${clubId}">Club home</a><button data-a="signout">Sign out</button></div>`}</div>`;
+    ${back ? '' : `<div class="links"><button data-a="signout">Sign out</button></div>`}</div>`;
 }
 function tagsOf(s) {
   const t = [];

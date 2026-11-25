@@ -182,6 +182,11 @@ function tilesFor(H) {
     const s = t.sponsors;
     out.push(['sponsors', '🤝', 'Club partners', s.live ? s.live + ' · live' : s.drafts ? plural(s.drafts, 'draft', 'drafts') : 'Add your club sponsor', 0, '/club/sponsors.html' + q]);
   }
+  if (t.messages) {
+    const m = t.messages, bits = [];
+    if (m.live) bits.push(m.live + ' live'); if (m.sent) bits.push(m.sent + ' sent this month');
+    out.push(['messages', '📣', 'Messages', bits.join(' · ') || 'Pop-ups and news in the app', 0, '/club/messages.html' + q]);
+  }
   if (t.officers) {
     const o = t.officers;
     out.push(['officers', '👥', 'Club officers', plural(o.officers, 'officer', 'officers') + (o.invites ? ' · ' + plural(o.invites, 'invite', 'invites') + ' out' : ''), 0, '/club/officers.html' + q]);

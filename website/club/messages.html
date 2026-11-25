@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Messages</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/club/home-pill.js"></script>
+<!--
+  Club messages (Ken 2026-11-25): coachsmart.app/club/messages.html?club=ID.
+  Officers with the "Messages" tick (and SuperUsers) send their club an
+  important pop-up or a news bar line in the v3 app, to everyone, players and
+  parents, or coaches, for all teams or some. Lists what is showing and what
+  was sent, with how many saw it. Data: get_app_message_targets,
+  get_sent_app_messages, count_app_message_audience, save_app_message,
+  end_app_message (all check app_message_can on the server).
+-->
+<style>
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2');font-weight:700;font-display:swap}
+:root{--club:#1a1d23;--band:#1a1d23;--onband:#fff;--tint:#1a1d2314;--bg:#f3f4f7;--card:#fff;--text:#1a1d23;--muted:#667080;--line:#e6e8ec;--good:#2f9e44;--bad:#d9363e;--money:#8a5a00;--moneybg:#fdf6e3}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{color:var(--text);font-family:DM,system-ui,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+.band{background:var(--band);color:var(--onband);padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));position:sticky;top:0;z-index:3}
+.top{display:flex;align-items:center;gap:12px;max-width:720px;margin:0 auto}
+.back{font-size:26px;line-height:1;padding:0 6px 2px 0;background:none;border:0;color:var(--onband);cursor:pointer;opacity:.9}
+.crest{width:44px;height:44px;background:#fff;border-radius:50%;padding:3px;object-fit:contain;flex:none}
+.band h1{font-size:19px;font-weight:700;line-height:1.15}.band .sub{font-size:13px;opacity:.88;margin-top:2px}
+.wrap{padding:14px 14px 40px;max-width:720px;margin:0 auto}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 2px #0000000d}
+.h2{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:20px 4px 8px}
+.h2:first-child{margin-top:4px}
+.intro{color:var(--muted);font-size:14px;line-height:1.45;margin:0 4px 12px}
+.btn{display:block;width:100%;background:var(--club);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:600;font-size:15px;text-align:center;cursor:pointer}
+.btn:disabled{opacity:.6}
+.btn.ghost{background:#fff;color:var(--bad);border:1.5px solid var(--bad);margin-top:10px}
+.person{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.av{width:40px;height:40px;border-radius:50%;background:var(--tint);color:var(--club);font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;font-size:14px}
+.av.p{background:#f1f2f5;color:#8a919c}
+.pname{font-weight:600;font-size:15.5px}.ptitle{color:var(--muted);font-size:13.5px;margin-top:1px}
+.pchev{margin-left:auto;color:#b4b9c2;font-size:20px;align-self:center}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.c{font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;background:#eef0f4;color:#3b4250;white-space:nowrap}
+.c.m{background:var(--moneybg);color:var(--money)}
+.c.k{background:var(--tint);color:var(--club)}
+.pend{font-size:11.5px;font-weight:700;color:#8a5a00;background:#fdf1cf;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:2px;white-space:nowrap}
+.acts{display:flex;gap:8px;margin-top:10px}
+.sm{background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.log{font-size:13px;color:var(--muted);line-height:1.5}
+.log div{padding:7px 0;border-top:1px solid var(--line)}.log div:first-child{border:0;padding-top:0}
+.log b{color:var(--text);font-weight:600}
+.empty{color:var(--muted);font-size:14px;padding:4px 0}
+/* edit */
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.pre{font-size:13px;font-weight:600;padding:7px 12px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:#3b4250;cursor:pointer}
+.pre.on{border-color:var(--club);background:var(--tint);color:var(--club)}
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
+.row:first-child{border-top:0;padding-top:2px}
+.row>div{flex:1}.rn{font-weight:600;font-size:15px}.rd{color:var(--muted);font-size:12.5px;line-height:1.35;margin-top:2px}
+.row.off{cursor:default;opacity:.6}
+.tog{width:46px;height:28px;border-radius:999px;background:#d5d9e0;position:relative;flex:none;transition:background .15s}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:left .15s}
+.tog.on{background:var(--good)}.tog.on::after{left:21px}
+.moneybox{background:var(--moneybg);border-radius:14px;padding:14px;margin-bottom:10px}
+.moneybox .row{border-color:#f0e4c4}
+.note{display:flex;gap:8px;font-size:12.5px;color:var(--money);line-height:1.4;margin-bottom:6px}
+.kid{display:flex;gap:8px;font-size:12.5px;color:#9a3412;background:#fff4ed;border-radius:8px;padding:8px 10px;margin:2px 0 6px;line-height:1.4}
+.field{margin-bottom:12px}.field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.field input,.field select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff;font-size:16px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.msg{font-size:14px;color:var(--bad);min-height:20px;margin:8px 2px 0}.msg.ok{color:var(--good)}
+.state{padding:70px 30px;text-align:center;color:var(--muted);font-size:16px;line-height:1.5}
+.link{background:none;border:0;color:var(--muted);cursor:pointer;margin-top:12px;font-size:14px;text-decoration:underline}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1a1d23;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;z-index:9;display:none}
+.toast.on{display:block}
+/* sign in */
+.login{display:none;align-items:center;justify-content:center;padding:20px;min-height:100vh}
+.login.on{display:flex}
+.lbox{background:var(--card);border-radius:18px;padding:28px;width:100%;max-width:380px;box-shadow:0 4px 24px #0001}
+.lbox .icrest{display:block;width:64px;height:64px;object-fit:contain;margin:0 auto 12px}
+.lbox h2{font-size:22px;margin-bottom:6px;text-align:center}.lbox p{color:var(--muted);font-size:14px;margin-bottom:18px;text-align:center}
+.lbox input{width:100%;background:#fff;border:1px solid #d6d9df;border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:16px}
+.lbox .link{display:block;margin:12px auto 0}
+/* messages */
+.band .tt{min-width:0}
+.backlink{background:none;border:0;color:var(--club);font-weight:600;font-size:14px;cursor:pointer;margin:0 4px 10px;padding:0}
+.mrow{display:flex;gap:12px}.mx{flex:1;min-width:0}
+.kind{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px;align-self:flex-start;white-space:nowrap}
+.kind.i{background:#fde8e8;color:#b42318}.kind.n{background:#e7f0fd;color:#1f5fc0}
+.mt{font-weight:600}.ms{color:var(--muted);font-size:13px;margin-top:2px;line-height:1.4;white-space:pre-line}
+.stat{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);margin-top:8px}.stat b{color:var(--text)}
+.live{color:var(--good);font-weight:700}.soon{color:#1f5fc0;font-weight:700}
+.sm.red{color:var(--bad)}
+.field textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff;font-size:16px;font:inherit;resize:vertical;line-height:1.4}
+.hint{font-size:12px;color:var(--muted);margin-top:5px}
+.seg{display:flex;background:#eef0f4;border-radius:10px;padding:3px}
+.seg span{flex:1;text-align:center;font-size:13px;font-weight:600;padding:8px 2px;border-radius:8px;color:#4a5262;cursor:pointer}
+.seg span.on{background:#fff;color:var(--text);box-shadow:0 1px 3px #0002}
+.pick{display:flex;justify-content:space-between;gap:10px;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff;cursor:pointer}
+.mut{color:var(--muted);white-space:nowrap}
+.reach{background:var(--tint);color:var(--club);border-radius:10px;padding:10px 12px;font-size:13.5px;font-weight:600;margin:4px 0 12px}
+.warn{background:#fff7e6;color:#8a5a00;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.4;margin-bottom:12px}
+.prev{background:#1e222b;border-radius:16px;padding:14px;color:#f1f4f8}
+.prev .pc{background:#fff;color:#1a1d23;border-radius:14px;padding:14px}
+.prev .pf{font-size:13px;color:#667080;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.prev img{width:28px;height:28px;object-fit:contain;flex:none}
+.prev .pb{font-size:14px;color:#3b4250;margin-top:6px;line-height:1.4;white-space:pre-line}
+.prev .pg{margin-top:12px;text-align:right;font-weight:700;color:var(--club)}
+.nbar{display:flex;align-items:center;gap:10px;background:#2a2f3a;border-radius:12px;padding:10px 12px}
+.nbar div{flex:1;min-width:0}.nbar b{display:block;font-size:14px}.nbar small{display:block;color:#a1a1a2;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nbar span{color:#a1a1a2;font-size:18px}
+.search{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0 4px;font-size:16px}
+.trow{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);cursor:pointer;font-size:15px}
+.trow:first-child{border-top:0;padding-top:2px}
+.tick{width:22px;height:22px;border-radius:6px;border:2px solid #c9ced6;flex:none;position:relative}
+.tick.on{background:var(--club);border-color:var(--club)}
+.tick.on::after{content:'';position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.wrap>.btn{margin-top:4px}
+</style>
+</head>
+<body>
+<div id="app"><div class="state">Loading…</div></div>
+<div class="toast" id="toast"></div>
+
+<div class="login" id="login">
+  <form class="lbox" id="loginForm">
+    <img class="icrest" id="lcrest" alt="" hidden>
+    <h2 id="ltitle">Club messages</h2>
+    <p>Sign in with your CoachSmart email and password.</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="btn" id="goBtn" type="submit">Sign in</button>
+    <div class="msg" id="loginMsg"></div>
+    <button class="link" id="forgot" type="button">Forgot password?</button>
+  </form>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const clubId = Number(new URLSearchParams(location.search).get('club')) || null;
+const AUD = { all: 'Everyone', players: 'Players & parents', staff: 'Coaches' };
+let T = null, M = [], view = 'list', draft = null, armed = null, reachT = null;
+
+function lum(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null;
+  const n = parseInt(m[1], 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+  return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+}
+function brand(c) {
+  if (!c) return;
+  const p = c.primary_colour, s = c.secondary_colour;
+  const okText = h => { const l = lum(h); return l != null && l < .45; };
+  const accent = okText(p) ? p : okText(s) ? s : '#1a1d23';
+  const band = lum(p) != null && lum(p) < .85 ? p : (lum(s) != null && lum(s) < .85 ? s : accent);
+  const r = document.documentElement.style;
+  r.setProperty('--club', accent); r.setProperty('--band', band);
+  r.setProperty('--onband', lum(band) > .5 ? '#14181b' : '#fff');
+  r.setProperty('--tint', accent + '17');
+  document.title = c.club_name + ' · Messages';
+  if (c.crest) ['icon', 'apple-touch-icon'].forEach(rel => {
+    let l = document.querySelector(`link[rel="${rel}"]`);
+    if (!l) { l = document.createElement('link'); l.rel = rel; document.head.appendChild(l); }
+    l.href = c.crest;
+  });
+}
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2200); }
+
+// ── Sign in ───────────────────────────────────────────────────────
+function showLogin(msg, ok) {
+  $('app').innerHTML = '';
+  $('login').classList.add('on');
+  $('loginMsg').textContent = msg || ''; $('loginMsg').classList.toggle('ok', !!ok);
+  $('goBtn').disabled = false; $('goBtn').textContent = 'Sign in';
+  sb.rpc('club_brand', { p_club: clubId }).then(({ data }) => {
+    if (!data) return; brand(data);
+    $('ltitle').textContent = data.club_name + ' messages';
+    if (data.crest) { $('lcrest').src = data.crest; $('lcrest').hidden = false; }
+  }, () => {});
+}
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('goBtn').disabled = true; $('goBtn').textContent = 'Signing in…'; $('loginMsg').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+  if (error) return showLogin(error.message === 'Invalid login credentials' ? 'That email and password don’t match.' : error.message);
+  $('password').value = ''; $('login').classList.remove('on'); load();
+});
+$('forgot').addEventListener('click', async () => {
+  const email = $('email').value.trim();
+  if (!email) return showLogin('Type your email first, then tap Forgot password.');
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  showLogin(error ? error.message : 'Check your email for a link to reset your password.', !error);
+});
+function state(msg) {
+  $('app').innerHTML = `<div class="state">${esc(msg)}<br><a class="link" href="/club/?club=${clubId}">Back to club home</a></div>`;
+}
+
+// ── Data ──────────────────────────────────────────────────────────
+async function load() {
+  if (!clubId) return state('Open this page from your club home.');
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showLogin();
+  const [t, s, b] = await Promise.all([sb.rpc('get_app_message_targets'), sb.rpc('get_sent_app_messages'), sb.rpc('club_brand', { p_club: clubId })]);
+  if (b.data) brand(b.data);
+  T = (t.data || []).find(c => Number(c.club_id) === clubId);
+  if (t.error || !T) return state('Only club officers with the “Messages” tick can send club messages. Ask your chairperson or CoachSmart.');
+  T = { ...(b.data || {}), ...T };
+  M = (s.data || []).filter(m => Number(m.club_id) === clubId);
+  render();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+const now = () => Date.now();
+const status = m => m.ended_at || new Date(m.ends_at) <= now() ? 'ended' : new Date(m.starts_at) > now() ? 'soon' : 'live';
+const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const dShort = iso => { const d = new Date(iso); return DAY[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()]; };
+const hm = iso => { const d = new Date(iso); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const teamsLabel = m => (m.team_names && m.team_names.length) ? (m.team_names.length <= 2 ? m.team_names.join(', ') : m.team_names.length + ' teams') : 'All teams';
+const pad = n => String(n).padStart(2, '0');
+const localInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const localDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+function band(title, sub) {
+  return `<div class="band"><div class="top">${clubHomePill(clubId, T && T.crest)}
+    <div class="tt"><h1>${esc(title)}</h1><div class="sub">${esc(sub)}</div></div></div></div>`;
+}
+function card(m, i) {
+  const st = status(m);
+  const when = st === 'live' ? `<span class="live">● Live until ${dShort(m.ends_at)}</span>`
+    : st === 'soon' ? `<span class="soon">Starts ${dShort(m.starts_at)} ${hm(m.starts_at)}</span>`
+    : `<span>Ended ${dShort(m.ended_at && new Date(m.ended_at) < new Date(m.ends_at) ? m.ended_at : m.ends_at)}</span>`;
+  const acts = st === 'ended' ? `<button class="sm" onclick="again(${i})">Send again</button>`
+    : `<button class="sm" onclick="edit(${i})">Edit</button><button class="sm red" id="stop${i}" onclick="stop(${i})">Stop showing</button>`;
+  return `<div class="card"><div class="mrow"><span class="kind ${m.kind === 'news' ? 'n' : 'i'}">${m.kind === 'news' ? 'News' : 'Important'}</span>
+    <div class="mx"><div class="mt">${esc(m.title)}</div>${m.body ? `<div class="ms">${esc(m.body)}</div>` : ''}
+    <div class="stat">${when}<span>${esc(AUD[m.audience] || 'Everyone')}</span><span>${esc(teamsLabel(m))}</span><span><b>${m.seen_count || 0}</b> of ${m.reach || 0} seen</span></div>
+    <div class="acts">${acts}</div></div></div></div>`;
+}
+function render() {
+  if (view === 'form') return renderForm();
+  const live = M.map((m, i) => [m, i]).filter(([m]) => status(m) !== 'ended');
+  const done = M.map((m, i) => [m, i]).filter(([m]) => status(m) === 'ended').slice(0, 20);
+  $('app').innerHTML = band('Messages', T.club_name) + `<div class="wrap">
+    <p class="intro">Send ${esc(T.club_name)} a pop-up message or a line in the news bar on the app’s home screen.</p>
+    <button class="btn" onclick="newMsg()">+ New message</button>
+    <div class="h2">Showing now</div>${live.length ? live.map(([m, i]) => card(m, i)).join('') : '<div class="card empty">Nothing is showing right now.</div>'}
+    <div class="h2">Sent</div>${done.length ? done.map(([m, i]) => card(m, i)).join('') : '<div class="card empty">Messages you send will be listed here, with how many people saw them.</div>'}
+  </div>`;
+}
+
+// ── New / edit ────────────────────────────────────────────────────
+function blank() {
+  const end = new Date(); end.setDate(end.getDate() + 3);
+  return { id: null, kind: 'important', title: '', body: '', link_url: '', link_label: '', audience: 'all', team_ids: [],
+    later: false, starts: localInput(new Date(Date.now() + 3600e3)), ends: localDate(end), reach: null, picking: false, q: '' };
+}
+function fromMsg(m, copy) {
+  const d = blank();
+  Object.assign(d, { id: copy ? null : m.id, kind: m.kind, title: m.title, body: m.body || '', link_url: m.link_url || '', link_label: m.link_label || '',
+    audience: m.audience || 'all', team_ids: (m.team_ids || []).map(Number) });
+  if (!copy) {
+    d.later = d.wasLater = new Date(m.starts_at) > now(); if (d.later) d.starts = localInput(new Date(m.starts_at));
+    d.ends = localDate(new Date(m.ends_at));
+  }
+  return d;
+}
+function newMsg() { draft = blank(); view = 'form'; render(); recount(); scrollTo(0, 0); }
+function edit(i) { draft = fromMsg(M[i]); view = 'form'; render(); recount(); scrollTo(0, 0); }
+function again(i) { draft = fromMsg(M[i], true); view = 'form'; render(); recount(); scrollTo(0, 0); }
+function back() { view = 'list'; draft = null; render(); }
+function seg(name, opts, cur) {
+  return `<div class="seg">${opts.map(([v, l]) => `<span class="${v === cur ? 'on' : ''}" onclick="setD('${name}','${v}')">${l}</span>`).join('')}</div>`;
+}
+function grab() {
+  if (!draft || !$('fTitle')) return;
+  draft.title = $('fTitle').value; draft.body = $('fBody').value; draft.ends = $('fEnds').value;
+  if ($('fStarts')) draft.starts = $('fStarts').value;
+}
+function setD(k, v) { grab(); draft[k] = v === 'true' ? true : v === 'false' ? false : v; renderForm(); if (k === 'audience') recount(); }
+function teamsText() {
+  if (!draft.team_ids.length) return 'All ' + T.club_name + ' teams';
+  const names = T.teams.filter(t => draft.team_ids.includes(Number(t.team_id))).map(t => t.team_name);
+  return names.length <= 2 ? names.join(', ') : names.length + ' teams';
+}
+function renderForm() {
+  const d = draft;
+  if (d.picking) return renderPicker();
+  const n = d.reach;
+  $('app').innerHTML = band(d.id ? 'Edit message' : 'New message', T.club_name) + `<div class="wrap">
+  <button class="backlink" onclick="back()">‹ All messages</button>
+  <div class="card">
+    <div class="field"><label>Type</label>${seg('kind', [['important', 'Important pop-up'], ['news', 'News bar']], d.kind)}
+      <div class="hint">${d.kind === 'news' ? 'A line in the news bar at the top of the home screen.' : 'Pops up when people open the app, until they tap Got it.'}</div></div>
+    <div class="field"><label>Title</label><input id="fTitle" maxlength="80" value="${esc(d.title)}" placeholder="${d.kind === 'news' ? 'Christmas social, 12 Dec' : 'Pitches closed Saturday'}" oninput="draft.title=this.value;pv()"></div>
+    <div class="field"><label>Message</label><textarea id="fBody" maxlength="500" rows="4" placeholder="A line or two people need to know." oninput="draft.body=this.value;pv()">${esc(d.body)}</textarea></div>
+    <div class="field"><label>Who gets it</label>${seg('audience', [['all', 'Everyone'], ['players', 'Players &amp; parents'], ['staff', 'Coaches']], d.audience)}</div>
+    <div class="field"><label>Teams</label><div class="pick" onclick="openPicker()"><span>${esc(teamsText())}</span><span class="mut">Change ›</span></div></div>
+    <div class="two">
+      <div class="field"><label>Show from</label>${seg('later', [['false', 'Now'], ['true', 'Later']], String(d.later))}
+        ${d.later ? `<input id="fStarts" type="datetime-local" value="${esc(d.starts)}" style="margin-top:6px">` : ''}</div>
+      <div class="field"><label>Stop showing</label><input id="fEnds" type="date" value="${esc(d.ends)}" min="${localDate(new Date())}"><div class="hint">At the end of that day</div></div>
+    </div>
+    <div class="reach" id="reach">${n == null ? 'Counting who it reaches…' : `Reaches about ${n} ${n === 1 ? 'person' : 'people'} at ${esc(T.club_name)}`}</div>
+    <div class="warn">Only people on the new app see messages for now. Everyone gets them after the January switch.</div>
+    <button class="btn" id="sendBtn" onclick="send()">${d.id ? 'Save changes' : 'Send'}</button>
+    <div class="msg" id="fMsg"></div>
+  </div>
+  <div class="h2">How it looks in the app</div><div id="pv"></div>
+  </div>`;
+  pv();
+}
+function pv() {
+  const d = draft, el = $('pv'); if (!el) return;
+  const crest = T.crest ? `<img src="${esc(T.crest)}" alt="">` : '';
+  el.innerHTML = d.kind === 'news'
+    ? `<div class="prev"><div class="nbar">${crest}<div><b>${esc(d.title || 'Your title')}</b>${d.body ? `<small>${esc(d.body)}</small>` : ''}</div><span>›</span></div></div>`
+    : `<div class="prev"><div class="pc"><div class="pf">${crest}${esc(T.club_name)}</div><b>${esc(d.title || 'Your title')}</b>
+       ${d.body ? `<div class="pb">${esc(d.body)}</div>` : ''}<div class="pg">Got it</div></div></div>`;
+}
+function openPicker() { grab(); draft.picking = true; draft.q = ''; renderForm(); }
+function renderPicker() {
+  const q = draft.q.toLowerCase();
+  const list = T.teams.filter(t => !q || t.team_name.toLowerCase().includes(q));
+  $('app').innerHTML = band('Pick teams', T.club_name) + `<div class="wrap">
+  <button class="backlink" onclick="pickDone()">‹ Back to the message</button>
+  <div class="card">
+    <div class="trow" onclick="draft.team_ids=[];renderPicker()"><span class="tick ${draft.team_ids.length ? '' : 'on'}"></span><b>All ${esc(T.club_name)} teams</b></div>
+    <input class="search" id="tq" placeholder="Search teams" value="${esc(draft.q)}" oninput="draft.q=this.value;renderPicker();const e=$('tq');e.focus();e.setSelectionRange(e.value.length,e.value.length)">
+    ${list.map(t => `<div class="trow" onclick="tog(${Number(t.team_id)})"><span class="tick ${draft.team_ids.includes(Number(t.team_id)) ? 'on' : ''}"></span>${esc(t.team_name)}</div>`).join('') || '<div class="empty">No team matches.</div>'}
+  </div>
+  <button class="btn" onclick="pickDone()">Done${draft.team_ids.length ? ' · ' + draft.team_ids.length + ' picked' : ''}</button></div>`;
+}
+function tog(id) { const a = draft.team_ids; const i = a.indexOf(id); if (i >= 0) a.splice(i, 1); else a.push(id); renderPicker(); }
+function pickDone() { draft.picking = false; renderForm(); recount(); }
+function recount() {
+  clearTimeout(reachT); draft.reach = null;
+  const el = $('reach'); if (el) el.textContent = 'Counting who it reaches…';
+  const want = JSON.stringify([draft.team_ids, draft.audience]);
+  reachT = setTimeout(async () => {
+    const { data, error } = await sb.rpc('count_app_message_audience', { p_club_id: clubId, p_team_ids: draft.team_ids, p_audience: draft.audience });
+    if (!draft || JSON.stringify([draft.team_ids, draft.audience]) !== want) return;
+    draft.reach = error ? null : data;
+    const e2 = $('reach'); if (e2) e2.textContent = error ? 'Couldn’t count who it reaches.' : `Reaches about ${data} ${data === 1 ? 'person' : 'people'} at ${T.club_name}`;
+  }, 250);
+}
+async function send() {
+  grab(); const d = draft;
+  const err = t => ($('fMsg').textContent = t);
+  if (!d.title.trim()) return err('Give the message a title.');
+  if (!d.ends) return err('Pick a day to stop showing it.');
+  const ends = new Date(d.ends + 'T23:59:00');
+  const starts = d.later && d.starts ? new Date(d.starts) : null;
+  if (ends <= (starts || new Date())) return err('Stop showing has to be after it starts.');
+  const b = $('sendBtn'); b.disabled = true; b.textContent = d.id ? 'Saving…' : 'Sending…'; err('');
+  const { error } = await sb.rpc('save_app_message', {
+    p_id: d.id, p_kind: d.kind, p_title: d.title.trim(), p_body: d.body.trim(), p_link_url: d.link_url, p_link_label: d.link_label,
+    p_club_id: clubId, p_team_ids: d.team_ids, p_audience: d.audience,
+    p_starts_at: starts ? starts.toISOString() : (d.id && d.wasLater ? new Date().toISOString() : null), p_ends_at: ends.toISOString() });
+  if (error) { b.disabled = false; b.textContent = d.id ? 'Save changes' : 'Send'; return err(/after/.test(error.message) ? 'Stop showing has to be after it starts.' : 'Couldn’t send. Please try again.'); }
+  toast(d.id ? 'Saved' : starts ? 'Scheduled' : 'Sent'); view = 'list'; draft = null; load();
+}
+async function stop(i) {
+  const b = $('stop' + i);
+  if (armed !== i) { armed = i; b.textContent = 'Tap again to stop'; return; }
+  armed = null; b.disabled = true;
+  const { error } = await sb.rpc('end_app_message', { p_id: M[i].id, p_delete: false });
+  toast(error ? 'Couldn’t stop it. Please try again.' : 'Stopped'); load();
+}
+load();
+</script>
+</body>
+</html>

@@ -12,6 +12,7 @@
      coachsmart.app/club/sponsors.html?club=ID. Data via the `sponsors` edge
      function. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/club/home-pill.js"></script>
 <style>
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
@@ -232,9 +233,9 @@ function render() {
   const cur = S.find(s => R && s.sponsor_id === R.sponsor_id) || S[0];
   const months = []; for (let i = 5; i >= 0; i--) { const [y, mo] = D.current.split('-').map(Number); const d = new Date(Date.UTC(y, mo - 1 - i, 1)); months.push(d.toISOString().slice(0, 10)); }
   $('app').innerHTML = `
-  <div class="band">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club partners${cur ? ' · ' + esc(cur.name) + ' · ' + mLong(D.month) : ''}</div></div>
+  <div class="band">${clubHomePill(clubId, c.crest)}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club partners${cur ? ' · ' + esc(cur.name) + ' · ' + mLong(D.month) : ''}</div></div>
    <div class="right"><div class="chips">${months.map(m => `<button class="chip ${m === D.month ? 'on' : ''}" onclick="setMonth('${m}')">${mLabel(m)}</button>`).join('')}</div>
-   <div class="links"><a href="/club/?club=${clubId}">Club home</a><button onclick="editSheet()">Add a sponsor</button><button onclick="window.print()">Print report</button><button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+   <div class="links"><button onclick="editSheet()">Add a sponsor</button><button onclick="window.print()">Print report</button><button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
   <div class="wrap">
    ${!S.length ? `<div class="card" style="text-align:center;padding:40px">
       <h2 style="justify-content:center">No club partner yet</h2>
