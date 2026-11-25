@@ -42,10 +42,20 @@ function roleOf(req: Request): string {
   }
 }
 
-// Every game of the given codes between two days (inclusive)
+// Every game of the given codes between two days (inclusive). Sportlomo's all-clubs
+// list drops games when a request spans several days (its paging isn't stable over
+// a long list: a 7-day request for 19-25 Mar 2026 gave 195 games on the 22nd, a
+// request for the 22nd alone gave 216), so each day is fetched on its own, one day
+// after another for each source.
 async function loadWindow(from: string, to: string, codes: string[]) {
+  const days: string[] = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
   const jobs = codes.flatMap((code) =>
-    SOURCES[code].userIds.map((lvl) => fetchClub("", "", from, to, code, lvl, { maxPages: 150, strict: true }))
+    SOURCES[code].userIds.map(async (lvl) => {
+      const out: Awaited<ReturnType<typeof fetchClub>> = [];
+      for (const d of days) out.push(...await fetchClub("", "", d, d, code, lvl, { maxPages: 150, strict: true }));
+      return out;
+    })
   );
   const games = (await Promise.all(jobs)).flat();
   const seen = new Set<string>();
