@@ -20,6 +20,7 @@ import 'v3_matches_models.dart';
 import '/v3/sport/v3_sport.dart';
 import '/v3/tracking/v3_track.dart';
 import '../v3_share.dart';
+import '../sponsors/v3_sponsors.dart';
 
 class V3MatchLivePage extends StatefulWidget {
   const V3MatchLivePage(
@@ -150,6 +151,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
       });
       _keepAwake();
       if (first && !d.hasError) _prefetchShareToken();
+      if (first && !d.hasError && !_test) _sponsorsAndTrack(d);
     } catch (_) {
       if (seq != _loadSeq || !mounted) return;
       setState(() {
@@ -1038,6 +1040,34 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
             textAlign: TextAlign.center, style: V3.inter(15, color: V3.muted)),
       ));
 
+  // Sponsors for the card, then one live_match_viewed per page open with the
+  // team and club ids for per-team reach in GA4 (2026-11-25).
+  Future<void> _sponsorsAndTrack(LiveMatchData d) async {
+    await V3Sponsors.load();
+    if (!mounted) return;
+    setState(() {});
+    V3Track.event('live_match_viewed', {
+      'event_id': d.event.eventId,
+      'team_id': d.event.teamId,
+      'club_id': V3Sponsors.clubOfTeam(d.event.teamId),
+    });
+  }
+
+  Widget? _sponsorCard(LiveMatchData d) {
+    final s = V3Sponsors.forTeam(d.event.teamId, V3SponsorPlace.live) ??
+        V3Sponsors.onlyOne(V3SponsorPlace.live);
+    if (s == null) return null;
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 2),
+      child: V3SponsorCard(
+          key: ValueKey('sponsor-${s.id}-${d.event.eventId}'),
+          sponsor: s,
+          place: V3SponsorPlace.live,
+          eventId: d.event.eventId,
+          teamId: d.event.teamId),
+    );
+  }
+
   List<Widget> _matchView(LiveMatchData d) {
     final m = d.model(_now);
     final done = d.done;
@@ -1073,6 +1103,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
       _meta(d),
       _clock(d),
       _board(d),
+      if (_sponsorCard(d) case final sp?) sp,
       if (!done) _lastScore(d, m),
       if (_failures > 0) _offline('No signal. Showing the last score we got.'),
       _tabs(),

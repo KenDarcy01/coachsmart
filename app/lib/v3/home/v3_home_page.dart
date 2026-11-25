@@ -21,6 +21,7 @@ import '../v3_theme.dart';
 import 'v3_home_data.dart';
 import 'v3_team_chip.dart';
 import 'v3_timeline_row.dart';
+import '../sponsors/v3_sponsors.dart';
 import '../messages/v3_message_widgets.dart';
 import '../messages/v3_messages_models.dart';
 import '../messages/v3_messages_page.dart';
@@ -75,6 +76,12 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _firstLoad());
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadPitchAccess());
+    V3Sponsors.notifier.addListener(_sponsorsChanged);
+    V3Sponsors.load();
+  }
+
+  void _sponsorsChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadPitchAccess() async {
@@ -93,6 +100,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    V3Sponsors.notifier.removeListener(_sponsorsChanged);
     _tick?.cancel();
     super.dispose();
   }
@@ -143,6 +151,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   Future<void> _refresh() async {
     await _load();
     await _loadMessages();
+    await V3Sponsors.load(force: true);
   }
 
   Future<void> _openNews() async {
@@ -602,7 +611,23 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     final items = buildTimeline(_events, _now);
     final green = nextDay(items);
     final children = <Widget>[];
-    if (_home.showAdvert) children.add(_advert());
+    // The club's sponsor (club partners page) takes the slot; the old
+    // National Draw box shows only where a team has show_advert and the club
+    // has no sponsor (2026-11-25).
+    final team = _selectedTeam == 0 ? null : _selectedTeam;
+    final sponsor = V3Sponsors.forHome(team);
+    if (sponsor != null) {
+      children.add(Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 4),
+        child: V3SponsorCard(
+            key: ValueKey('sponsor-${sponsor.id}-${team ?? 0}'),
+            sponsor: sponsor,
+            place: V3SponsorPlace.home,
+            teamId: team),
+      ));
+    } else if (_home.showAdvert) {
+      children.add(_advert());
+    }
     // The greeting above the chips now heads the page; the "Events" title
     // went with option B (Ken, 2026-11-12).
     children.add(const SizedBox(height: 6));

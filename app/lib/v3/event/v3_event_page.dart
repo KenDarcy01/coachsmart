@@ -25,6 +25,7 @@ import '../matches/v3_matches_models.dart' show LiveMatchData, isLivePhase;
 import '../v3_crest_image.dart';
 import '../v3_open_location.dart';
 import '../v3_theme.dart';
+import '../sponsors/v3_sponsors.dart';
 import 'v3_event_notify_sheet.dart';
 import 'v3_event_teams.dart';
 import 'v3_reminder_sheet.dart';
@@ -210,6 +211,7 @@ class _V3EventPageState extends State<V3EventPage> {
         _error = null;
       });
       _loadTeamFlags(ev.teamId);
+      _sponsorsAndTrack(ev);
       _loadPlan();
       _loadLive();
       if (ev.carPoolingEnabled) _loadCarPools();
@@ -769,6 +771,7 @@ class _V3EventPageState extends State<V3EventPage> {
                       _section('Details'),
                       _details(),
                       const SizedBox(height: 10),
+                      ..._sponsor(),
                       // Published teams (Ken, 2026-11-12), by role.
                       if (widget.testData == null ||
                           widget.testData!['teams'] is Map)
@@ -809,6 +812,40 @@ class _V3EventPageState extends State<V3EventPage> {
                 child: CircularProgressIndicator(
                     strokeWidth: 2.5, color: V3.green))),
       );
+
+  // Sponsors for the card, then one event_viewed per page open with the team
+  // and club ids so reach can be read per team in GA4 (2026-11-25).
+  bool _viewTracked = false;
+  Future<void> _sponsorsAndTrack(UserEventDetailsStruct ev) async {
+    await V3Sponsors.load();
+    if (!mounted) return;
+    setState(() {});
+    if (_viewTracked) return;
+    _viewTracked = true;
+    V3Track.event('event_viewed', {
+      'event_id': ev.eventId,
+      'team_id': ev.teamId,
+      'club_id': V3Sponsors.clubOfTeam(ev.teamId),
+      'event_type': ev.eventType,
+    });
+  }
+
+  // The club's sponsor under Details (2026-11-25), when the club has one.
+  List<Widget> _sponsor() {
+    final e = _ev;
+    if (e == null || _cancelled) return const [];
+    final s = V3Sponsors.forTeam(e.teamId, V3SponsorPlace.event);
+    if (s == null) return const [];
+    return [
+      V3SponsorCard(
+          key: ValueKey('sponsor-${s.id}-$_eventId'),
+          sponsor: s,
+          place: V3SponsorPlace.event,
+          eventId: _eventId,
+          teamId: e.teamId),
+      const SizedBox(height: 12),
+    ];
+  }
 
   Widget _section(String text) => Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 8),
