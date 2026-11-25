@@ -168,7 +168,7 @@ function tilesFor(H) {
   }
   if (t.pitches) {
     const n = t.pitches.unread || 0;
-    out.push(['pitches', '🏟', 'Pitch planner', n ? plural(n, 'change', 'changes') + ' from the league' : 'Pitch bookings and slots', n, '#pitches']);
+    out.push(['pitches', '🏟', 'Pitch planner', n ? plural(n, 'change', 'changes') + ' to official fixtures' : 'Pitch bookings and slots', n, '#pitches']);
   }
   if (t.newsletter) {
     const nl = t.newsletter, no = nl.issue_no ? 'Issue ' + nl.issue_no : '';
