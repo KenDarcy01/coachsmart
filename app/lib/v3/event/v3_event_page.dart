@@ -754,6 +754,9 @@ class _V3EventPageState extends State<V3EventPage> {
                       // tools, details, then teams and attendance.
                       if (_live && !_cancelled) _liveBar(),
                       if (_cancelled) _cancelBanner(),
+                      // Sponsor first, above the reply row (Ken,
+                      // 2026-11-25).
+                      ..._sponsor(),
                       if (_showReplyBlock) ...[
                         _replyCard(),
                         const SizedBox(height: 10),
@@ -771,7 +774,6 @@ class _V3EventPageState extends State<V3EventPage> {
                       _section('Details'),
                       _details(),
                       const SizedBox(height: 10),
-                      ..._sponsor(),
                       // Published teams (Ken, 2026-11-12), by role.
                       if (widget.testData == null ||
                           widget.testData!['teams'] is Map)
@@ -843,7 +845,7 @@ class _V3EventPageState extends State<V3EventPage> {
           place: V3SponsorPlace.event,
           eventId: _eventId,
           teamId: e.teamId),
-      const SizedBox(height: 12),
+      const SizedBox(height: 10),
     ];
   }
 
