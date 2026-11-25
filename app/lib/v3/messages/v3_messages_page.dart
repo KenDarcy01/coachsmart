@@ -298,6 +298,14 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
       final t = await widget.api.targets();
       if (!mounted) return;
       setState(() => _targets = t);
+      // A club officer starts on their own club (not everyone on CoachSmart).
+      if (_m == null && !MessagesAccess.sendEveryone && _clubId == null && t.isNotEmpty) {
+        setState(() {
+          _clubId = t.first.clubId;
+          _clubCrest = t.first.crest;
+        });
+        _recount();
+      }
       // Name the club on an existing club-wide message.
       if (_clubId != null && _teamIds.isEmpty) {
         for (final c in t) {
@@ -796,6 +804,7 @@ class _TargetPageState extends State<_TargetPage> {
   void _done() {
     final c = _club;
     if (c == null) {
+      if (!MessagesAccess.sendEveryone) return;
       Navigator.pop(
           context, const _Target(null, [], 'Everyone on CoachSmart', ''));
       return;
@@ -858,6 +867,7 @@ class _TargetPageState extends State<_TargetPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       children: [
+        if (MessagesAccess.sendEveryone)
         ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
           leading: const Icon(Icons.public, color: V3.green),
