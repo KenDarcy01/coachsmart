@@ -251,7 +251,7 @@ function renderIssue() {
     <div class="card wk"><div><b>Issue ${iss.issue_no} · ${esc(wk(iss.week_start, iss.week_end))}</b><div class="m">${iss.suggested_at ? 'Suggested ' + esc(nice(iss.suggested_at)) + ' · ' : ''}${I.stories.length} stories found</div></div>${pill(iss.status)}</div>
     ${iss.status === 'approved' ? `<div class="row2"><b>Download PDF</b><a href="${esc(iss.pdf_url)}" target="_blank" rel="noopener">Open</a></div>
       <div class="row2"><b>Share link</b><button class="lk" data-a="copy">Copy link</button></div>` : ''}
-    <h2>In this issue <span>Drag ⋮⋮ to reorder</span></h2>
+    <h2>In this issue <span>Tap a story to read or edit it · drag ⋮⋮ to reorder</span></h2>
     <div id="inList">${ins.map(stCard).join('') || '<div class="note">Nothing ticked yet.</div>'}</div>
     <h2>Suggested, not included <span>Tick to add</span></h2>
     <div id="outList">${outs.map(stCard).join('') || '<div class="note">Everything is in.</div>'}</div>
