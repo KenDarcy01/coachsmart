@@ -1042,19 +1042,37 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
 
   // Sponsors for the card, then one live_match_viewed per page open with the
   // team and club ids for per-team reach in GA4 (2026-11-25).
+  // get_live_match_v2 doesn't return the team, so look it up once: a team's
+  // own sponsor shows on its live scores (Ken, 2026-11-25).
+  int? _teamId;
+  bool _sponsorReady = false;
   Future<void> _sponsorsAndTrack(LiveMatchData d) async {
+    _teamId = d.event.teamId;
+    if (_teamId == null) {
+      try {
+        final row = await SupaFlow.client
+            .from('events')
+            .select('team_id')
+            .eq('event_id', d.event.eventId)
+            .maybeSingle();
+        final t = row?['team_id'];
+        _teamId = t is num ? t.toInt() : null;
+      } catch (_) {}
+    }
     await V3Sponsors.load();
     if (!mounted) return;
-    setState(() {});
+    setState(() => _sponsorReady = true);
     V3Track.event('live_match_viewed', {
       'event_id': d.event.eventId,
-      'team_id': d.event.teamId,
-      'club_id': V3Sponsors.clubOfTeam(d.event.teamId),
+      'team_id': _teamId,
+      'club_id': V3Sponsors.clubOfTeam(_teamId),
     });
   }
 
   Widget? _sponsorCard(LiveMatchData d) {
-    final s = V3Sponsors.forTeam(d.event.teamId, V3SponsorPlace.live) ??
+    if (!_sponsorReady) return null;
+    final team = d.event.teamId ?? _teamId;
+    final s = V3Sponsors.forTeam(team, V3SponsorPlace.live) ??
         V3Sponsors.onlyOne(V3SponsorPlace.live);
     if (s == null) return null;
     return Padding(
@@ -1064,7 +1082,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
           sponsor: s,
           place: V3SponsorPlace.live,
           eventId: d.event.eventId,
-          teamId: d.event.teamId),
+          teamId: team),
     );
   }
 
