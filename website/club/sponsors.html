@@ -238,9 +238,9 @@ function render() {
   <div class="wrap">
    ${!S.length ? `<div class="card" style="text-align:center;padding:40px">
       <h2 style="justify-content:center">No club partner yet</h2>
-      <p style="color:var(--muted);margin:8px 0 18px">Add your club's sponsor. Their card shows in the CoachSmart app for your parents and coaches, on Home, event screens and live scores, and this page shows how often it was seen.</p>
+      <p style="color:var(--muted);margin:8px 0 18px">Add your club's sponsor. Their card shows in the CoachSmart app for your parents and coaches, on Home, event screens and live scores, and this page shows how often it was seen. You can also give a team its own sponsor.</p>
       <button class="b go" onclick="editSheet()">Add a sponsor</button></div>` : `
-   ${S.length > 1 ? `<div class="chips noprint" style="margin-bottom:14px">${S.map(s => `<button class="b ${cur && s.sponsor_id === cur.sponsor_id ? 'go' : ''}" onclick="setSponsor(${s.sponsor_id})">${esc(s.name)}</button>`).join(' ')}</div>` : ''}
+   ${S.length > 1 ? `<div class="chips noprint" style="margin-bottom:14px">${S.map(s => `<button class="b ${cur && s.sponsor_id === cur.sponsor_id ? 'go' : ''}" onclick="setSponsor(${s.sponsor_id})">${esc(s.name)} · ${s.team_id ? esc(clean(s.team_name)) : 'whole club'}${s.status === 'ended' ? ' (ended)' : ''}</button>`).join(' ')}</div>` : ''}
    <div class="cols" style="margin-top:0">
     <div class="stack">
      <div class="tiles">
@@ -254,8 +254,8 @@ function render() {
     <div class="stack">
      <div class="card"><h2>${esc(cur.name)} ${statusPill(cur.status)}<button class="act noprint" onclick="editSheet(${cur.sponsor_id})">Edit</button></h2>
       <p style="color:var(--muted);font-size:13px;margin:4px 0 12px">How it looks in the app${cur.status === 'draft' ? '. Set it live when the deal is agreed' : ''}.</p>
-      ${preview(cur)}
-      <p style="color:var(--muted);font-size:13px;margin-top:12px">Shows on: ${PLACES.filter(([k]) => cur['on_' + (k === 'event' ? 'events' : k)]).map(p => p[1].toLowerCase()).join(', ') || 'nowhere'}${cur.starts_on || cur.ends_on ? ` · ${cur.starts_on ? 'from ' + cur.starts_on : ''} ${cur.ends_on ? 'until ' + cur.ends_on : ''}` : ''}</p></div>
+      ${preview(cur, cur.team_id ? 'Team partner' : 'Club partner')}
+      <p style="color:var(--muted);font-size:13px;margin-top:12px">${cur.team_id ? 'For ' + esc(clean(cur.team_name)) + ' only. ' : 'For the whole club. '}Shows on: ${PLACES.filter(([k]) => cur['on_' + (k === 'event' ? 'events' : k)]).map(p => p[1].toLowerCase()).join(', ') || 'nowhere'}${cur.starts_on || cur.ends_on ? ` · ${cur.starts_on ? 'from ' + cur.starts_on : ''} ${cur.ends_on ? 'until ' + cur.ends_on : ''}` : ''}</p></div>
      <div class="card"><h2>Last six months <small>times seen</small></h2>${hist(R)}</div>
     </div>
    </div>
@@ -288,19 +288,29 @@ function editSheet(id) {
    ${s.logo_url ? `<small style="color:var(--muted)">Leave empty to keep the current logo.</small>` : `<small style="color:var(--muted)">A wide logo on a white or clear background works best.</small>`}
    <label class="fl" style="margin-top:10px">Card colour</label>
    <div class="ck"><label><input type="radio" name="f_col" value="" ${!s.card_colour ? 'checked' : ''}>CoachSmart dark</label><label><input type="radio" name="f_col" value="pick" ${s.card_colour ? 'checked' : ''}>Sponsor colour <input id="f_colour" type="color" value="${esc(s.card_colour || '#15302a')}" style="width:44px;height:28px;padding:0;margin:0 0 0 6px;vertical-align:middle"></label></div>
+   <label class="fl">Sponsor for</label>
+   <select id="f_team" onchange="teamPicked()"><option value="">The whole club</option>${(D.teams || []).map(t => `<option value="${t.team_id}" ${s.team_id === t.team_id ? 'selected' : ''}>${esc(clean(t.team_name))} only</option>`).join('')}</select>
+   <small id="f_team_note" style="color:var(--muted);display:block;margin:-4px 0 8px">A team sponsor shows on that team's events and live scores, in place of the club sponsor, never on Home.</small>
    <label class="fl">Show on</label>
-   <div class="ck"><label><input type="checkbox" id="f_home" ${s.on_home ? 'checked' : ''}>Home</label><label><input type="checkbox" id="f_events" ${s.on_events ? 'checked' : ''}>Event screens</label><label><input type="checkbox" id="f_live" ${s.on_live ? 'checked' : ''}>Live scores</label></div>
+   <div class="ck"><label id="f_home_l"><input type="checkbox" id="f_home" ${s.on_home ? 'checked' : ''}>Home</label><label><input type="checkbox" id="f_events" ${s.on_events ? 'checked' : ''}>Event screens</label><label><input type="checkbox" id="f_live" ${s.on_live ? 'checked' : ''}>Live scores</label></div>
    <div class="two"><div><label class="fl">From (optional)</label><input id="f_from" type="date" value="${esc(s.starts_on || '')}"></div><div><label class="fl">Until (optional)</label><input id="f_to" type="date" value="${esc(s.ends_on || '')}"></div></div>
    <label class="fl">Status</label><select id="f_status">
     <option value="draft" ${s.status === 'draft' ? 'selected' : ''}>Draft: only club officers see it in the app, not counted</option>
     <option value="live" ${s.status === 'live' ? 'selected' : ''}>Live: shown to parents and coaches, counted</option>
     <option value="ended" ${s.status === 'ended' ? 'selected' : ''}>Ended: hidden, report kept</option></select>
    <button class="btn" onclick="saveSponsor(${id || 0})">Save</button>`);
+  teamPicked();
+}
+function teamPicked() {
+  const team = !!$('f_team').value;
+  $('f_home').disabled = team; if (team) $('f_home').checked = false;
+  $('f_home_l').style.opacity = team ? .45 : 1;
+  $('f_team_note').style.display = team ? 'block' : 'none';
 }
 function fileB64(f) { return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(f); }); }
 async function saveSponsor(id) {
   const colour = document.querySelector('input[name="f_col"]:checked').value === 'pick' ? $('f_colour').value : null;
-  const sponsor = { sponsor_id: id || null, name: $('f_name').value, tagline: $('f_tag').value, link_url: $('f_link').value, card_colour: colour,
+  const sponsor = { sponsor_id: id || null, team_id: Number($('f_team').value) || null, name: $('f_name').value, tagline: $('f_tag').value, link_url: $('f_link').value, card_colour: colour,
     on_home: $('f_home').checked, on_events: $('f_events').checked, on_live: $('f_live').checked, starts_on: $('f_from').value, ends_on: $('f_to').value, status: $('f_status').value };
   const f = $('f_logo').files[0];
   if (f && f.size > 2e6) return toast('The logo must be under 2 MB.');
