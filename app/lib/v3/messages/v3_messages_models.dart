@@ -121,6 +121,12 @@ class AppMessage {
   }
 }
 
+/// Set from get_my_club_tools on Home: only SuperUsers may send to
+/// everyone on CoachSmart; club officers send to their own club.
+class MessagesAccess {
+  static bool sendEveryone = false;
+}
+
 class MyMessages {
   const MyMessages(
       {this.important = const [],

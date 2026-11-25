@@ -242,6 +242,14 @@ class PitchApi {
       _rpc('pitch_publish_week', {'p_club': clubId, 'p_monday': _d(monday)});
 
   /// Clubs whose published pitch plan the user can read (members).
+  /// Club tools this user's officer ticks open (Ken 2026-11-25): only real
+  /// club officers with the tick see Pitches / Messages in the menu; being a
+  /// SuperUser alone doesn't count. {pitch_clubs, message_clubs, send_everyone}
+  Future<Map> myClubTools() async {
+    final r = await _rpc('get_my_club_tools', {});
+    return r is Map ? r : const {};
+  }
+
   Future<List<PitchClub>> memberClubs() async {
     final r = await _rpc('pitch_member_clubs', {});
     return [

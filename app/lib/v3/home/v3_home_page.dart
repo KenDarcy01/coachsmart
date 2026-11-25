@@ -52,9 +52,12 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   static const _messagesApi = MessagesApi();
   MyMessages _msgs = const MyMessages();
 
-  /// Club the user can open the pitch planner (officer) or published
-  /// pitch plan (member) for; null hides the menu item.
+  /// Clubs whose pitch planner this officer can open (officers with the
+  /// Pitch planner tick only, Ken 2026-11-25); empty hides the menu item.
   List<int> _pitchClubs = const [];
+
+  /// Officer with the Messages tick for at least one club.
+  bool _canMessage = false;
 
   /// The pitch planner club: one of the user's own clubs first (a
   /// SuperUser can plan for every club).
@@ -87,13 +90,18 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   Future<void> _loadPitchAccess() async {
     try {
       const api = PitchApi();
-      var clubs = await api.clubs();
-      if (clubs.isEmpty) clubs = await api.memberClubs();
-      if (mounted && clubs.isNotEmpty) {
-        setState(() => _pitchClubs = [for (final c in clubs) c.clubId]);
+      final t = await api.myClubTools();
+      List<int> ids(dynamic v) =>
+          [if (v is List) for (final x in v) if (x is num) x.toInt()];
+      MessagesAccess.sendEveryone = t['send_everyone'] == true;
+      if (mounted) {
+        setState(() {
+          _pitchClubs = ids(t['pitch_clubs']);
+          _canMessage = ids(t['message_clubs']).isNotEmpty;
+        });
       }
     } catch (_) {
-      // No pitch planner for this user.
+      // No club tools for this user.
     }
   }
 
@@ -942,7 +950,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
                 () => context.pushNamed(V3PitchesPage.routeName,
                     queryParameters: {'club': '$_pitchClub'}),
               ),
-            if (_msgs.isSuperUser)
+            if (_canMessage)
               item(
                 Icons.campaign_outlined,
                 'Messages',
