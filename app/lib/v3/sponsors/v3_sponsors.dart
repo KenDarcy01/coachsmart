@@ -253,13 +253,17 @@ class _V3SponsorCardState extends State<V3SponsorCard> {
             ),
             child: Row(children: [
               if (s.logoUrl.isNotEmpty) ...[
+                // White logo tile with room around the logo, its corners
+                // in proportion to the card's (14px card, ~72px tall; 48px
+                // tile -> 9px). Ken, 2026-11-25: 4px looked crammed.
                 Container(
-                  width: 100,
-                  height: 40,
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                  width: 108,
+                  height: 48,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(9),
                   ),
                   child: Image.network(s.logoUrl,
                       fit: BoxFit.contain,
