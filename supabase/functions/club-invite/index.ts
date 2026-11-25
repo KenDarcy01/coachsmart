@@ -1,7 +1,9 @@
 // deno-lint-ignore-file no-explicit-any
 // Club officer invites for the chairperson dashboard (coachsmart.app/club).
 //
-//   action "invite"  SuperUser only. Adds an officer by email. If the person
+//   action "invite"  SuperUser, or an officer of the club with the "Club
+//                    officers" tick (only SuperUsers set the money ticks).
+//                    Adds an officer by email with one tick per club tool. If the person
 //                    already has a CoachSmart account they become an officer
 //                    straight away; otherwise a pending invite with a one-off
 //                    token (30 days) is stored. Either way they get a
@@ -32,6 +34,19 @@ const SITE = "https://coachsmart.app/club/";
 // added to the home screen as "<Club> Pitches" (Ken, 2026-11-18).
 const PLANNER = (clubId: number) => `https://coachsmart-v3.web.app/pitches?club=${clubId}&look=club`;
 const DAYS = 30;
+// One tick per club tool (Ken 2026-11-25, coachsmart.app/club/officers.html).
+const TICKS = ["can_dashboard", "can_pitches", "can_newsletter", "can_sponsors", "can_officers", "can_spend", "can_lotto"] as const;
+const MONEY = ["can_spend", "can_lotto"];
+const TOOL: Record<string, string> = {
+  can_dashboard: "the club dashboard", can_pitches: "the pitch planner", can_newsletter: "the newsletter",
+  can_sponsors: "club partners", can_officers: "club officers", can_spend: "spend & gear", can_lotto: "the club lotto",
+};
+const ticksOf = (r: any) => Object.fromEntries(TICKS.map((k) => [k, !!r?.[k]]));
+const pitchesOnly = (t: any) => !!t.can_pitches && TICKS.every((k) => k === "can_pitches" || !t[k]);
+function toolList(t: any) {
+  const l = TICKS.filter((k) => t[k]).map((k) => TOOL[k]);
+  return l.length > 1 ? l.slice(0, -1).join(", ") + " and " + l[l.length - 1] : l[0] || "club tools";
+}
 const esc = (s: unknown) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -58,29 +73,32 @@ function buttonColour(...hexes: (string | null | undefined)[]) {
 
 function emailHtml(o: {
   club: any; first: string; inviter: string; title: string; link: string; isNew: boolean;
-  pitchesOnly?: boolean;
+  pitchesOnly?: boolean; ticks?: any;
 }) {
   if (o.pitchesOnly) return pitchEmailHtml(o);
+  const dash = !o.ticks || o.ticks.can_dashboard;
   const btn = buttonColour(o.club.primary_colour, o.club.secondary_colour);
   const crest = o.club.crest
     ? `<img src="${esc(o.club.crest)}" alt="" width="64" height="64" style="display:block;margin:0 auto 12px;width:64px;height:64px;object-fit:contain">`
     : "";
-  const intro = `${o.inviter ? esc(o.inviter) + " has" : "You have been"} ${o.inviter ? "added you" : "added"} as ${esc(o.title)} on the ${esc(o.club.club_name)} club dashboard.`;
-  const what = "It shows how every team in the club is doing: this week's results and fixtures, match turnout, a health check for each team and the season so far.";
+  const intro = `${o.inviter ? esc(o.inviter) + " has" : "You have been"} ${o.inviter ? "added you" : "added"} as ${esc(o.title)} for ${esc(o.club.club_name)}.`;
+  const what = `You can open ${esc(toolList(o.ticks || { can_dashboard: true }))}.` + (dash
+    ? " The dashboard shows how every team in the club is doing: this week's results and fixtures, match turnout, a health check for each team and the season so far."
+    : "");
   const next = o.isNew
-    ? `Tap the button to choose a password and open the dashboard. You don't need to download the app. The link works for ${DAYS} days.`
+    ? `Tap the button to choose a password. You don't need to download the app. The link works for ${DAYS} days.`
     : "Sign in with your CoachSmart email and password.";
   return `<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1d23">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:28px 12px"><tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;padding:28px">
 <tr><td style="text-align:center">${crest}<div style="font-size:20px;font-weight:700;margin-bottom:4px">${esc(o.club.club_name)}</div>
-<div style="color:#6b7280;font-size:14px;margin-bottom:22px">Club dashboard</div></td></tr>
+<div style="color:#6b7280;font-size:14px;margin-bottom:22px">Club tools</div></td></tr>
 <tr><td style="font-size:16px;line-height:1.5">
 <p style="margin:0 0 12px">Hi${o.first ? " " + esc(o.first) : ""},</p>
 <p style="margin:0 0 12px">${intro}</p>
 <p style="margin:0 0 12px">${what}</p>
 <p style="margin:0 0 22px">${next}</p>
-<p style="margin:0 0 22px;text-align:center"><a href="${esc(o.link)}" style="display:inline-block;background:${btn};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">${o.isNew ? "Set up your account" : "Open the dashboard"}</a></p>
+<p style="margin:0 0 22px;text-align:center"><a href="${esc(o.link)}" style="display:inline-block;background:${btn};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">${o.isNew ? "Set up your account" : "Open club tools"}</a></p>
 <p style="margin:0;color:#6b7280;font-size:13px">If the button doesn't work, copy this link into your browser:<br><a href="${esc(o.link)}" style="color:#6b7280;word-break:break-all">${esc(o.link)}</a></p>
 </td></tr></table>
 <div style="color:#9ca3af;font-size:12px;margin-top:14px">Powered by CoachSmart</div>
@@ -139,8 +157,7 @@ serve(async (req) => {
 
       if (body.action === "lookup") {
         return json({ club, email: inv.email, first_name: inv.first_name, last_name: inv.last_name, title: inv.title,
-          can_pitches: inv.can_pitches !== false, can_dashboard: inv.can_dashboard !== false,
-          planner: PLANNER(inv.club_id) });
+          ...ticksOf(inv), pitches_only: pitchesOnly(inv), planner: PLANNER(inv.club_id) });
       }
 
       const password = String(body.password || "");
@@ -182,37 +199,35 @@ serve(async (req) => {
       if (!urow.last_name && last) names.last_name = last;
       if (Object.keys(names).length) await admin.from("users").update(names).eq("user_id", uid);
 
-      const { error: oe } = await admin.from("club_officers").upsert(
-        { club_id: inv.club_id, user_id: uid, title: inv.title, created_by: inv.created_by, is_active: true,
-          can_pitches: inv.can_pitches !== false, can_dashboard: inv.can_dashboard !== false },
-        { onConflict: "club_id,user_id" },
-      );
+      const { error: oe } = await admin.rpc("club_officer_apply_invite", { p_invite: inv.invite_id, p_user: uid });
       if (oe) throw oe;
-      await admin.from("club_officer_invites").update({ accepted_at: new Date().toISOString(), token: null })
-        .eq("invite_id", inv.invite_id);
 
       return json({ ok: true, email: inv.email, club_id: inv.club_id, existing: !!existing?.confirmed,
-        can_dashboard: inv.can_dashboard !== false, planner: PLANNER(inv.club_id) });
+        can_dashboard: !!inv.can_dashboard, pitches_only: pitchesOnly(inv), planner: PLANNER(inv.club_id) });
     }
 
-    // ── SuperUser: invite ───────────────────────────────────────────────
+    // ── Officer admin: invite ───────────────────────────────────────────
     const auth = req.headers.get("Authorization") || "";
     const caller = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: auth } },
     });
     const { data: me } = await caller.auth.getUser();
     if (!me?.user) return json({ error: "Please sign in again." }, 401);
-    const { data: isSuper } = await caller.rpc("is_app_super_user");
-    if (!isSuper) return json({ error: "Only a SuperUser can invite club officers." }, 403);
-
     const clubId = Number(body.club_id);
+    const { data: isSuper } = await caller.rpc("is_app_super_user");
+    const { data: canAdmin } = await caller.rpc("club_officer_admin", { p_club: clubId });
+    if (!canAdmin) return json({ error: "You can't invite officers for this club." }, 403);
     const email = String(body.email || "").trim().toLowerCase();
     const title = String(body.title || "").trim().slice(0, 60) || "Officer";
     const first = String(body.first_name || "").trim().slice(0, 60);
     const last = String(body.last_name || "").trim().slice(0, 60);
-    const canPitches = body.can_pitches !== false;
-    const canDashboard = body.can_dashboard !== false;
-    if (!canPitches && !canDashboard) return json({ error: "Tick the pitch planner, the dashboard or both." }, 400);
+    // Ticks: body.ticks {can_dashboard: true, ...}; older callers sent can_pitches/can_dashboard only.
+    const src = body.ticks && typeof body.ticks === "object" ? body.ticks
+      : { can_pitches: body.can_pitches !== false, can_dashboard: body.can_dashboard !== false,
+          can_newsletter: body.can_dashboard !== false, can_sponsors: body.can_dashboard !== false };
+    const ticks: any = ticksOf(src);
+    if (!TICKS.some((k) => ticks[k])) return json({ error: "Tick at least one tool." }, 400);
+    const canDashboard = !!ticks.can_dashboard;
     if (!clubId) return json({ error: "No club." }, 400);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "That email doesn't look right." }, 400);
 
@@ -225,31 +240,41 @@ serve(async (req) => {
     const { data: found } = await admin.rpc("club_invite_auth_user", { p_email: email });
     const existing = Array.isArray(found) ? found[0] : null;
     let link: string, isNew: boolean, firstName = first;
+    const onTool = pitchesOnly(ticks);
+
+    // Money ticks are SuperUser only: anyone else keeps what the person already has.
+    if (!isSuper) {
+      let had: any = null;
+      if (existing?.user_id) {
+        const { data } = await admin.from("club_officers").select("can_spend, can_lotto, is_active")
+          .eq("club_id", clubId).eq("user_id", existing.user_id).maybeSingle();
+        had = data?.is_active ? data : null;
+      }
+      for (const k of MONEY) ticks[k] = !!had?.[k];
+    }
+    if (existing?.user_id === me.user.id && !isSuper) return json({ error: "Ask another officer or CoachSmart to change your own access." }, 400);
+
+    const tok = token();
+    const row = {
+      club_id: clubId, email, title, first_name: first || null, last_name: last || null,
+      created_by: me.user.id, sent_at: new Date().toISOString(), token: tok,
+      expires_at: new Date(Date.now() + DAYS * 864e5).toISOString(), accepted_at: null, ...ticks,
+    };
+    await admin.from("club_officer_invites").delete().eq("club_id", clubId).ilike("email", email.replace(/[\\%_]/g, "\\$&"));
+    const { data: ins, error } = await admin.from("club_officer_invites").insert(row).select("invite_id").single();
+    if (error) throw error;
+    await admin.from("club_officer_log").insert({ club_id: clubId, actor_id: me.user.id,
+      who: [first, last].filter(Boolean).join(" ") || email, what: `invited as ${title}` });
 
     if (existing?.confirmed && existing.has_profile) {
       // Already on CoachSmart: make them an officer now.
-      const { error } = await admin.from("club_officers").upsert(
-        { club_id: clubId, user_id: existing.user_id, title, created_by: me.user.id, is_active: true,
-          can_pitches: canPitches, can_dashboard: canDashboard },
-        { onConflict: "club_id,user_id" },
-      );
-      if (error) throw error;
-      await admin.from("club_officer_invites").delete().eq("club_id", clubId).ilike("email", email.replace(/[\\%_]/g, "\\$&"));
+      const { error: ae } = await admin.rpc("club_officer_apply_invite", { p_invite: ins.invite_id, p_user: existing.user_id });
+      if (ae) throw ae;
       const { data: u } = await admin.from("users").select("first_name").eq("user_id", existing.user_id).maybeSingle();
       firstName = u?.first_name || first;
-      link = canDashboard ? `${SITE}?club=${clubId}` : PLANNER(clubId);
+      link = onTool ? PLANNER(clubId) : `${SITE}?club=${clubId}`;
       isNew = false;
     } else {
-      const tok = token();
-      const row = {
-        club_id: clubId, email, title, first_name: first || null, last_name: last || null,
-        created_by: me.user.id, sent_at: new Date().toISOString(), token: tok,
-        expires_at: new Date(Date.now() + DAYS * 864e5).toISOString(), accepted_at: null,
-        can_pitches: canPitches, can_dashboard: canDashboard,
-      };
-      await admin.from("club_officer_invites").delete().eq("club_id", clubId).ilike("email", email.replace(/[\\%_]/g, "\\$&"));
-      const { error } = await admin.from("club_officer_invites").insert(row);
-      if (error) throw error;
       link = `${SITE}?club=${clubId}&invite=${tok}`;
       isNew = true;
     }
@@ -258,8 +283,8 @@ serve(async (req) => {
     const { error: me2 } = await resend.emails.send({
       from: "CoachSmart <no-reply@coachsmart.app>",
       to: email,
-      subject: canDashboard ? `${club.club_name} club dashboard` : `${club.club_name} pitch planner`,
-      html: emailHtml({ club, first: firstName, inviter, title, link, isNew, pitchesOnly: !canDashboard }),
+      subject: onTool ? `${club.club_name} pitch planner` : canDashboard ? `${club.club_name} club dashboard` : `${club.club_name} club tools`,
+      html: emailHtml({ club, first: firstName, inviter, title, link, isNew, pitchesOnly: onTool, ticks }),
     });
     if (me2) {
       console.error("Resend failed:", me2);

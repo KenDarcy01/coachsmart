@@ -45,6 +45,21 @@ a{color:inherit;text-decoration:none}
 .lt td{padding:5px 6px;text-align:right;border-top:1px solid var(--line)}.lt td:nth-child(2){text-align:left}.lt td:first-child{color:var(--muted);width:22px}
 .lt tr.me td{background:var(--tint);font-weight:700}.lt tr.us td{font-weight:600}
 .rnd{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f4;color:#3b4250;margin-left:6px;vertical-align:2px;white-space:nowrap}.rnd.f{background:#fdf1cf;color:#8a5a00}.rt .rnd{margin-left:0}
+/* first load (Ken 2026-11-25): club band + placeholder cards + what it's doing */
+.sk-band{background:var(--band);color:var(--onband);padding:14px 28px;display:flex;align-items:center;gap:16px}
+.sk-band img{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:50%;padding:4px}
+.sk-band h1{font-size:23px;font-weight:700}.sk-band .sub{font-size:13.5px;opacity:.85;margin-top:2px}
+.sk-wrap{max-width:1180px;margin:0 auto;padding:22px 28px}
+.sk-msg{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:16px 18px;box-shadow:0 1px 2px #0000000f;margin-bottom:18px}
+.sk-msg i{width:22px;height:22px;border:3px solid var(--tint);border-top-color:var(--club);border-radius:50%;animation:spin .8s linear infinite;flex:none}
+.sk-msg b{display:block;font-size:15px}.sk-msg small{color:var(--muted);font-size:13px}
+.sk-bar{height:4px;background:var(--tint);border-radius:2px;margin-top:8px;overflow:hidden}.sk-bar span{display:block;height:100%;background:var(--club);border-radius:2px;transition:width .6s ease}
+.sk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.sk-card{background:var(--card);border-radius:14px;padding:16px;box-shadow:0 1px 2px #0000000f}
+.sk-line{height:12px;border-radius:6px;margin:8px 0;background:linear-gradient(90deg,#eceef2 25%,#f6f7f9 50%,#eceef2 75%);background-size:200% 100%;animation:shim 1.3s linear infinite}
+.sk-ring{width:64px;height:64px;border-radius:50%;border:8px solid #eceef2;margin:6px 0 10px}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media (max-width:700px){.sk-band{padding:14px 16px}.sk-wrap{padding:14px}.sk-grid{grid-template-columns:1fr}}
 /* loading (Ken 2026-11-16): bar at the top, page dimmed, label pill */
 .ldbar{position:fixed;top:0;left:0;right:0;height:3px;z-index:20;overflow:hidden;display:none}
 .ldbar::before{content:'';position:absolute;top:0;bottom:0;width:40%;background:var(--club);animation:ld 1.1s ease-in-out infinite}
@@ -339,9 +354,10 @@ async function inviteSetup(tok) {
   if (r.error) { dropInvite(); return showLogin(r.error); }
   // A planner-only invite (Ken 2026-11-18) sets up the account here, then
   // sends them to the club's pitch planner instead of this dashboard.
-  const pitchesOnly = r.can_dashboard === false;
-  const what = pitchesOnly ? 'pitch planner' : 'club dashboard';
-  const go = pitchesOnly ? 'Set up and open the pitch planner' : 'Open the dashboard';
+  // Officer ticks (Ken 2026-11-25): only the pitch planner -> planner; anything else -> club home.
+  const pitchesOnly = r.pitches_only ?? (r.can_dashboard === false);
+  const what = pitchesOnly ? 'pitch planner' : 'club tools';
+  const go = pitchesOnly ? 'Set up and open the pitch planner' : 'Set up my account';
   brand(r.club); document.title = r.club.club_name + (pitchesOnly ? ' · Pitch planner' : ' · Club dashboard');
   $('inviteForm').innerHTML = `${r.club.crest ? `<img class="icrest" src="${esc(r.club.crest)}" alt="">` : ''}
     <h2>${esc(r.club.club_name)} ${what}</h2>
@@ -361,7 +377,7 @@ async function inviteSetup(tok) {
     $('iGo').disabled = true; $('iGo').textContent = 'Setting up…'; $('iMsg').textContent = '';
     const a = await fn({ action: 'accept', token: tok, password: pw, first_name: $('iFirst').value, last_name: $('iLast').value });
     if (a.error) return msg(a.error);
-    if (a.can_dashboard === false) {
+    if (a.pitches_only ?? (a.can_dashboard === false)) {
       // Sign in here with the new password and carry the login over, so the
       // planner doesn't ask again (Ken 2026-11-23).
       let href = a.planner;
@@ -379,7 +395,7 @@ async function inviteSetup(tok) {
       return;
     }
     dropInvite(); $('invite').classList.remove('on');
-    if (a.existing) { $('email').value = a.email; return showLogin('You already have a CoachSmart account, so sign in with your usual password. Your club dashboard is ready.', true); }
+    if (a.existing) { location.replace('/club/?club=' + clubId); return; } // they sign in on club home with their usual password
     await sb.auth.signOut().catch(() => {});
     const { error } = await sb.auth.signInWithPassword({ email: a.email, password: pw });
     if (error) { $('email').value = a.email; return showLogin('Your account is ready. Please sign in.', true); }
@@ -416,9 +432,29 @@ async function boot() {
   if (!myClubs.length) return state('This dashboard is for club officers, and ' + (session.user.email || 'this account') + ' isn’t one yet. Sign in with a SuperUser account, or ask CoachSmart to add you as an officer of your club.', true);
   // The link decides the club (Ken 2026-11-16): no club picker, no Change club.
   if (!clubId) return state('Open the dashboard from your club’s link, for example coachsmart.app/club/?club=1.', true);
+  const c0 = myClubs.find(c => c.club_id === clubId);
+  if (c0) { skClub = c0; brand(c0); }
   load();
 }
+// First load: club-branded placeholder with what it's working on (Ken 2026-11-25).
+let skClub = null, skT = null;
+const SK_STEPS = ['Getting this season’s results', 'Counting attendance for every team', 'Working out each team’s health check', 'Putting the league tables together', 'Nearly there'];
+function skeleton() {
+  clearInterval(skT);
+  const c = skClub || {};
+  $('app').innerHTML = `<div class="sk-band">${c.crest ? `<img src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name || 'Club dashboard')}</h1><div class="sub">Club dashboard</div></div></div>
+    <div class="sk-wrap"><div class="sk-msg"><i></i><div style="flex:1"><b id="skStep">${SK_STEPS[0]}…</b><small>This can take a few seconds. Every team’s season is counted fresh.</small>
+      <div class="sk-bar"><span id="skBar" style="width:8%"></span></div></div></div>
+    <div class="sk-grid">${'<div class="sk-card"><div class="sk-line" style="width:55%"></div><div class="sk-ring"></div><div class="sk-line"></div><div class="sk-line" style="width:70%"></div></div>'.repeat(6)}</div></div>`;
+  let i = 0;
+  skT = setInterval(() => {
+    const st = $('skStep'), bar = $('skBar'); if (!st) return clearInterval(skT);
+    i = Math.min(i + 1, SK_STEPS.length - 1); st.textContent = SK_STEPS[i] + '…';
+    bar.style.width = Math.min(92, 8 + i * 21) + '%';
+  }, 1300);
+}
 function state(msg, withOut) {
+  clearInterval(skT);
   $('app').innerHTML = `<div class="state">${esc(msg)}${withOut ? '<br><br><button class="link" onclick="signOut()">Sign out</button>' : ''}</div>`;
 }
 
@@ -458,7 +494,7 @@ async function load0() {
   const sp = ensureStandings();
   if (period === 'week') { await sp; return loadWeek(); }
   const [from, to] = range();
-  if (!D) state('Loading…');
+  if (!D) skeleton();
   const { data, error } = await sb.rpc('get_club_dashboard', { p_club_id: clubId, p_from: from.toISOString(), p_to: to.toISOString() });
   if (!error && !data.error && period === 'season') Dseason = data;
   if (error) return state('Something went wrong loading the dashboard. Please try again.');
@@ -467,8 +503,6 @@ async function load0() {
   D = data; brand(D.club); document.title = D.club.club_name + ' · Club dashboard';
   model = build(D, period === 'last' ? seasonYear - 1 : seasonYear);
   await sp; route();
-  // Club home's Officers tile opens the officers sheet straight away (Ken 2026-11-25).
-  if (P.get('open') === 'officers' && isSuper) { P.delete('open'); const u = new URL(location); u.searchParams.delete('open'); history.replaceState(null, '', u); officers(); }
 }
 
 // ── Model ─────────────────────────────────────────────────────────
@@ -584,7 +618,7 @@ async function loadWeek() {
   const sp = ensureStandings();
   if (!weekStart) { const w = P.get('week'); weekStart = w && /^\d{4}-\d\d-\d\d$/.test(w) ? mondayOf(new Date(w + 'T12:00:00')) : defaultWeek(); }
   if (!Dseason) {
-    state('Loading…');
+    skeleton();
     const { data, error } = await sb.rpc('get_club_dashboard', { p_club_id: clubId, p_from: new Date(seasonYear, 0, 1).toISOString(), p_to: new Date().toISOString() });
     if (error) return state('Something went wrong loading the dashboard. Please try again.');
     if (data.error === 'not_allowed') return state('You’re not an officer of this club.', true);
@@ -1129,7 +1163,7 @@ function sidebar(sel) {
 function shell(sel, body) {
   const c = D.club;
   return `<div class="band">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club dashboard · ${period === 'week' ? (tab === 'fixtures' ? 'fixtures' : 'the week') : periodLabel()}</div>${period === 'week' ? weekStepper() : ''}</div>
-   <div class="right">${chips()}<div class="links"><a href="/club/?club=${clubId}" style="text-decoration:underline;opacity:.9">Club home</a>${newsOn ? newsLink() : ''}${spendOn ? spendLink() : ''}${isSuper ? '<button onclick="officers()">Club officers</button>' : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+   <div class="right">${chips()}<div class="links"><a href="/club/?club=${clubId}" style="text-decoration:underline;opacity:.9">Club home</a>${newsOn ? newsLink() : ''}${spendOn ? spendLink() : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
    <div class="layout"><nav class="side" id="side">${sidebar(sel)}</nav><main class="main"><button class="menu-btn" onclick="$('side').classList.toggle('open')">Teams and groups<span>▾</span></button>${body}</main></div>`;
 }
 
@@ -1242,7 +1276,7 @@ function render() {
   const s = document.querySelector('.side'); if (s) s.scrollTop = y;
   const on = document.querySelector('.side .nav.on'); if (on && !y && on.offsetTop > s.clientHeight - 60) s.scrollTop = on.offsetTop - 120;
 }
-function route() { render(); window.scrollTo(0, 0); }
+function route() { clearInterval(skT); render(); window.scrollTo(0, 0); }
 window.addEventListener('hashchange', route);
 
 boot();
