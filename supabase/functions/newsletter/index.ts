@@ -34,6 +34,7 @@
 //   approve   { club_id, issue_id }
 //   reopen    { club_id, issue_id }
 //   settings  { club_id, settings: { title, strap, website_url, standing? } }
+//   delete_issue { club_id, issue_id }  draft or built issues only
 //   standing_photo { club_id, image (base64), mime }   photo for an "every issue" item
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -121,6 +122,12 @@ serve(async (req) => {
         if (iss.status !== "built" || !iss.pdf_path) throw new Error("Build the issue before approving it.");
         await sb.from("newsletter_issues").update({ status: "approved", approved_at: new Date().toISOString(), approved_by: user.id, updated_at: new Date().toISOString() }).eq("issue_id", iss.issue_id);
         return ok(await issueData(sb, await issueOf(sb, clubId, iss.issue_id)));
+      }
+      case "delete_issue": {
+        const iss = await issueOf(sb, clubId, body.issue_id);
+        if (iss.status === "approved") throw new Error("Approved issues can't be deleted. Tap Make changes first.");
+        await sb.from("newsletter_issues").delete().eq("issue_id", iss.issue_id);
+        return ok(await clubData(sb, clubId));
       }
       case "reopen": return ok(await issueData(sb, await draft(sb, await issueOf(sb, clubId, body.issue_id))));
       case "settings": {

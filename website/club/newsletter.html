@@ -263,6 +263,7 @@ function renderIssue() {
     <div id="outList">${outs.map(stCard).join('') || '<div class="note">Everything is in.</div>'}</div>
     <button class="add" data-a="add">+ Write your own story</button>
     <div class="note">Not right? <button class="lk" style="background:none;border:0;color:var(--club);font-weight:600;cursor:pointer" data-a="resuggest">Suggest again</button> (keeps the stories you edited).</div>
+    ${iss.status !== 'approved' ? '<button class="add" style="margin-top:16px;color:#d9363e" data-a="delissue">Delete this draft</button>' : ''}
   </div>
   <div class="bar"><div class="in"><button class="btn" data-a="preview">Preview</button><button class="btn pri" data-a="build">${iss.status === 'draft' ? 'Build issue' : 'Rebuild'}</button></div></div>`;
   wireDrag();
@@ -440,6 +441,11 @@ document.addEventListener('click', async e => {
   if (a === 'backissue') { view = 'issue'; return render(); }
   if (a === 'openweek') { const d = await busy('Finding this week’s stories… (up to a minute)', () => api({ action: 'open', week_start: el.dataset.w })); if (d) { I = d; view = 'issue'; render(); } return; }
   if (a === 'openissue') { const d = await busy('Opening…', () => api({ action: 'get', issue_id: id })); if (d) { I = d; view = 'issue'; render(); } return; }
+  if (a === 'delissue') {
+    if (!el.dataset.sure) { el.dataset.sure = '1'; el.textContent = 'Tap again to delete Issue ' + I.issue.issue_no + ' and its stories'; return; }
+    const d = await busy('Deleting…', () => api({ action: 'delete_issue', issue_id: I.issue.issue_id }));
+    if (d) { C = d; I = null; view = 'home'; render(); toast('Draft deleted'); } return;
+  }
   if (a === 'addstd') { stdIdx = -1; stdDraft = { active: true, placement: 'short', kicker: '', headline: '', body: '', photo_path: null }; view = 'std'; return render(); }
   if (a === 'editstd') { stdIdx = id - 1; stdDraft = { ...std()[stdIdx] }; view = 'std'; return render(); }
   if (a === 'stdnophoto') { readStd(); stdDraft.photo_path = null; return renderStd(); }
