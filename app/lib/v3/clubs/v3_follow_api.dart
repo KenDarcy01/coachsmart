@@ -37,16 +37,9 @@ class FollowedClub {
   /// "GAA · Dublin"
   String get line => county.isEmpty ? sport : '$sport · $county';
 
-  /// Chip label when the user follows several clubs: the sport when the
-  /// club names share a first word (Clontarf GAA / Clontarf Rugby), else
-  /// the club name.
-  static String chipLabel(FollowedClub c, List<FollowedClub> all) {
-    String first(String n) =>
-        n.trim().split(RegExp(r'\s+')).first.toLowerCase();
-    final clash = all.where((o) => first(o.name) == first(c.name)).length > 1;
-    if (clash) return c.sport;
-    return c.name;
-  }
+  /// Chip label when the user is in several clubs: always the full club
+  /// name (Ken, 2026-11-26).
+  static String chipLabel(FollowedClub c, List<FollowedClub> all) => c.name;
 }
 
 /// What a typed code is.

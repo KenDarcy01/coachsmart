@@ -336,7 +336,10 @@ class V3PinnedImportant extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: V3.amber.withValues(alpha: 0.55)),
           ),
-          child: Row(
+          // IntrinsicHeight: the stretched stripe needs a bounded height
+          // inside the scrolling list.
+          child: IntrinsicHeight(
+              child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(width: 5, color: accent),
@@ -391,7 +394,7 @@ class V3PinnedImportant extends StatelessWidget {
                 ),
               ),
             ],
-          ),
+          )),
         ),
       ),
     );
