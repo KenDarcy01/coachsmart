@@ -126,7 +126,6 @@ button { font: inherit; cursor: pointer; }
     <div class="acard hide" id="previewCard"><h3>Preview</h3><div id="preview"></div></div>
     <button class="abtn o" id="checkBtn">Check winners</button>
     <button class="abtn g hide" id="publishBtn">Publish results</button>
-    <div class="acard"><h3>Sales by team</h3><div id="byTeam"></div></div>
     <div class="acard"><h3>Past draws</h3><div id="past"></div></div>
   </div>
 
@@ -134,7 +133,7 @@ button { font: inherit; cursor: pointer; }
   <div id="tab-players" class="hide">
     <div class="acard">
       <div class="stats"><div class="stat"><div class="v" id="pPlaying">0</div><div class="k">playing now</div></div><div class="stat"><div class="v" id="pWeekly">0</div><div class="k">weekly players</div></div><div class="stat"><div class="v" id="pAll">0</div><div class="k">all players</div></div></div>
-      <input class="search" id="psearch" type="search" placeholder="Search name, email or team" style="margin-top:12px">
+      <input class="search" id="psearch" type="search" placeholder="Search name or email" style="margin-top:12px">
       <div class="seg" id="pseg"><button data-f="playing" class="on">Playing</button><button data-f="stopped">Not playing</button><button data-f="all">All</button></div>
     </div>
     <div class="acard"><div id="plist"><p class="empty">Loading…</p></div></div>
@@ -284,20 +283,19 @@ function renderPlayers() {
   $('pAll').textContent = PL.length;
   const q = $('psearch').value.trim().toLowerCase();
   const rows = PL.filter(p => pFilter === 'all' || (pFilter === 'playing') === playerPlaying(p))
-    .filter(p => !q || [p.name, p.email, ...p.tickets.map(t => t.team_name)].some(v => (v || '').toLowerCase().includes(q)))
+    .filter(p => !q || [p.name, p.email].some(v => (v || '').toLowerCase().includes(q)))
     .sort((a, b) => a.name.localeCompare(b.name));
   $('plist').innerHTML = rows.length ? rows.map(p => {
-    const teams = [...new Set(p.tickets.map(t => t.team_name).filter(Boolean))];
     const won = p.wins.reduce((n, w) => n + w.prize_cents, 0);
     const det = pOpen === p.player_id ? `<div class="pdet" onclick="event.stopPropagation()">
       ${p.tickets.slice().reverse().map(t => `<div class="tk"><div><b>${esc(ticketLabel(t))}</b>${t.test ? '<span class="tag">TEST</span>' : ''}</div>
         ${t.lines.map(l => `<div class="mb">${l.map(n => `<span>${n}</span>`).join('')}</div>`).join('')}
-        <div class="muted">${t.team_name ? esc(t.team_name) + ' · ' : ''}${t.draws_entered} ${t.draws_entered === 1 ? 'draw' : 'draws'} played${t.paid_at ? ' · joined ' + fmtDay(t.paid_at) : ''}</div></div>`).join('')}
+        <div class="muted">${t.draws_entered} ${t.draws_entered === 1 ? 'draw' : 'draws'} played${t.paid_at ? ' · joined ' + fmtDay(t.paid_at) : ''}</div></div>`).join('')}
       ${p.wins.length ? `<div class="tk"><b>Wins</b>${p.wins.map(w => `<div class="muted">${fmtDay(w.draw_at)} · ${KIND[w.kind] || w.kind} · ${euro(w.prize_cents)}</div>`).join('')}</div>` : ''}
       <div class="tk muted"><a href="mailto:${esc(p.email)}" style="color:var(--g)">${esc(p.email)}</a>${p.phone ? ' · <a href="tel:' + esc(p.phone) + '" style="color:var(--g)">' + esc(p.phone) + '</a>' : ''}</div>
     </div>` : '';
     return `<div class="prow" onclick="togglePlayer(${p.player_id})"><div class="r1"><span>${esc(p.name)}</span><span class="pill ${playerPlaying(p) ? 'on' : 'off'}">${playerPlaying(p) ? 'Playing' : 'Not playing'}</span></div>
-      <div class="r2">${esc(playerSummary(p))}${teams.length ? ' · ' + esc(teams.join(', ')) : ''}${won ? ' · won ' + euro(won) : ''}</div>${det}</div>`;
+      <div class="r2">${esc(playerSummary(p))}${won ? ' · won ' + euro(won) : ''}</div>${det}</div>`;
   }).join('') : `<p class="empty">${PL.length ? 'No players match.' : 'No one has bought a ticket yet.'}</p>`;
 }
 function togglePlayer(id) { pOpen = pOpen === id ? null : id; renderPlayers(); }
@@ -307,10 +305,10 @@ document.querySelectorAll('#pseg button').forEach(b => b.onclick = () => { pFilt
 $('pcsv').onclick = () => {
   if (!PL) return;
   const cell = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = [['Name', 'Email', 'Phone', 'Playing', 'Ticket', 'Plan', 'Status', 'Weeks left', 'Lines', 'Numbers', 'Price per week (EUR)', 'Team', 'Joined', 'Total won (EUR)', 'Test']];
+  const rows = [['Name', 'Email', 'Phone', 'Playing', 'Ticket', 'Plan', 'Status', 'Weeks left', 'Lines', 'Numbers', 'Price per week (EUR)', 'Joined', 'Total won (EUR)', 'Test']];
   for (const p of PL.slice().sort((a, b) => a.name.localeCompare(b.name))) {
     const won = (p.wins.reduce((n, w) => n + w.prize_cents, 0) / 100).toFixed(2);
-    for (const t of p.tickets) rows.push([p.name, p.email, p.phone || '', playerPlaying(p) ? 'Yes' : 'No', t.ticket_id, t.plan === 'weekly' ? 'Weekly' : t.weeks_bought + ' weeks', ticketLabel(t), t.plan === 'weekly' && t.status === 'active' ? 'ongoing' : t.weeks_left, t.lines.length, t.lines.map(l => l.join(' ')).join(' / '), (t.price_cents / 100).toFixed(2), t.team_name || '', t.paid_at ? t.paid_at.slice(0, 10) : '', won, t.test ? 'Yes' : '']);
+    for (const t of p.tickets) rows.push([p.name, p.email, p.phone || '', playerPlaying(p) ? 'Yes' : 'No', t.ticket_id, t.plan === 'weekly' ? 'Weekly' : t.weeks_bought + ' weeks', ticketLabel(t), t.plan === 'weekly' && t.status === 'active' ? 'ongoing' : t.weeks_left, t.lines.length, t.lines.map(l => l.join(' ')).join(' / '), (t.price_cents / 100).toFixed(2), t.paid_at ? t.paid_at.slice(0, 10) : '', won, t.test ? 'Yes' : '']);
   }
   const blob = new Blob([rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'lotto-players.csv'; a.click();
@@ -355,10 +353,6 @@ function render(v) {
   $('checkBtn').disabled = !canDraw;
   clearPreview();
 
-  const max = Math.max(1, ...v.stats.by_team.map(t => t.cents));
-  $('byTeam').innerHTML = v.stats.by_team.length
-    ? v.stats.by_team.map(t => `<div class="bar"><span class="nm">${esc(t.team)}</span><span class="tr"><i style="width:${Math.round(t.cents / max * 100)}%"></i></span><span class="vv">${euro(t.cents)}</span></div>`).join('')
-    : '<p class="empty">No sales since the last draw yet.</p>';
   $('past').innerHTML = v.past.length
     ? v.past.map(d => `<div class="past"><div class="r1"><span>${fmt(d.draw_at)}</span><span class="balls">${(d.numbers || []).join(' · ')}</span></div><div class="r2"><span>${d.jackpot_won ? 'Jackpot won, ' + euro(d.jackpot_cents) : 'Jackpot ' + euro(d.jackpot_cents) + ', not won'} · ${d.totals?.lines ?? 0} lines · prizes ${euro(d.totals?.prizes_cents)}</span><button class="link" onclick="exportDraw(${d.draw_id})">CSV</button></div></div>`).join('')
     : '<p class="empty">No draws yet.</p>';

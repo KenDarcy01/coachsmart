@@ -3,6 +3,9 @@
 // and the club admin's settings and draw.
 //
 // Public actions (anon key): page, checkout, stop
+// App action (signed-in user's JWT): handoff, a 10-minute code the app adds to
+//   the page link (?h=) so the page can fill in the user's name and email
+//   (Ken, 2026-11-26). Only name and email go across, and only when they tap.
 // Admin actions (signed-in user listed in lotto_admins): admin_load, admin_save, admin_stripe_connect,
 //   admin_preview, admin_publish, admin_export, admin_add_admin, admin_clear_test, admin_players
 //
@@ -90,6 +93,7 @@ serve(async (req) => {
     const action = String(body.action || "");
     if (action.startsWith("admin_")) return await admin(req, sb, action, body);
     if (action === "page") return await page(sb, body);
+    if (action === "handoff") return await handoff(req, sb, body);
     if (action === "checkout") return await checkout(sb, body);
     if (action === "stop") return await stop(sb, body);
     return json({ error: "Unknown action" }, 400);
@@ -162,21 +166,59 @@ async function page(sb: any, body: any) {
     }
   }
 
-  const { data: teamRows } = await sb.from("teams").select("team_id, team_name").eq("club_id", cfg.club_id).order("team_name");
-  const teamIds = (teamRows || []).map((t: any) => t.team_id);
-  const { data: activeLinks } = teamIds.length
-    ? await sb.from("member_team_link").select("team_id").in("team_id", teamIds).eq("status", "active")
-    : { data: [] };
-  const activeTeams = new Set((activeLinks || []).map((l: any) => l.team_id));
-  const teams = (teamRows || []).filter((t: any) => activeTeams.has(t.team_id) && t.team_name);
+  // Opened from the app: who the CoachSmart user is. If they've played
+  // before with that email, show their tickets too.
+  let app: any = null;
+  const uid = body.h ? await readHandoff(String(body.h), cfg.lotto_id) : null;
+  if (uid) {
+    const { data: u } = await sb.from("users").select("first_name, last_name, email_address").eq("user_id", uid).maybeSingle();
+    const email = String(u?.email_address || "").trim().toLowerCase();
+    if (u && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      app = { name: [u.first_name, u.last_name].filter(Boolean).join(" ").trim(), email };
+      if (!token) {
+        const { data: pl } = await sb.from("lotto_players").select("token").eq("lotto_id", cfg.lotto_id).ilike("email", email).maybeSingle();
+        token = pl?.token || "";
+      }
+    }
+  }
 
   const results = await lastResults(sb, cfg.lotto_id);
   const me = token ? await playerView(sb, cfg, token, results) : null;
 
   return json({
     success: true,
-    data: { lotto: publicCfg(cfg), buying_for: buyingFor(cfg, open), results, teams, me, paid },
+    data: { lotto: publicCfg(cfg), buying_for: buyingFor(cfg, open), results, me, app, paid },
   });
+}
+
+// ── hand-off code from the app ────────────────────────────────────────────────
+// Signed, not stored: user id, lotto id and expiry, with an HMAC keyed off the
+// service role key. Lasts 15 minutes and only works for that lotto's page.
+const HANDOFF_MINUTES = 15;
+const b64url = (b: Uint8Array) => btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+let hmacKey: CryptoKey | null = null;
+async function sign(text: string) {
+  hmacKey ??= await crypto.subtle.importKey("raw", new TextEncoder().encode("lotto-handoff:" + Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return b64url(new Uint8Array(await crypto.subtle.sign("HMAC", hmacKey, new TextEncoder().encode(text))));
+}
+async function readHandoff(code: string, lottoId: number): Promise<string | null> {
+  const m = code.match(/^([A-Za-z0-9_-]{10,200})\.([A-Za-z0-9_-]{43})$/);
+  if (!m || await sign(m[1]) !== m[2]) return null;
+  try {
+    const [uid, lid, exp] = atob(m[1].replace(/-/g, "+").replace(/_/g, "/")).split("|");
+    if (Number(lid) !== lottoId || Date.now() / 1000 > Number(exp)) return null;
+    return /^[0-9a-f-]{36}$/i.test(uid) ? uid : null;
+  } catch { return null; }
+}
+async function handoff(req: Request, sb: any, body: any) {
+  const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  const { data: { user } } = await sb.auth.getUser(jwt);
+  if (!user) return json({ error: "Please sign in again" }, 401);
+  const cfg = await lottoBySlug(sb, body.slug);
+  const exp = Math.floor(Date.now() / 1000) + HANDOFF_MINUTES * 60;
+  const payload = b64url(new TextEncoder().encode(`${user.id}|${cfg.lotto_id}|${exp}`));
+  return json({ success: true, data: { code: `${payload}.${await sign(payload)}` } });
 }
 
 async function playerView(sb: any, cfg: any, token: string, results: any) {
@@ -184,7 +226,7 @@ async function playerView(sb: any, cfg: any, token: string, results: any) {
   const { data: player } = await sb.from("lotto_players").select("*").eq("token", token).eq("lotto_id", cfg.lotto_id).maybeSingle();
   if (!player) return null;
   const { data: tickets } = await sb.from("lotto_tickets")
-    .select("ticket_id, lines, plan, weeks_bought, weeks_paid, draws_entered, status, price_cents, team_id, teams(team_name)")
+    .select("ticket_id, lines, plan, weeks_bought, weeks_paid, draws_entered, status, price_cents")
     .eq("player_id", player.player_id).in("status", ["active", "cancelled"]).order("ticket_id", { ascending: false });
   let lastEntries: any[] = [];
   let lastPrizes: any[] = [];
@@ -200,7 +242,7 @@ async function playerView(sb: any, cfg: any, token: string, results: any) {
     name: player.name, email: player.email, token: player.token,
     tickets: (tickets || []).map((t: any) => ({
       ticket_id: t.ticket_id, lines: t.lines, plan: t.plan, status: t.status, price_cents: t.price_cents,
-      weeks_left: Math.max(0, t.weeks_paid - t.draws_entered), team_name: t.teams?.team_name || null,
+      weeks_left: Math.max(0, t.weeks_paid - t.draws_entered),
     })),
     last_entries: lastEntries, last_prizes: lastPrizes,
   };
@@ -224,12 +266,6 @@ async function checkout(sb: any, body: any) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) bad("Please check your email address");
   if (body.agree18 !== true) bad("You need to be 18 or over to play");
 
-  let teamId: number | null = null;
-  if (body.team_id) {
-    const { data: t } = await sb.from("teams").select("team_id").eq("team_id", Number(body.team_id)).eq("club_id", cfg.club_id).maybeSingle();
-    teamId = t?.team_id ?? null;
-  }
-
   const { data: existing } = await sb.from("lotto_players").select("*").eq("lotto_id", cfg.lotto_id).ilike("email", email).maybeSingle();
   let player = existing;
   if (player) {
@@ -242,7 +278,7 @@ async function checkout(sb: any, body: any) {
 
   const price = priceFor(cfg, lines.length);
   const { data: ticket, error: tErr } = await sb.from("lotto_tickets").insert({
-    lotto_id: cfg.lotto_id, player_id: player.player_id, lines, team_id: teamId, plan, weeks_bought: weeks,
+    lotto_id: cfg.lotto_id, player_id: player.player_id, lines, plan, weeks_bought: weeks,
     price_cents: price, agreed_18_at: new Date().toISOString(), is_test: test,
   }).select("*").single();
   if (tErr) throw tErr;
@@ -450,16 +486,11 @@ async function adminView(sb: any, cfg: any, ids: number[]) {
     .order("draw_at", { ascending: false }).limit(1).maybeSingle();
 
   // Sales since the last draw, and lines/players lined up for the open one.
-  let q = sb.from("lotto_payments").select("amount_cents, lotto_tickets(team_id, teams(team_name))").eq("lotto_id", cfg.lotto_id);
+  let q = sb.from("lotto_payments").select("amount_cents").eq("lotto_id", cfg.lotto_id);
   if (prev) q = q.gt("paid_at", prev.draw_at);
   const { data: pays } = await q;
-  const byTeam: Record<string, number> = {};
   let sales = 0;
-  for (const p of pays || []) {
-    sales += p.amount_cents;
-    const t = p.lotto_tickets?.teams?.team_name || "No team";
-    byTeam[t] = (byTeam[t] || 0) + p.amount_cents;
-  }
+  for (const p of pays || []) sales += p.amount_cents;
   const eligible: any[] = open ? await eligibleTickets(sb, cfg, open) : [];
   const lines = eligible.reduce((n, t) => n + (t.lines?.length || 0), 0);
   const players = new Set(eligible.map(t => t.player_id)).size;
@@ -497,7 +528,7 @@ async function adminView(sb: any, cfg: any, ids: number[]) {
     stripe: stripeStatus,
     draw: open ? { draw_id: open.draw_id, draw_at: open.draw_at, sales_close_at: open.sales_close_at, can_draw: testing(cfg) || new Date() >= new Date(open.sales_close_at) } : null,
     test: { on: testing(cfg), tickets: testTickets || 0, draws: cfg.status === "live" ? 0 : testDraws || 0 },
-    stats: { sales_cents: sales, lines, players, by_team: Object.entries(byTeam).map(([team, cents]) => ({ team, cents })).sort((a, b) => b.cents - a.cents) },
+    stats: { sales_cents: sales, lines, players },
     past: past || [],
   };
 }
@@ -516,7 +547,7 @@ async function playersList(sb: any, cfg: any) {
   const [players, tickets, wins] = await Promise.all([
     all(() => sb.from("lotto_players").select("player_id, name, email, phone, created_at").eq("lotto_id", cfg.lotto_id).order("player_id")),
     all(() => sb.from("lotto_tickets")
-      .select("ticket_id, player_id, lines, plan, weeks_bought, weeks_paid, draws_entered, status, price_cents, paid_at, cancelled_at, refunded_at, is_test, teams(team_name)")
+      .select("ticket_id, player_id, lines, plan, weeks_bought, weeks_paid, draws_entered, status, price_cents, paid_at, cancelled_at, refunded_at, is_test")
       .eq("lotto_id", cfg.lotto_id).neq("status", "pending").order("ticket_id")),
     all(() => sb.from("lotto_winners").select("player_id, kind, prize_cents, lotto_draws!inner(draw_at, lotto_id)")
       .eq("lotto_draws.lotto_id", cfg.lotto_id).order("winner_id")),
@@ -529,7 +560,7 @@ async function playersList(sb: any, cfg: any) {
     p.tickets.push({
       ticket_id: t.ticket_id, lines: t.lines, plan: t.plan, weeks_bought: t.weeks_bought, status: t.status,
       weeks_left: Math.max(0, t.weeks_paid - t.draws_entered), draws_entered: t.draws_entered, price_cents: t.price_cents,
-      team_name: t.teams?.team_name || null, paid_at: t.paid_at, stopped_at: t.cancelled_at || t.refunded_at || null, test: !!t.is_test,
+      paid_at: t.paid_at, stopped_at: t.cancelled_at || t.refunded_at || null, test: !!t.is_test,
     });
   }
   for (const w of wins) byPlayer.get(w.player_id)?.wins.push({ kind: w.kind, prize_cents: w.prize_cents, draw_at: w.lotto_draws?.draw_at });

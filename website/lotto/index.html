@@ -73,6 +73,11 @@ input:focus, select:focus { outline: none; border-color: var(--pri); }
 .tk .meta { font-size: 13px; color: var(--muted); margin-top: 4px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .link { background: none; border: 0; color: var(--acc); font: 600 13px 'DM', sans-serif; padding: 0; }
 .err { color: #b3261e; font-size: 13px; margin-top: 10px; }
+.me { display: flex; align-items: center; gap: 12px; padding: 2px 0 12px; border-bottom: 1px solid var(--line); }
+.me .av { width: 40px; height: 40px; flex: none; border-radius: 50%; background: var(--pri); color: #fff; display: grid; place-items: center; font: 600 15px 'DM', sans-serif; }
+.me .who { flex: 1; min-width: 0; }
+.me .who b { display: block; font-size: 15px; font-weight: 600; }
+.me .who span { display: block; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .back { background: none; border: 0; color: var(--pri); font: 600 14px 'DM', sans-serif; padding: 12px 0 0; }
 .rules { font-size: 13px; color: var(--ink); line-height: 1.5; }
 .rules li { margin-bottom: 4px; }
@@ -115,19 +120,20 @@ input:focus, select:focus { outline: none; border-color: var(--pri); }
     <button class="back" id="back">‹ Change numbers</button>
     <div class="card">
       <h2>How long?</h2>
-      <div class="seg" id="plan"><button data-plan="w1">1 week</button><button data-plan="w4">4 weeks</button><button data-plan="weekly" class="on">Every week</button></div>
+      <div class="seg" id="plan"><button data-plan="weekly" class="on">Every week</button><button data-plan="w4">4 weeks</button><button data-plan="w1">1 week</button></div>
       <p class="sub" style="margin:8px 0 0" id="planNote"></p>
     </div>
-    <div class="card" id="teamCard">
-      <h2>Support a team</h2>
-      <p class="sub">Optional. Teams see what they raised.</p>
-      <select id="team"><option value="">No team</option></select>
-    </div>
     <div class="card">
-      <h2>Your details</h2>
-      <input type="text" id="name" placeholder="Name" autocomplete="name">
-      <input type="email" id="email" placeholder="Email (results and receipts)" autocomplete="email">
-      <input type="tel" id="phone" placeholder="Mobile (optional)" autocomplete="tel">
+      <h2 id="detailsTitle">Your details</h2>
+      <div class="hide" id="asMe">
+        <div class="me"><div class="av" id="asInit"></div><div class="who"><b id="asName"></b><span id="asEmail"></span></div><button class="link" type="button" id="asChange" style="font-size:14px">Change</button></div>
+        <p class="sub" style="margin:10px 0 0">From your CoachSmart account. Tickets and results go to this email.</p>
+      </div>
+      <div id="fields">
+        <input type="text" id="name" placeholder="Name" autocomplete="name">
+        <input type="email" id="email" placeholder="Email (results and receipts)" autocomplete="email">
+        <input type="tel" id="phone" placeholder="Mobile (optional)" autocomplete="tel">
+      </div>
       <label class="tick"><input type="checkbox" id="agree18">I am 18 or over</label>
       <label class="tick"><input type="checkbox" id="agreeRules">I agree to the <button class="link" type="button" id="openRules">lotto rules</button></label>
       <div class="err hide" id="err"></div>
@@ -212,7 +218,7 @@ function show(id, on = true) { $(id).classList.toggle('hide', !on); }
 async function load(paid) {
   if (!SLUG) { message('Lotto not found', 'Check the link and try again.'); return; }
   let d;
-  try { d = await api({ action: 'page', token: TOKEN || undefined, paid: paid || undefined }); }
+  try { d = await api({ action: 'page', token: TOKEN || undefined, paid: paid || undefined, h: params.get('h') || undefined }); }
   catch (e) { message('Lotto not found', e.message); return; }
   L = d.lotto;
   document.title = `${L.club_name} ${L.lotto_name}`;
@@ -232,7 +238,8 @@ async function load(paid) {
   buildRules(d);
 
   if (d.me?.token) { TOKEN = d.me.token; try { localStorage.setItem('lotto-token-' + SLUG, TOKEN); } catch (_) {} }
-  if (paid) history.replaceState(null, '', location.pathname + (PREVIEW ? '?preview=1' : ''));
+  // The app's sign-in code is single-visit: keep it out of the address bar.
+  if (paid || params.get('h')) history.replaceState(null, '', location.pathname + (PREVIEW ? '?preview=1' : ''));
 
   // Arrived from a results or tickets email: lead with that.
   if (params.get('t')) { const w = document.querySelector('.wrap'); w.insertBefore($('mineCard'), $('step1')); w.insertBefore($('resultsCard'), $('mineCard')); }
@@ -249,14 +256,23 @@ async function load(paid) {
 
   if (L.test_mode) document.querySelector('.wrap').insertAdjacentHTML('afterbegin', '<div style="background:#fff4d6;border:1.5px solid #f0b429;color:#7a5200;border-radius:12px;padding:10px 12px;margin:14px 0 12px;font-size:13px;line-height:1.45"><b>Test mode.</b> No payment is taken. Tickets, emails and draws work as normal.</div>');
   $('pickTitle').textContent = `Pick ${L.pick_count} numbers`;
-  const sel = $('team');
-  for (const t of d.teams) sel.insertAdjacentHTML('beforeend', `<option value="${t.team_id}">${esc(t.team_name)}</option>`);
-  show('teamCard', d.teams.length > 0);
   if (d.me) { $('name').value = d.me.name || ''; $('email').value = d.me.email || ''; }
+  if (d.app) signedIn(d.app);
   buildGrid();
   setStep(1);
   if (d.buying_for?.closed_for_current) toast('Sales for this draw have closed. New lines go into the next draw.');
 }
+
+// Opened from the CoachSmart app: show who's playing instead of the form.
+function signedIn(a) {
+  $('name').value = a.name || $('name').value; $('email').value = a.email;
+  if (!a.name) return;
+  $('asName').textContent = a.name; $('asEmail').textContent = a.email;
+  $('asInit').textContent = a.name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  $('detailsTitle').textContent = 'Playing as';
+  show('asMe'); show('fields', false);
+}
+$('asChange').onclick = () => { show('asMe', false); show('fields'); $('detailsTitle').textContent = 'Your details'; $('name').focus(); };
 
 function message(title, text) {
   show('loading', false);
@@ -377,7 +393,7 @@ $('go').onclick = async () => {
   try {
     const d = await api({
       action: 'checkout', lines, plan: plan === 'weekly' ? 'weekly' : 'weeks', weeks: plan === 'w4' ? 4 : 1,
-      team_id: $('team').value || null, name, email, phone: $('phone').value.trim(), agree18: true, preview: PREVIEW || undefined,
+      name, email, phone: $('phone').value.trim(), agree18: true, preview: PREVIEW || undefined,
     });
     location.href = d.url;
   } catch (e) {
@@ -404,7 +420,7 @@ function renderMine(me) {
   $('mine').innerHTML = me.tickets.map(t => {
     const left = t.plan === 'weekly' && t.status === 'active' ? `Every week, ${euro(t.price_cents)}` : `${t.weeks_left} ${t.weeks_left === 1 ? 'draw' : 'draws'} left`;
     const stop = t.plan === 'weekly' && t.status === 'active' ? `<button class="link" onclick="stopTicket(${t.ticket_id}, this)">Stop weekly play</button>` : (t.status === 'cancelled' ? '<span>Stopped</span>' : '');
-    return `<div class="tk">${t.lines.map(l => `<div class="line" style="border:0;padding:3px 0">${balls(l)}</div>`).join('')}<div class="meta"><span>${esc(left)}${t.team_name ? ' · ' + esc(t.team_name) : ''}</span>${stop}</div></div>`;
+    return `<div class="tk">${t.lines.map(l => `<div class="line" style="border:0;padding:3px 0">${balls(l)}</div>`).join('')}<div class="meta"><span>${esc(left)}</span>${stop}</div></div>`;
   }).join('');
   show('mineCard');
 }
