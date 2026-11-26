@@ -229,6 +229,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
           setState(() => _msgs = MyMessages(
               news: _msgs.news,
               fundraisers: _msgs.fundraisers,
+              pinned: _msgs.pinned,
               isSuperUser: _msgs.isSuperUser));
       }
     } catch (_) {
@@ -818,10 +819,17 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
         onOpenMatches: _openMatches,
         onJoinTeam: _followerOnly ? _openJoinTeam : null,
         topCards: [
+          // Important messages stay here until they end (Ken, 2026-11-26).
+          for (final m in _msgs.pinned)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 4),
+              child: V3PinnedImportant(m, key: ValueKey('pinned-${m.id}')),
+            ),
           if (_msgs.news.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 2),
-              child: V3NewsCards(news: _msgs.news, onTap: _openNews),
+              child: V3NewsCards(
+                  news: _msgs.news, onTap: _openNews, stacked: true),
             ),
           if (_msgs.fundraisers.isNotEmpty)
             V3FundraiserRow(items: _msgs.fundraisers, onTap: _openFundraiser),

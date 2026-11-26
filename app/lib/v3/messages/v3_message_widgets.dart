@@ -235,7 +235,8 @@ class V3ImportantCard extends StatelessWidget {
             // With a link, tapping the message opens it too (Ken, 2026-11-15).
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: m.linkUrl.isEmpty ? null : () => V3LottoLink.open(m.linkUrl),
+              onTap:
+                  m.linkUrl.isEmpty ? null : () => V3LottoLink.open(m.linkUrl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -312,6 +313,92 @@ class V3ImportantCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// Pinned important messages
+
+/// An important message pinned at the top of the club screen until it ends,
+/// even after "Got it" on the pop-up (Ken, 2026-11-26). Amber edge and
+/// label, the sender, title and the whole message; a link opens.
+class V3PinnedImportant extends StatelessWidget {
+  const V3PinnedImportant(this.m, {super.key});
+  final AppMessage m;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = m.clubColour ?? V3.amber;
+    return Material(
+      color: V3.card,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: m.linkUrl.isEmpty ? null : () => V3LottoLink.open(m.linkUrl),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: V3.amber.withValues(alpha: 0.55)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 5, color: accent),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(13, 11, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                              color: V3.amberTint,
+                              borderRadius: BorderRadius.circular(6)),
+                          child: Text('IMPORTANT',
+                              style: V3.inter(10.5,
+                                  weight: FontWeight.w700,
+                                  color: V3.amberText,
+                                  letterSpacing: 0.6)),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                              [m.fromName, _when(m.startsAt)]
+                                  .where((x) => x.isNotEmpty)
+                                  .join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: V3.inter(12.5, color: V3.muted)),
+                        ),
+                      ]),
+                      const SizedBox(height: 7),
+                      Text(m.title,
+                          style: V3.tight(17,
+                              weight: FontWeight.w700, height: 1.2)),
+                      if (m.body.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(m.body,
+                            style: V3.inter(14,
+                                color: const Color(0xFFD5D8DE), height: 1.45)),
+                      ],
+                      if (m.linkUrl.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(m.linkLabel.isEmpty ? 'Read more' : m.linkLabel,
+                            style: V3.inter(14,
+                                weight: FontWeight.w600, color: V3.green)),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Club news cards
 
 /// "Club news" on Home: a heading, then one card per live news item that
@@ -325,9 +412,14 @@ class V3NewsCards extends StatefulWidget {
       {super.key,
       required this.news,
       required this.onTap,
-      this.heading = true});
+      this.heading = true,
+      this.stacked = false});
   final List<AppMessage> news;
   final VoidCallback onTap;
+
+  /// One card under another, no carousel: the club screen (Ken,
+  /// 2026-11-26: news has its own screen now, so no need to swipe).
+  final bool stacked;
 
   /// False for the compose preview: just the card.
   final bool heading;
@@ -401,7 +493,7 @@ class _V3NewsCardsState extends State<V3NewsCards> {
                   child: Text(club ? 'Club news' : 'News',
                       style: V3.tight(19, weight: FontWeight.w700)),
                 ),
-                if (news.length > 1)
+                if (news.length > 1 && !widget.stacked)
                   InkWell(
                     borderRadius: BorderRadius.circular(8),
                     onTap: widget.onTap,
@@ -416,23 +508,31 @@ class _V3NewsCardsState extends State<V3NewsCards> {
               ],
             ),
           ),
-        SizedBox(
-          height: 132,
-          child: Listener(
-            onPointerDown: (_) => _pause(),
-            child: PageView.builder(
-              controller: _controller(),
-              padEnds: false,
-              itemCount: news.length,
-              onPageChanged: (i) => setState(() => _page = i),
-              itemBuilder: (_, i) => Padding(
-                padding: EdgeInsets.only(right: news.length > 1 ? 10 : 0),
-                child: _NewsCard(news[i], onTap: widget.onTap),
+        if (widget.stacked)
+          for (var i = 0; i < news.length; i++)
+            Padding(
+              padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
+              child: SizedBox(
+                  height: 132, child: _NewsCard(news[i], onTap: widget.onTap)),
+            )
+        else
+          SizedBox(
+            height: 132,
+            child: Listener(
+              onPointerDown: (_) => _pause(),
+              child: PageView.builder(
+                controller: _controller(),
+                padEnds: false,
+                itemCount: news.length,
+                onPageChanged: (i) => setState(() => _page = i),
+                itemBuilder: (_, i) => Padding(
+                  padding: EdgeInsets.only(right: news.length > 1 ? 10 : 0),
+                  child: _NewsCard(news[i], onTap: widget.onTap),
+                ),
               ),
             ),
           ),
-        ),
-        if (news.length > 1)
+        if (news.length > 1 && !widget.stacked)
           Padding(
             padding: const EdgeInsets.only(top: 9),
             child: Row(

@@ -196,6 +196,7 @@ class MyMessages {
       {this.important = const [],
       this.news = const [],
       this.fundraisers = const [],
+      this.pinned = const [],
       this.isSuperUser = false});
 
   factory MyMessages.fromJson(Map j) => MyMessages(
@@ -214,6 +215,11 @@ class MyMessages {
             for (final m in (j['fundraisers'] as List).whereType<Map>())
               AppMessage.fromJson(m)
         ],
+        pinned: [
+          if (j['pinned'] is List)
+            for (final m in (j['pinned'] as List).whereType<Map>())
+              AppMessage.fromJson(m)
+        ],
         isSuperUser: j['is_super_user'] == true,
       );
 
@@ -223,6 +229,10 @@ class MyMessages {
   /// Fundraisers: their own slim row under Club news (2026-11-26).
   final List<AppMessage> fundraisers;
   final bool isSuperUser;
+
+  /// Important messages still running, acknowledged or not: pinned at the
+  /// top of the club screen until they end (Ken, 2026-11-26).
+  final List<AppMessage> pinned;
 
   int get unreadNews => news.where((n) => !n.seen).length;
 }
