@@ -89,7 +89,7 @@ serve(async (req) => {
         // so a photo found last time may not be found again.
         const { data: old } = await sb.from("newsletter_stories").select("data, photo_path").eq("issue_id", iss.issue_id).eq("edited", false).neq("kind", "custom");
         const prior: Record<string, any> = {};
-        for (const o of old || []) if (o.data?.game_id && o.photo_path) prior[o.data.game_id] = { image: o.data.image, photo_path: o.photo_path };
+        for (const o of old || []) if (o.data?.home && o.photo_path) prior[gameKey(o.data)] = { image: o.data.image, photo_path: o.photo_path };
         await sb.from("newsletter_stories").delete().eq("issue_id", iss.issue_id).eq("edited", false).neq("kind", "custom");
         await suggest(sb, iss, prior);
         return ok(await issueData(sb, await draft(sb, iss)));
@@ -214,6 +214,10 @@ async function storyOf(sb: any, clubId: number, id: any) {
   delete data.newsletter_issues;
   return data;
 }
+// Game ids can change when the results are re-synced, so match a game by
+// its teams and day.
+const gameKey = (d: any) => `${d.home}|${d.away}|${d.day}`;
+
 async function uploadImage(sb: any, folder: string, body: any) {
   const b64 = String(body.image || "").replace(/^data:[^,]+,/, "");
   if (!b64 || b64.length > 6_000_000) throw new Error("That photo is too big. Try a smaller one.");
@@ -502,7 +506,7 @@ async function suggest(sb: any, iss: any, prior: Record<string, any> = {}) {
     const it = items[i];
     const w = written[i] || fallback(it);
     let photo_path: string | null = null;
-    const was = it.data.game_id ? prior[it.data.game_id] : null;
+    const was = it.data.home ? prior[gameKey(it.data)] : null;
     if (was && (!it.data.image || it.data.image === was.image)) { photo_path = was.photo_path; if (was.image) it.data.image = was.image; }
     else if (it.data.image) photo_path = await copyPhoto(sb, it.data.image, iss.club_id, iss.issue_id);
     rows.push({
