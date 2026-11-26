@@ -245,6 +245,8 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
   bool _startNow = true;
   bool _endsTouched = false;
   int? _count;
+  int? _pushCount;
+  bool _push = false;
   int _countCall = 0;
   bool _busy = false;
   List<TargetClub>? _targets;
@@ -263,6 +265,7 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
     _clubId = m?.clubId;
     _teamIds = [...?m?.teamIds];
     _audience = m?.audience ?? MessageAudience.all;
+    _push = m?.push ?? false;
     final now = DateTime.now();
     _startNow = m == null || !(m.startsAt?.isAfter(now) ?? false);
     _startsAt = m?.startsAt ?? now;
@@ -334,6 +337,8 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
     try {
       final n = await widget.api.count(_clubId, _teamIds, _audience);
       if (mounted && call == _countCall) setState(() => _count = n);
+      final p = await widget.api.countPush(_clubId, _teamIds, _audience);
+      if (mounted && call == _countCall) setState(() => _pushCount = p);
     } catch (_) {}
   }
 
@@ -481,12 +486,13 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
                 : 'Show this in the news bar for $who?',
             _kind == MessageKind.important
                 ? 'It shows each time they open the app until they close it.'
+                    '${_push ? ' A push goes to ${_pushCount ?? 'their'} ${_pushCount == 1 ? 'phone' : 'phones'} too.' : ''}'
                 : 'It stays in the bar until ${DateFormat('EEE d MMM, HH:mm').format(_endsAt)}.',
             _startNow ? 'Send now' : 'Schedule it');
     if (!ok || !mounted) return;
     setState(() => _busy = true);
     try {
-      await widget.api.save(
+      final id = await widget.api.save(
         id: _m?.id,
         kind: _kind,
         title: _title.text,
@@ -499,6 +505,15 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
         startsAt: start,
         endsAt: _endsAt,
       );
+      final m = _m;
+      if (id > 0 &&
+          m?.pushSentAt == null &&
+          (_push || (m?.push ?? false))) {
+        await widget.api.setPush(id, _kind == MessageKind.important && _push);
+        if (_kind == MessageKind.important && _push) {
+          V3Track.event('app_message_push');
+        }
+      }
       V3Track.event(_m == null ? 'app_message_sent' : 'app_message_edited');
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -605,6 +620,41 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
           ),
         ),
       );
+
+  Widget _pushRow() {
+    final sent = _m?.pushSentAt;
+    final n = _pushCount;
+    final phones = n == null ? 'phones' : (n == 1 ? '1 phone' : '$n phones');
+    final hint = sent != null
+        ? 'Push sent ${DateFormat('EEE d MMM, HH:mm').format(sent.toLocal())}'
+            '${_m?.pushCount != null ? ' to ${_m!.pushCount} ${_m!.pushCount == 1 ? 'phone' : 'phones'}' : ''}. It isn\'t sent again.'
+        : _push
+            ? 'Goes to $phones with notifications on, ${_startNow ? 'as soon as you send' : 'when it starts showing'}. Push only, no email.'
+            : 'Off. It still pops up when people open the app.';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 12),
+      decoration: BoxDecoration(
+          color: V3.card, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Expanded(child: Text('Send a push too', style: V3.inter(15))),
+            Switch(
+              value: sent != null || _push,
+              activeColor: V3.green,
+              onChanged: sent != null ? null : (v) => setState(() => _push = v),
+            ),
+          ]),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text(hint,
+                style: V3.inter(13, color: V3.muted, height: 1.35)),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _kindTab(MessageKind k, String title, String sub) {
     final on = _kind == k;
@@ -729,6 +779,10 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
                 _pickStart,
                 first: true),
             _row('Stop showing', df.format(_endsAt), _pickEnd, last: true),
+            if (_kind == MessageKind.important) ...[
+              _label('PUSH NOTIFICATION'),
+              _pushRow(),
+            ],
             _label('PREVIEW'),
             if (_kind == MessageKind.important)
               IgnorePointer(

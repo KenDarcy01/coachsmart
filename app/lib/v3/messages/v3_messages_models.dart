@@ -47,6 +47,9 @@ class AppMessage {
     this.imageUrl = '',
     this.priceLabel = '',
     this.tapCount = 0,
+    this.push = false,
+    this.pushSentAt,
+    this.pushCount,
     this.primaryColour = '',
     this.secondaryColour = '',
   });
@@ -87,6 +90,9 @@ class AppMessage {
         imageUrl: _s(j['image_url']),
         priceLabel: _s(j['price_label']),
         tapCount: _int(j['tap_count']),
+        push: j['push'] == true,
+        pushSentAt: _date(j['push_sent_at']),
+        pushCount: j['push_count'] == null ? null : _int(j['push_count']),
         primaryColour: _s(j['primary_colour']),
         secondaryColour: _s(j['secondary_colour']),
       );
@@ -125,6 +131,12 @@ class AppMessage {
   /// tapped its button (sender's list).
   final String priceLabel;
   final int tapCount;
+
+  /// Important only (sender's list): a push goes when it starts showing;
+  /// once sent (pushSentAt), never again. pushCount = phones reached.
+  final bool push;
+  final DateTime? pushSentAt;
+  final int? pushCount;
 
   /// The sending club's colours ('#rrggbb'), empty for CoachSmart-wide.
   final String primaryColour;
@@ -285,6 +297,21 @@ class MessagesApi {
     });
     return _int(r);
   }
+
+  /// Phones with notifications on that a push would reach.
+  Future<int> countPush(
+      int? clubId, List<int> teamIds, MessageAudience a) async {
+    final r = await SupaFlow.client.rpc('count_app_message_push', params: {
+      'p_club_id': clubId,
+      'p_team_ids': teamIds,
+      'p_audience': a.name,
+    });
+    return _int(r);
+  }
+
+  /// Push on or off for a saved Important message (sent when it starts).
+  Future<void> setPush(int id, bool on) => SupaFlow.client
+      .rpc('set_app_message_push', params: {'p_id': id, 'p_push': on});
 
   Future<int> save({
     int? id,
