@@ -197,7 +197,8 @@ function tagsOf(s) {
   if (s.kind === 'go_games') t.push('<span class="tag">Go Games</span>');
   if (s.kind === 'fixtures') t.push('<span class="tag">Fixtures</span>');
   if (s.kind === 'custom') t.push('<span class="tag">Your story</span>');
-  t.push(`<span class="tag">${{ results: 'Results', website: 'Club website', instagram: 'Instagram', you: 'Written by you' }[s.source] || esc(s.source)}</span>`);
+  if (s.kind === 'standing') t.push('<span class="tag">Every issue</span>');
+  t.push(`<span class="tag">${{ results: 'Results', website: 'Club website', instagram: 'Instagram', you: 'Written by you', standing: 'Settings' }[s.source] || esc(s.source)}</span>`);
   return t.join('');
 }
 function preview(s) {
@@ -221,6 +222,7 @@ function render() {
   if (view === 'issue' && I) return renderIssue();
   if (view === 'story' && I) return renderStory();
   if (view === 'preview' && I) return renderPreview();
+  if (view === 'std') return renderStd();
   view = 'home'; renderHome();
 }
 function renderHome() {
@@ -241,7 +243,10 @@ function renderHome() {
       <div class="lbl">Club website (for club news)</div><input class="fld" id="sSite" value="${esc(C.settings.website_url || '')}" placeholder="https://" maxlength="200">
       <button class="btn pri" style="width:100%;margin-top:12px" data-a="savesettings">Save settings</button>
     </div>
-    <div class="note">Stories are suggested from this club’s results and its website. Wins are shown with scores; semi-final and final losses are shown kindly; other losses, the lotto, payments and car pooling are never suggested.</div>
+    <h2>In every issue <span>Added to each new issue, ticked</span></h2>
+    <div class="card hist">${std().length ? std().map((x, i) => `<div class="hi" data-a="editstd" data-id="${i + 1}"><div><b>${esc(x.headline || '(no headline)')}</b><div class="m">${x.placement === 'story' ? 'Story' : 'Short box'}${x.photo_path ? ' · photo' : ''}${x.active ? '' : ' · turned off'}</div></div><span class="m">Edit ›</span></div>`).join('') : '<div class="m" style="padding:6px 0">Nothing yet. Add things like the lotto, membership or the club shop.</div>'}</div>
+    <button class="add" data-a="addstd">+ Add an every-issue item</button>
+    <div class="note">Stories are suggested from this club’s results and its website. Wins are shown with scores; semi-final and final losses are shown kindly; other losses, the lotto, payments and car pooling are never suggested (add your own lotto item under In every issue).</div>
   </div>`;
 }
 function renderIssue() {
@@ -262,6 +267,42 @@ function renderIssue() {
   <div class="bar"><div class="in"><button class="btn" data-a="preview">Preview</button><button class="btn pri" data-a="build">${iss.status === 'draft' ? 'Build issue' : 'Rebuild'}</button></div></div>`;
   wireDrag();
 }
+const std = () => (C.settings.standing || []);
+const stdUrl = p => p ? SUPABASE_URL + '/storage/v1/object/public/newsletter/' + p : '';
+let stdIdx = -1, stdDraft = null;
+function renderStd() {
+  const x = stdDraft;
+  $('app').innerHTML = band('In every issue', x.headline || 'New item', 'home') + `<div class="wrap">
+    <div class="row2" style="margin-top:0"><b>Add to each new issue</b><button class="sw${x.active ? ' on' : ''}" id="xOn" aria-label="On"></button></div>
+    <div class="lbl">Place in the issue</div>
+    <div class="seg" id="xPlace">${[['short', 'Short box'], ['story', 'Story']].map(([k, l]) => `<button data-p="${k}" class="${x.placement === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="lbl">Small heading above</div><input class="fld" id="xKicker" value="${esc(x.kicker || '')}" maxlength="120" placeholder="e.g. Club Lotto">
+    <div class="lbl">Headline</div><input class="fld big" id="xHead" value="${esc(x.headline || '')}" maxlength="120" placeholder="e.g. This week’s jackpot">
+    <div class="lbl">Text <span style="text-transform:none;letter-spacing:0;font-weight:500">(a blank line starts a new paragraph)</span></div><textarea class="fld" id="xBody">${esc(x.body || '')}</textarea>
+    <div class="lbl">Photo or logo</div><div class="photo">${x.photo_path ? `<img src="${esc(stdUrl(x.photo_path))}" alt=""><button data-a="stdnophoto">Remove</button>` : ''}<label>${x.photo_path ? 'Change' : '+ Add a photo'}<input type="file" accept="image/*" id="xPhoto" hidden></label></div>
+    <div class="note">Each new issue gets this ticked, near the end. You can change the text for one week (this week’s jackpot, say) in that issue without changing it here.</div>
+    ${stdIdx >= 0 ? '<button class="add" style="margin-top:16px;color:#d9363e" data-a="stddelete">Delete this item</button>' : ''}
+  </div>
+  <div class="bar"><div class="in"><button class="btn" data-a="home">Cancel</button><button class="btn pri" data-a="stdsave">Save</button></div></div>`;
+  const seg = $('xPlace');
+  seg.addEventListener('click', e => { const b = e.target.closest('button[data-p]'); if (!b) return; seg.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); });
+  $('xOn').addEventListener('click', e => e.currentTarget.classList.toggle('on'));
+  const f = $('xPhoto'); f.addEventListener('change', async () => {
+    if (!f.files[0]) return; readStd();
+    const data = await shrink(f.files[0]).catch(e => { toast(e.message); return null; }); if (!data) return;
+    const r = await busy('Adding photo…', () => api({ action: 'standing_photo', image: data, mime: 'image/jpeg' }));
+    if (r) { stdDraft.photo_path = r.photo_path; renderStd(); }
+  });
+}
+function readStd() {
+  if (!$('xHead')) return;
+  const seg = document.querySelector('#xPlace .on');
+  Object.assign(stdDraft, { active: $('xOn').classList.contains('on'), placement: seg ? seg.dataset.p : 'short', kicker: $('xKicker').value, headline: $('xHead').value, body: $('xBody').value });
+}
+async function saveStd(list) {
+  const d = await busy('Saving…', () => api({ action: 'settings', settings: { title: C.settings.title, strap: C.settings.strap, website_url: C.settings.website_url, standing: list } }));
+  if (d) { C = d; view = 'home'; render(); toast('Saved. Any draft issue has it too.'); }
+}
 function renderStory() {
   const s = story(storyId); if (!s) { view = 'issue'; return render(); }
   const d = s.data || {};
@@ -270,6 +311,7 @@ function renderStory() {
   else if (s.source === 'results' && d.rows) src = `<b>Results</b> · ${d.rows.length} games`;
   else if (s.source === 'results' && d.count) src = `<b>Results</b> · ${d.count} Go Games blitzes`;
   else if (s.source === 'website' || s.source === 'instagram') src = `<b>${s.source === 'website' ? 'Club website' : 'Club Instagram (from the website)'}</b>${d.title ? ' · ' + esc(d.title) : ''}<br>${esc((d.text || '').slice(0, 600))}${d.url ? `<br><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.url)}</a>` : ''}`;
+  else if (s.kind === 'standing') src = '<b>From In every issue</b><br>Changes here are for this issue only. To change it for every issue, edit it in Settings on the newsletter home screen.';
   else src = '<b>Written by you</b>';
   const box = s.kind === 'wins_box' || s.kind === 'fixtures';
   $('app').innerHTML = band('Story', s.kicker || (box ? s.headline : 'Your story'), 'backissue') + `<div class="wrap">
@@ -289,7 +331,7 @@ function renderStory() {
     <div class="lbl">Where this came from</div><div class="src">${src}</div>
     ${s.kind === 'custom' ? '<button class="add" style="margin-top:16px;color:#d9363e" data-a="delete">Delete this story</button>' : ''}
   </div>
-  <div class="bar"><div class="in">${(!box && s.kind !== 'custom') ? '<button class="btn" data-a="rewrite">Write it again</button>' : ''}<button class="btn pri" data-a="savestory">Save</button></div></div>`;
+  <div class="bar"><div class="in">${(!box && s.kind !== 'custom' && s.kind !== 'standing') ? '<button class="btn" data-a="rewrite">Write it again</button>' : ''}<button class="btn pri" data-a="savestory">Save</button></div></div>`;
   const seg = $('ePlace');
   if (seg) seg.addEventListener('click', e => {
     const b = e.target.closest('button[data-p]'); if (!b) return;
@@ -398,6 +440,18 @@ document.addEventListener('click', async e => {
   if (a === 'backissue') { view = 'issue'; return render(); }
   if (a === 'openweek') { const d = await busy('Finding this week’s stories… (up to a minute)', () => api({ action: 'open', week_start: el.dataset.w })); if (d) { I = d; view = 'issue'; render(); } return; }
   if (a === 'openissue') { const d = await busy('Opening…', () => api({ action: 'get', issue_id: id })); if (d) { I = d; view = 'issue'; render(); } return; }
+  if (a === 'addstd') { stdIdx = -1; stdDraft = { active: true, placement: 'short', kicker: '', headline: '', body: '', photo_path: null }; view = 'std'; return render(); }
+  if (a === 'editstd') { stdIdx = id - 1; stdDraft = { ...std()[stdIdx] }; view = 'std'; return render(); }
+  if (a === 'stdnophoto') { readStd(); stdDraft.photo_path = null; return renderStd(); }
+  if (a === 'stdsave') {
+    readStd(); if (!stdDraft.headline.trim() && !stdDraft.body.trim()) return toast('Give it a headline or some text.');
+    const list = std().map(y => ({ ...y })); if (stdIdx >= 0) list[stdIdx] = stdDraft; else list.push(stdDraft);
+    return saveStd(list);
+  }
+  if (a === 'stddelete') {
+    if (!el.dataset.sure) { el.dataset.sure = '1'; el.textContent = 'Tap again to delete'; return; }
+    return saveStd(std().filter((_, i) => i !== stdIdx));
+  }
   if (a === 'savesettings') {
     const d = await busy('Saving…', () => api({ action: 'settings', settings: { title: $('sTitle').value, strap: $('sStrap').value, website_url: $('sSite').value } }));
     if (d) { C = d; toast('Saved'); render(); } return;

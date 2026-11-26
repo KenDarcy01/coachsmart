@@ -33,7 +33,8 @@
 //   build     { club_id, issue_id, pdf (base64) }
 //   approve   { club_id, issue_id }
 //   reopen    { club_id, issue_id }
-//   settings  { club_id, settings: { title, strap, website_url } }
+//   settings  { club_id, settings: { title, strap, website_url, standing? } }
+//   standing_photo { club_id, image (base64), mime }   photo for an "every issue" item
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk";
@@ -129,8 +130,19 @@ serve(async (req) => {
         let site = clip(s.website_url, 200) || null;
         if (site && !/^https:\/\/[^\s/]+\.[^\s]+$/i.test(site)) throw new Error("The website should start with https://");
         if (site) site = site.replace(/\/+$/, "");
-        await sb.from("newsletter_settings").upsert({ club_id: clubId, title, strap: clip(s.strap, 120) || null, website_url: site, updated_at: new Date().toISOString() });
+        const row: any = { club_id: clubId, title, strap: clip(s.strap, 120) || null, website_url: site, updated_at: new Date().toISOString() };
+        if (Array.isArray(s.standing)) row.standing = cleanStanding(s.standing, clubId);
+        await sb.from("newsletter_settings").upsert(row);
+        if (row.standing) {
+          // New "every issue" items also go into issues still in draft.
+          const { data: drafts } = await sb.from("newsletter_issues").select("*").eq("club_id", clubId).eq("status", "draft");
+          for (const iss of drafts || []) await addStanding(sb, iss, row.standing);
+        }
         return ok(await clubData(sb, clubId));
+      }
+      case "standing_photo": {
+        const path = await uploadImage(sb, `${clubId}/standing`, body);
+        return ok({ photo_path: path, photo_url: PUBLIC + path });
       }
     }
     return fail("Unknown action.");
@@ -202,6 +214,54 @@ async function storyOf(sb: any, clubId: number, id: any) {
   delete data.newsletter_issues;
   return data;
 }
+async function uploadImage(sb: any, folder: string, body: any) {
+  const b64 = String(body.image || "").replace(/^data:[^,]+,/, "");
+  if (!b64 || b64.length > 6_000_000) throw new Error("That photo is too big. Try a smaller one.");
+  const mime = ["image/jpeg", "image/png", "image/webp"].includes(body.mime) ? body.mime : "image/jpeg";
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const path = `${folder}/${crypto.randomUUID()}.${mime.split("/")[1].replace("jpeg", "jpg")}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, bytes, { contentType: mime });
+  if (error) throw error;
+  return path;
+}
+
+// "In every issue" items (settings.standing).
+function cleanStanding(list: any[], clubId: number) {
+  return list.slice(0, 12).map((x: any) => ({
+    id: /^[a-z0-9-]{6,40}$/i.test(String(x.id || "")) ? String(x.id) : crypto.randomUUID(),
+    kicker: clip(x.kicker, 120) || "",
+    headline: clip(x.headline, 120) || "",
+    body: clip(x.body, 4000) || "",
+    placement: x.placement === "story" ? "story" : "short",
+    photo_path: typeof x.photo_path === "string" && x.photo_path.startsWith(`${clubId}/standing/`) ? x.photo_path : null,
+    active: x.active !== false,
+  })).filter((x: any) => x.headline || x.body);
+}
+async function addStanding(sb: any, iss: any, standing?: any[]) {
+  if (!standing) {
+    const { data } = await sb.from("newsletter_settings").select("standing").eq("club_id", iss.club_id).maybeSingle();
+    standing = data?.standing || [];
+  }
+  const items = (standing || []).filter((x: any) => x.active);
+  if (!items.length) return;
+  const { data: have } = await sb.from("newsletter_stories").select("kind, data, position").eq("issue_id", iss.issue_id);
+  const got = new Set((have || []).filter((h: any) => h.kind === "standing").map((h: any) => h.data?.standing_id));
+  const rows = items.filter((x: any) => !got.has(x.id));
+  if (!rows.length) return;
+  // Just before the fixtures box (fixtures stay last).
+  const fx = (have || []).filter((h: any) => h.kind === "fixtures").map((h: any) => h.position);
+  const nonFx = (have || []).filter((h: any) => h.kind !== "fixtures").map((h: any) => h.position || 0);
+  let pos = Math.max(0, ...nonFx);
+  if (fx.length) {
+    for (const f of fx) await sb.from("newsletter_stories").update({ position: f + rows.length }).eq("issue_id", iss.issue_id).eq("kind", "fixtures").eq("position", f);
+  }
+  const { error } = await sb.from("newsletter_stories").insert(rows.map((x: any) => ({
+    issue_id: iss.issue_id, kind: "standing", source: "standing", kicker: x.kicker || null, headline: x.headline, body: x.body,
+    placement: x.placement, included: true, position: ++pos, photo_path: x.photo_path, data: { standing_id: x.id },
+  })));
+  if (error) throw error;
+}
+
 // Any change after a build sends the issue back to draft (its PDF is stale).
 async function draft(sb: any, iss: any) {
   if (iss.status && iss.status === "draft") return iss;
@@ -460,6 +520,7 @@ async function suggest(sb: any, iss: any, prior: Record<string, any> = {}) {
     const { error } = await sb.from("newsletter_stories").insert(rows);
     if (error) throw error;
   }
+  await addStanding(sb, iss);
   await sb.from("newsletter_issues").update({ suggested_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("issue_id", iss.issue_id);
 }
 
@@ -593,16 +654,7 @@ async function order(sb: any, clubId: number, body: any) {
 async function photo(sb: any, clubId: number, body: any) {
   const st = await storyOf(sb, clubId, body.story_id);
   await draft(sb, { issue_id: st.issue_id });
-  let path: string | null = null;
-  if (!body.clear) {
-    const b64 = String(body.image || "").replace(/^data:[^,]+,/, "");
-    if (!b64 || b64.length > 6_000_000) throw new Error("That photo is too big. Try a smaller one.");
-    const mime = ["image/jpeg", "image/png", "image/webp"].includes(body.mime) ? body.mime : "image/jpeg";
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    path = `${clubId}/${st.issue_id}/${crypto.randomUUID()}.${mime.split("/")[1].replace("jpeg", "jpg")}`;
-    const { error } = await sb.storage.from(BUCKET).upload(path, bytes, { contentType: mime });
-    if (error) throw error;
-  }
+  const path = body.clear ? null : await uploadImage(sb, `${clubId}/${st.issue_id}`, body);
   const { data } = await sb.from("newsletter_stories").update({ photo_path: path, data: { ...(st.data || {}), hide_photo: false }, edited: true, updated_at: new Date().toISOString() }).eq("story_id", st.story_id).select().single();
   return withUrl(data);
 }
