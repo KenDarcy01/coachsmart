@@ -71,7 +71,7 @@ serve(async (req) => {
 
   const auth = req.headers.get("Authorization") || "";
   if (a === "harvest") {
-    // Twice a day from pg_cron (newsletter_harvest_wake) with a service-role
+    // Nightly from pg_cron (newsletter_harvest_wake) with a service-role
     // token; the gateway has already checked the token's signature.
     let role = "";
     try { role = JSON.parse(atob(auth.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).role; } catch (_) { /* no */ }
@@ -441,7 +441,7 @@ async function livePosts(sb: any, clubId: number, site: string, lo: number, hi: 
         const text = String(it.body || it.excerpt || "").replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi, " ")
           .replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&rsquo;|&#39;/g, "'").replace(/&[a-z]+;/g, " ").replace(/\s+/g, " ").trim();
         const post = { source: "website", title: it.title, text: text.slice(0, 2500), url: site + (it.fullUrl || ""), image: it.assetUrl || "", at: it.publishOn };
-        if (it.publishOn > Date.now() - 45 * 864e5) all.push(post);
+        if (it.publishOn > Date.now() - 31 * 864e5) all.push(post);
         if (it.publishOn >= lo && it.publishOn <= hi) out.push(post);
       }
     }
@@ -462,7 +462,7 @@ async function livePosts(sb: any, clubId: number, site: string, lo: number, hi: 
         seen.add(text);
         if (/\blott(o|ery)\b|jackpot|car ?pool|payment/i.test(text)) continue; // Ken: never publicly
         const post = { source: "instagram", title: "", text: text.slice(0, 1500), url: site, image: m[2].split("?")[0], at };
-        if (at > Date.now() - 45 * 864e5) all.push(post);
+        if (at > Date.now() - 31 * 864e5) all.push(post);
         if (at >= lo && at <= hi) out.push(post);
       }
     }
