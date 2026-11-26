@@ -434,7 +434,7 @@ async function suggest(sb: any, iss: any, prior: Record<string, any> = {}) {
   const news = await siteNews(settings.website_url || "", from, to);
 
   const { data: kept } = await sb.from("newsletter_stories").select("kind, data, placement, position").eq("issue_id", iss.issue_id);
-  const keptGames = new Set((kept || []).map((k: any) => k.data?.game_id).filter(Boolean));
+  const keptGames = new Set((kept || []).filter((k: any) => k.data?.home).map((k: any) => gameKey(k.data)));
   const keptImages = new Set((kept || []).map((k: any) => k.data?.image).filter(Boolean));
   const hasLead = (kept || []).some((k: any) => k.placement === "lead");
 
@@ -447,7 +447,7 @@ async function suggest(sb: any, iss: any, prior: Record<string, any> = {}) {
 
   const items: any[] = [];
   wins.forEach((x, i) => {
-    if (keptGames.has(x.g.game_id)) return;
+    if (keptGames.has(gameKey(scoreData(x, true)))) return;
     items.push({
       kind: "win", source: "results", placement: i === 0 && !hasLead ? "lead" : "story", included: i < 3,
       kicker: `${x.label} · ${x.grade}${x.round ? " · " + x.round : ""}`,
@@ -461,7 +461,7 @@ async function suggest(sb: any, iss: any, prior: Record<string, any> = {}) {
     });
   }
   for (const x of ko) {
-    if (keptGames.has(x.g.game_id)) continue;
+    if (keptGames.has(gameKey(scoreData(x, true)))) continue;
     const close = x.them - x.us <= CLOSE;
     items.push({
       kind: "final", source: "results", placement: "story", included: true,
