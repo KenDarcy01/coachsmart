@@ -105,7 +105,7 @@ async function logsSql(token: string, sql: string): Promise<any[]> {
   const end = new Date();
   const start = new Date(end.getTime() - 24 * 3600 * 1000);
   const q = new URLSearchParams({ sql, iso_timestamp_start: start.toISOString(), iso_timestamp_end: end.toISOString() });
-  const j = await mgmt(token, `/projects/${REF}/analytics/endpoints/logs.all?${q}`);
+  const j = await mgmt(token, `/projects/${REF}/analytics/endpoints/logs?${q}`);
   if (j?.error) throw new Error(typeof j.error === "string" ? j.error : JSON.stringify(j.error).slice(0, 160));
   return j?.result || [];
 }
@@ -162,14 +162,14 @@ async function supabaseAccountChecks(history: Record<string, any>[]): Promise<{ 
   } catch (e) {
     findings.push({ level: "info", area: A, title: "Couldn't read Supabase add-ons", detail: String(e) });
   }
-  // Edge function calls and errors from the logs (includes calls the app makes).
+  // Edge function calls and errors from the logs (includes calls the app makes). Unified log stream, ClickHouse SQL.
   try {
     const fns: any[] = await mgmt(token, `/projects/${REF}/functions`);
     const nameOf = new Map(fns.map((f) => [f.id, f.slug || f.name]));
     const rows = await logsSql(token,
-      "select m.function_id as fid, count(*) as n, countif(r.status_code >= 500) as e5 " +
-      "from function_edge_logs cross join unnest(metadata) as m cross join unnest(m.response) as r " +
-      "group by fid order by n desc limit 100");
+      "select log_attributes['function_id'] as fid, count() as n, " +
+      "countIf(toInt32OrZero(log_attributes['response.status_code']) >= 500) as e5 " +
+      "from logs where source = 'function_edge_logs' group by fid order by n desc limit 100");
     let total = 0;
     let errTotal = 0;
     const errs: string[] = [];
@@ -199,7 +199,7 @@ async function supabaseAccountChecks(history: Record<string, any>[]): Promise<{ 
     findings.push({ level: "info", area: "Edge functions", title: "Couldn't read edge function logs", detail: String(e) });
   }
   try {
-    const rows = await logsSql(token, "select count(*) as n from edge_logs");
+    const rows = await logsSql(token, "select count() as n from logs where source = 'edge_logs'");
     kpis.api_requests = Number(rows?.[0]?.n || 0);
   } catch (_) { /* KPI only */ }
   return { findings, kpis };
