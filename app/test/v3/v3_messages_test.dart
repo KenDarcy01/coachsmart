@@ -150,32 +150,30 @@ void main() {
     expect(api.calls, ['dismiss 1', 'dismiss 2']);
   });
 
-  testWidgets('news bar rotates and the sheet marks unread as seen', (t) async {
+  testWidgets('news cards show every item and the sheet marks unread as seen',
+      (t) async {
     final api = FakeApi();
     final news = MyMessages.fromJson(sample()).news;
     await t.pumpWidget(wrap(Builder(
         builder: (ctx) => Scaffold(
-            body: V3NewsBar(
+            body: V3NewsCards(
                 news: news, onTap: () => showNewsSheet(ctx, news, api))))));
-    expect(find.textContaining('Jerseys are in', findRichText: true),
-        findsOneWidget);
-    await t.pump(const Duration(seconds: 5));
-    await t.pumpAndSettle();
-    expect(find.textContaining('Blitz sign-up', findRichText: true),
-        findsOneWidget);
-    await t.tap(find.byType(V3NewsBar));
-    await t.pumpAndSettle();
+    // CoachSmart-wide items: the heading says News, not Club news.
     expect(find.text('News'), findsOneWidget);
+    expect(find.text('Jerseys are in'), findsOneWidget);
+    expect(find.text('See all ${news.length}'), findsOneWidget);
+    await t.tap(find.text('Jerseys are in'));
+    await t.pumpAndSettle();
+    expect(find.text('News'), findsNWidgets(2));
     await t.tapAt(const Offset(10, 10));
     await t.pumpAndSettle();
     expect(api.calls, ['seen [3]']);
     expect(news.every((n) => n.seen), isTrue);
   });
 
-  testWidgets('no news, no bar', (t) async {
+  testWidgets('no news, no cards', (t) async {
     await t.pumpWidget(
-        wrap(Scaffold(body: V3NewsBar(news: const [], onTap: () {}))));
-    expect(find.byType(Material), findsWidgets);
+        wrap(Scaffold(body: V3NewsCards(news: const [], onTap: () {}))));
     expect(find.byType(InkWell), findsNothing);
   });
 

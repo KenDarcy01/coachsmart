@@ -1,4 +1,5 @@
-// v3 Important message pop-up and News bar + sheet (Ken, 2026-11-14).
+// v3 Important message pop-up, Club news cards + sheet (Ken, 2026-11-14;
+// news cards 2026-11-26).
 // Mockups: /mnt/project-files/coachsmart/app-v3/important-messages/.
 import 'dart:async';
 
@@ -311,50 +312,47 @@ class V3ImportantCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// News bar
+// Club news cards
 
-/// One line under the app bar. Several items rotate every 5 seconds; a tap
-/// opens the News sheet. Hidden when there is no news.
-class V3NewsBar extends StatefulWidget {
-  const V3NewsBar({super.key, required this.news, required this.onTap});
+/// "Club news" on Home: a heading, then one card per live news item that
+/// swipes sideways, the next card peeking in (Ken picked option C,
+/// 2026-11-26, app-v3/news-banner/). Each card has a stripe in the club's
+/// colour, the photo (or the crest on the club colour) on the left, and
+/// the title with two lines of the message. A tap opens the News sheet.
+/// Hidden when there is no news.
+class V3NewsCards extends StatefulWidget {
+  const V3NewsCards(
+      {super.key,
+      required this.news,
+      required this.onTap,
+      this.heading = true});
   final List<AppMessage> news;
   final VoidCallback onTap;
 
+  /// False for the compose preview: just the card.
+  final bool heading;
+
   @override
-  State<V3NewsBar> createState() => _V3NewsBarState();
+  State<V3NewsCards> createState() => _V3NewsCardsState();
 }
 
-class _V3NewsBarState extends State<V3NewsBar> {
-  int _i = 0;
-  Timer? _timer;
+class _V3NewsCardsState extends State<V3NewsCards> {
+  PageController? _pc;
+  int _count = -1;
 
-  @override
-  void initState() {
-    super.initState();
-    _restart();
-  }
-
-  @override
-  void didUpdateWidget(V3NewsBar old) {
-    super.didUpdateWidget(old);
-    if (old.news.length != widget.news.length) {
-      _i = 0;
-      _restart();
+  PageController _controller() {
+    final n = widget.news.length;
+    if (_pc == null || n != _count) {
+      _pc?.dispose();
+      _count = n;
+      _pc = PageController(viewportFraction: n > 1 ? 0.84 : 1);
     }
-  }
-
-  void _restart() {
-    _timer?.cancel();
-    if (widget.news.length > 1) {
-      _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-        if (mounted) setState(() => _i = (_i + 1) % widget.news.length);
-      });
-    }
+    return _pc!;
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _pc?.dispose();
     super.dispose();
   }
 
@@ -362,75 +360,144 @@ class _V3NewsBarState extends State<V3NewsBar> {
   Widget build(BuildContext context) {
     final news = widget.news;
     if (news.isEmpty) return const SizedBox.shrink();
-    final m = news[_i % news.length];
-    final unread = news.any((n) => !n.seen);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
-      child: Material(
-        color: V3.card,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(10),
-          onTap: widget.onTap,
-          child: Container(
-            height: 40,
-            padding: const EdgeInsets.only(left: 8, right: 10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: unread ? V3.nextLine : V3.line),
-            ),
+    final club = news.every((n) => n.scope != 'all');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.heading)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 6, 8),
             child: Row(
               children: [
-                V3MessageBadge(m, size: 24),
-                const SizedBox(width: 9),
                 Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 350),
-                    transitionBuilder: (child, a) => FadeTransition(
-                      opacity: a,
-                      child: SlideTransition(
-                        position:
-                            Tween(begin: const Offset(0, 0.4), end: Offset.zero)
-                                .animate(a),
-                        child: child,
-                      ),
-                    ),
-                    child: Align(
-                      key: ValueKey(m.id),
-                      alignment: Alignment.centerLeft,
-                      child: Text.rich(
-                        TextSpan(children: [
-                          TextSpan(
-                              text: '${m.title}  ',
-                              style: V3.inter(13.5, weight: FontWeight.w600)),
-                          TextSpan(
-                              text: m.body.replaceAll('\n', ' '),
-                              style: V3.inter(13.5, color: V3.muted)),
-                        ]),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                  child: Text(club ? 'Club news' : 'News',
+                      style: V3.tight(19, weight: FontWeight.w700)),
+                ),
+                if (news.length > 1)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: widget.onTap,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 2),
+                      child: Text('See all ${news.length}',
+                          style: V3.inter(14,
+                              weight: FontWeight.w600, color: V3.green)),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                if (news.length > 1)
-                  Row(children: [
-                    for (var k = 0; k < news.length && k < 5; k++)
-                      Container(
-                        width: 5,
-                        height: 5,
-                        margin: const EdgeInsets.only(left: 3),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: k == _i % news.length ? V3.green : V3.barGrey,
-                        ),
-                      ),
-                  ])
-                else
-                  const Icon(Icons.chevron_right, color: V3.muted, size: 20),
               ],
             ),
+          ),
+        SizedBox(
+          height: 132,
+          child: PageView.builder(
+            controller: _controller(),
+            padEnds: false,
+            itemCount: news.length,
+            itemBuilder: (_, i) => Padding(
+              padding: EdgeInsets.only(right: news.length > 1 ? 10 : 0),
+              child: _NewsCard(news[i], onTap: widget.onTap),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _NewsCard extends StatelessWidget {
+  const _NewsCard(this.m, {required this.onTap});
+  final AppMessage m;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = m.clubColour ?? V3.green;
+    final when = _when(m.startsAt).toUpperCase();
+    final kicker =
+        m.seen ? when : ['NEW', if (when.isNotEmpty) when].join(' · ');
+    final panel = Container(
+      color: accent,
+      alignment: Alignment.center,
+      child: V3MessageBadge(m, size: 58),
+    );
+    return Material(
+      color: V3.card,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: V3.line),
+          ),
+          child: Column(
+            children: [
+              Container(height: 4, color: accent),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: 104,
+                      child: m.imageUrl.isEmpty
+                          ? panel
+                          : Image.network(m.imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => panel),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(13, 10, 12, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (kicker.isNotEmpty)
+                              Row(children: [
+                                if (!m.seen)
+                                  Container(
+                                    width: 7,
+                                    height: 7,
+                                    margin: const EdgeInsets.only(right: 6),
+                                    decoration: const BoxDecoration(
+                                        color: V3.green,
+                                        shape: BoxShape.circle),
+                                  ),
+                                Flexible(
+                                  child: Text(kicker,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: V3.inter(11,
+                                          weight: FontWeight.w700,
+                                          color: m.seen ? V3.muted : V3.green,
+                                          letterSpacing: 1.1)),
+                                ),
+                              ]),
+                            const SizedBox(height: 4),
+                            Text(m.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: V3.tight(17,
+                                    weight: FontWeight.w700, height: 1.2)),
+                            if (m.body.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Expanded(
+                                child: Text(m.body.replaceAll('\n', ' '),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: V3.inter(13,
+                                        color: V3.muted, height: 1.35)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

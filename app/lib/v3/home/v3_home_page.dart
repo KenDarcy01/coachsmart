@@ -91,8 +91,11 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     try {
       const api = PitchApi();
       final t = await api.myClubTools();
-      List<int> ids(dynamic v) =>
-          [if (v is List) for (final x in v) if (x is num) x.toInt()];
+      List<int> ids(dynamic v) => [
+            if (v is List)
+              for (final x in v)
+                if (x is num) x.toInt()
+          ];
       MessagesAccess.sendEveryone = t['send_everyone'] == true;
       if (mounted) {
         setState(() {
@@ -457,18 +460,10 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
                     color: V3.green,
                     backgroundColor: V3.card,
                     onRefresh: _refresh,
-                    child: Column(
-                      children: [
-                        V3NewsBar(news: _msgs.news, onTap: _openNews),
-                        // Builder: only a context inside the Scaffold sees the
-                        // menu pill's height in its bottom padding.
-                        Expanded(
-                          child: Builder(
-                            builder: (c) =>
-                                _timeline(MediaQuery.paddingOf(c).bottom),
-                          ),
-                        ),
-                      ],
+                    // Builder: only a context inside the Scaffold sees the
+                    // menu pill's height in its bottom padding.
+                    child: Builder(
+                      builder: (c) => _timeline(MediaQuery.paddingOf(c).bottom),
                     ),
                   ),
         // Parents get no bottom bar (design §5.10).
@@ -622,6 +617,14 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     // The club's sponsor (club partners page) takes the slot; the old
     // National Draw box shows only where a team has show_advert and the club
     // has no sponsor (2026-11-25).
+    // Club news cards under the team chips, above the sponsor (Ken picked
+    // option C, 2026-11-26: bigger than the old one-line bar).
+    if (_msgs.news.isNotEmpty) {
+      children.add(Padding(
+        padding: const EdgeInsets.only(bottom: 2),
+        child: V3NewsCards(news: _msgs.news, onTap: _openNews),
+      ));
+    }
     final team = _selectedTeam == 0 ? null : _selectedTeam;
     final sponsor = V3Sponsors.forHome(team);
     if (sponsor != null) {

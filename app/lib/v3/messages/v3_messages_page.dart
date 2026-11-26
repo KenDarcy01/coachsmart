@@ -299,7 +299,10 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
       if (!mounted) return;
       setState(() => _targets = t);
       // A club officer starts on their own club (not everyone on CoachSmart).
-      if (_m == null && !MessagesAccess.sendEveryone && _clubId == null && t.isNotEmpty) {
+      if (_m == null &&
+          !MessagesAccess.sendEveryone &&
+          _clubId == null &&
+          t.isNotEmpty) {
         setState(() {
           _clubId = t.first.clubId;
           _clubCrest = t.first.crest;
@@ -728,11 +731,8 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
               )
             else
               IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                      color: V3.bg, borderRadius: BorderRadius.circular(12)),
-                  child: V3NewsBar(news: [preview], onTap: () {}),
-                ),
+                child:
+                    V3NewsCards(news: [preview], onTap: () {}, heading: false),
               ),
             const SizedBox(height: 22),
             SizedBox(
@@ -868,19 +868,19 @@ class _TargetPageState extends State<_TargetPage> {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       children: [
         if (MessagesAccess.sendEveryone)
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: const Icon(Icons.public, color: V3.green),
-          title: Text('Everyone on CoachSmart',
-              style: V3.inter(16, weight: FontWeight.w600)),
-          subtitle:
-              Text('Every club and team', style: V3.inter(13, color: V3.muted)),
-          trailing: widget.clubId == null
-              ? const Icon(Icons.check, color: V3.green)
-              : null,
-          onTap: () => Navigator.pop(
-              context, const _Target(null, [], 'Everyone on CoachSmart', '')),
-        ),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            leading: const Icon(Icons.public, color: V3.green),
+            title: Text('Everyone on CoachSmart',
+                style: V3.inter(16, weight: FontWeight.w600)),
+            subtitle: Text('Every club and team',
+                style: V3.inter(13, color: V3.muted)),
+            trailing: widget.clubId == null
+                ? const Icon(Icons.check, color: V3.green)
+                : null,
+            onTap: () => Navigator.pop(
+                context, const _Target(null, [], 'Everyone on CoachSmart', '')),
+          ),
         const SizedBox(height: 8),
         TextField(
           onChanged: (v) => setState(() => _q = v),
