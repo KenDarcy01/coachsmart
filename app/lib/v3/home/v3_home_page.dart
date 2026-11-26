@@ -151,8 +151,10 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
         await showImportantMessages(context, m.important, _messagesApi);
         _popupOpen = false;
         if (mounted)
-          setState(() => _msgs =
-              MyMessages(news: _msgs.news, isSuperUser: _msgs.isSuperUser));
+          setState(() => _msgs = MyMessages(
+              news: _msgs.news,
+              fundraisers: _msgs.fundraisers,
+              isSuperUser: _msgs.isSuperUser));
       }
     } catch (_) {
       // No messages is fine; Home works without them.
@@ -163,6 +165,12 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     await _load();
     await _loadMessages();
     await V3Sponsors.load(force: true);
+  }
+
+  void _openFundraiser(AppMessage m) {
+    V3Track.event('fundraiser_tap');
+    unawaited(_messagesApi.tap(m.id).catchError((_) {}));
+    launchURL(m.linkUrl);
   }
 
   Future<void> _openNews() async {
@@ -624,6 +632,11 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
         padding: const EdgeInsets.only(bottom: 2),
         child: V3NewsCards(news: _msgs.news, onTap: _openNews),
       ));
+    }
+    // Fundraisers in their own slim row under the news (Ken, 2026-11-26).
+    if (_msgs.fundraisers.isNotEmpty) {
+      children.add(
+          V3FundraiserRow(items: _msgs.fundraisers, onTap: _openFundraiser));
     }
     final team = _selectedTeam == 0 ? null : _selectedTeam;
     final sponsor = V3Sponsors.forHome(team);

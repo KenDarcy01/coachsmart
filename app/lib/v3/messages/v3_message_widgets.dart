@@ -560,6 +560,147 @@ class _NewsCard extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Fundraiser row
+
+/// A club fundraiser (Christmas Draw, raffle, gear order) as one slim row
+/// under Club news, like the old National Draw box: photo or crest, title,
+/// "Fundraiser · price" in gold, and a green button that opens the club's
+/// own page (Ken, 2026-11-26, app-v3/news-banner/fr-row-slim.png). Several
+/// running at once swipe sideways. Hidden when there are none.
+class V3FundraiserRow extends StatefulWidget {
+  const V3FundraiserRow({super.key, required this.items, required this.onTap});
+  final List<AppMessage> items;
+  final void Function(AppMessage) onTap;
+
+  @override
+  State<V3FundraiserRow> createState() => _V3FundraiserRowState();
+}
+
+class _V3FundraiserRowState extends State<V3FundraiserRow> {
+  int _page = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.items;
+    if (items.isEmpty) return const SizedBox.shrink();
+    if (_page >= items.length) _page = 0;
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 62,
+            child: PageView.builder(
+              itemCount: items.length,
+              onPageChanged: (i) => setState(() => _page = i),
+              itemBuilder: (_, i) => _FundraiserTile(items[i],
+                  onTap: () => widget.onTap(items[i])),
+            ),
+          ),
+          if (items.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 7),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var k = 0; k < items.length && k < 8; k++)
+                    Container(
+                      width: k == _page ? 14 : 5,
+                      height: 5,
+                      margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                      decoration: BoxDecoration(
+                        color: k == _page ? V3.amberText : V3.barGrey,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FundraiserTile extends StatelessWidget {
+  const _FundraiserTile(this.m, {required this.onTap});
+  final AppMessage m;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final badge = V3MessageBadge(m, size: 40);
+    final thumb = m.imageUrl.isEmpty
+        ? badge
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(m.imageUrl,
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => badge),
+          );
+    final label = m.linkLabel.isEmpty ? 'Buy tickets' : m.linkLabel;
+    return Material(
+      color: V3.card,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: V3.amberLine),
+          ),
+          child: Row(
+            children: [
+              thumb,
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(m.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: V3.inter(15, weight: FontWeight.w600)),
+                    const SizedBox(height: 1),
+                    Text(
+                        m.priceLabel.isEmpty
+                            ? 'Fundraiser'
+                            : 'Fundraiser · ${m.priceLabel}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: V3.inter(12.5,
+                            weight: FontWeight.w600, color: V3.amberText)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: onTap,
+                style: FilledButton.styleFrom(
+                  backgroundColor: V3.green,
+                  foregroundColor: V3.bg,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: const Size(0, 38),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text(label,
+                    style: V3.inter(14, weight: FontWeight.w600, color: V3.bg)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Every live news item, newest first; opening it marks them seen.
 Future<void> showNewsSheet(
     BuildContext context, List<AppMessage> news, MessagesApi api) async {

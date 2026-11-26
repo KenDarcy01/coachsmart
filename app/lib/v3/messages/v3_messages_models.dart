@@ -10,7 +10,7 @@ int _int(dynamic v) => v is int ? v : int.tryParse('${v ?? ''}') ?? 0;
 String _s(dynamic v) => v == null ? '' : '$v';
 DateTime? _date(dynamic v) => DateTime.tryParse(_s(v))?.toLocal();
 
-enum MessageKind { important, news }
+enum MessageKind { important, news, fundraiser }
 
 enum MessageAudience { all, players, staff }
 
@@ -45,13 +45,19 @@ class AppMessage {
     this.dismissedCount = 0,
     this.teamNames = const [],
     this.imageUrl = '',
+    this.priceLabel = '',
+    this.tapCount = 0,
     this.primaryColour = '',
     this.secondaryColour = '',
   });
 
   factory AppMessage.fromJson(Map j) => AppMessage(
         id: _int(j['id']),
-        kind: j['kind'] == 'news' ? MessageKind.news : MessageKind.important,
+        kind: switch (j['kind']) {
+          'news' => MessageKind.news,
+          'fundraiser' => MessageKind.fundraiser,
+          _ => MessageKind.important,
+        },
         title: _s(j['title']),
         body: _s(j['body']),
         linkUrl: _s(j['link_url']),
@@ -79,6 +85,8 @@ class AppMessage {
             for (final t in j['team_names'] as List) _s(t)
         ],
         imageUrl: _s(j['image_url']),
+        priceLabel: _s(j['price_label']),
+        tapCount: _int(j['tap_count']),
         primaryColour: _s(j['primary_colour']),
         secondaryColour: _s(j['secondary_colour']),
       );
@@ -113,6 +121,11 @@ class AppMessage {
   /// Important only: one optional photo, shown above the title.
   final String imageUrl;
 
+  /// Fundraiser only: the price line ("€10 a line"), and how many people
+  /// tapped its button (sender's list).
+  final String priceLabel;
+  final int tapCount;
+
   /// The sending club's colours ('#rrggbb'), empty for CoachSmart-wide.
   final String primaryColour;
   final String secondaryColour;
@@ -141,6 +154,7 @@ class AppMessage {
   }
 
   bool get isNews => kind == MessageKind.news;
+  bool get isFundraiser => kind == MessageKind.fundraiser;
 
   /// Live, scheduled or ended, for the sender's Messages page.
   String status(DateTime now) {
@@ -169,6 +183,7 @@ class MyMessages {
   const MyMessages(
       {this.important = const [],
       this.news = const [],
+      this.fundraisers = const [],
       this.isSuperUser = false});
 
   factory MyMessages.fromJson(Map j) => MyMessages(
@@ -182,11 +197,19 @@ class MyMessages {
             for (final m in (j['news'] as List).whereType<Map>())
               AppMessage.fromJson(m)
         ],
+        fundraisers: [
+          if (j['fundraisers'] is List)
+            for (final m in (j['fundraisers'] as List).whereType<Map>())
+              AppMessage.fromJson(m)
+        ],
         isSuperUser: j['is_super_user'] == true,
       );
 
   final List<AppMessage> important;
   final List<AppMessage> news;
+
+  /// Fundraisers: their own slim row under Club news (2026-11-26).
+  final List<AppMessage> fundraisers;
   final bool isSuperUser;
 
   int get unreadNews => news.where((n) => !n.seen).length;
@@ -228,6 +251,10 @@ class MessagesApi {
 
   Future<void> dismiss(int id) =>
       SupaFlow.client.rpc('dismiss_app_message', params: {'p_message_id': id});
+
+  /// A tap on a fundraiser's button, counted for the sender.
+  Future<void> tap(int id) =>
+      SupaFlow.client.rpc('app_message_tap', params: {'p_id': id});
 
   Future<void> markSeen(List<int> ids) => ids.isEmpty
       ? Future.value()

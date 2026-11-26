@@ -171,6 +171,32 @@ void main() {
     expect(news.every((n) => n.seen), isTrue);
   });
 
+  testWidgets('fundraiser row shows price and button, tap passes the item',
+      (t) async {
+    final my = MyMessages.fromJson({
+      'news': [],
+      'fundraisers': [
+        {
+          'id': 9,
+          'kind': 'fundraiser',
+          'title': 'Christmas Draw',
+          'price_label': '€10 a line',
+          'link_url': 'https://example.ie/draw',
+          'link_label': 'Buy tickets',
+        }
+      ],
+    });
+    expect(my.fundraisers.single.isFundraiser, isTrue);
+    AppMessage? tapped;
+    await t.pumpWidget(wrap(Scaffold(
+        body:
+            V3FundraiserRow(items: my.fundraisers, onTap: (m) => tapped = m))));
+    expect(find.text('Christmas Draw'), findsOneWidget);
+    expect(find.text('Fundraiser · €10 a line'), findsOneWidget);
+    await t.tap(find.text('Buy tickets'));
+    expect(tapped?.id, 9);
+  });
+
   testWidgets('no news, no cards', (t) async {
     await t.pumpWidget(
         wrap(Scaffold(body: V3NewsCards(news: const [], onTap: () {}))));

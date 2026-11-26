@@ -148,7 +148,12 @@ class _SentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final df = DateFormat('EEE d MMM');
-    final kind = m.isNews ? 'News' : '⚠ Important';
+    final quiet = m.kind != MessageKind.important;
+    final kind = switch (m.kind) {
+      MessageKind.news => 'News',
+      MessageKind.fundraiser => 'Fundraiser',
+      MessageKind.important => '⚠ Important',
+    };
     final when = switch (status) {
       'scheduled' => 'from ${df.format(m.startsAt!)}',
       'ended' => 'ended ${df.format(m.endedAt ?? m.endsAt!)}',
@@ -156,13 +161,13 @@ class _SentCard extends StatelessWidget {
     };
     final people =
         m.audience == MessageAudience.all ? '' : ' · ${m.audience.label}';
-    final seen = m.isNews
+    final seen = quiet
         ? 'Seen by ${m.seenCount} of ${m.reach}'
+            '${m.isFundraiser ? ' · ${m.tapCount} tapped' : ''}'
         : 'Closed by ${m.dismissedCount} of ${m.reach}';
     final pct = m.reach == 0
         ? 0.0
-        : ((m.isNews ? m.seenCount : m.dismissedCount) / m.reach)
-            .clamp(0.0, 1.0);
+        : ((quiet ? m.seenCount : m.dismissedCount) / m.reach).clamp(0.0, 1.0);
     return Opacity(
       opacity: status == 'ended' ? 0.6 : 1,
       child: Padding(
@@ -183,7 +188,7 @@ class _SentCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: V3.inter(12.5,
                           weight: FontWeight.w500,
-                          color: m.isNews ? V3.muted : V3.amberText)),
+                          color: quiet ? V3.muted : V3.amberText)),
                   const SizedBox(height: 3),
                   Text(m.title, style: V3.tight(17)),
                   const SizedBox(height: 2),
