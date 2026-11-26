@@ -285,8 +285,9 @@ function editSheet(id) {
    <label class="fl">Name</label><input id="f_name" maxlength="80" value="${esc(s.name)}" placeholder="Nolans Supermarket">
    <label class="fl">Line under the name</label><input id="f_tag" maxlength="60" value="${esc(s.tagline || '')}" placeholder="Proud partner of ${esc(D.club.club_name)}">
    <label class="fl">Link when tapped (their website)</label><input id="f_link" maxlength="300" value="${esc(s.link_url || '')}" placeholder="https://">
-   <label class="fl">Logo</label><input id="f_logo" type="file" accept="image/png,image/jpeg,image/webp">
-   ${s.logo_url ? `<small style="color:var(--muted)">Leave empty to keep the current logo.</small>` : `<small style="color:var(--muted)">A wide logo on a white or clear background works best.</small>`}
+   <label class="fl">Logo</label><input id="f_logo" type="file" accept="image/png,image/jpeg,image/webp" onchange="checkLogo(this)">
+   <small style="color:var(--muted);display:block"><b style="color:var(--text)">Use a landscape (wide) logo</b>, on a white or clear background, PNG, JPG or WebP under 2 MB. Square or tall logos show very small in the app.${s.logo_url ? ' Leave empty to keep the current logo.' : ''}</small>
+   <small id="f_logo_warn" style="display:none;color:#a15c00;margin-top:4px">This logo is square or tall, so it will look small. A wide version of the logo is better.</small>
    <label class="fl" style="margin-top:10px">Card colour</label>
    <div class="ck"><label><input type="radio" name="f_col" value="" ${!s.card_colour ? 'checked' : ''}>CoachSmart dark</label><label><input type="radio" name="f_col" value="pick" ${s.card_colour ? 'checked' : ''}>Sponsor colour <input id="f_colour" type="color" value="${esc(s.card_colour || '#15302a')}" style="width:44px;height:28px;padding:0;margin:0 0 0 6px;vertical-align:middle"></label></div>
    <label class="fl">Sponsor for</label>
@@ -307,6 +308,16 @@ function teamPicked() {
   $('f_home').disabled = team; if (team) $('f_home').checked = false;
   $('f_home_l').style.opacity = team ? .45 : 1;
   $('f_team_note').style.display = team ? 'block' : 'none';
+}
+// Landscape logos only (Ken, 2026-11-26): the app's logo tile is wide, so a
+// square or tall logo shows tiny. Warn, but still allow it.
+function checkLogo(inp) {
+  const w = $('f_logo_warn'), f = inp.files[0];
+  w.style.display = 'none';
+  if (!f) return;
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => { if (im.naturalWidth < im.naturalHeight * 1.3) w.style.display = 'block'; URL.revokeObjectURL(url); };
+  im.src = url;
 }
 function fileB64(f) { return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(f); }); }
 async function saveSponsor(id) {
