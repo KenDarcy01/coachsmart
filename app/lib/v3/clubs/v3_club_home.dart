@@ -25,7 +25,7 @@ class V3ClubHome extends StatelessWidget {
     required this.bottomInset,
     required this.onOpenMatch,
     required this.onOpenMatches,
-    required this.onJoinTeam,
+    this.onJoinTeam,
     this.topCards = const [],
   });
 
@@ -45,7 +45,9 @@ class V3ClubHome extends StatelessWidget {
   final double bottomInset;
   final void Function(LiveMatchRow m) onOpenMatch;
   final VoidCallback onOpenMatches;
-  final VoidCallback onJoinTeam;
+
+  /// Followers on no team only; null hides the "On a team?" card.
+  final VoidCallback? onJoinTeam;
 
   /// How many upcoming matches Home lists before "See all".
   static const upcomingOnHome = 8;
@@ -122,8 +124,10 @@ class V3ClubHome extends StatelessWidget {
                       sponsor: sponsor,
                       place: V3SponsorPlace.home),
                 ),
-              const SizedBox(height: 14),
-              _joinCard(),
+              if (onJoinTeam != null) ...[
+                const SizedBox(height: 14),
+                _joinCard(),
+              ],
             ]),
           ),
         ),

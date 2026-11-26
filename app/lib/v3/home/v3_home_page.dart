@@ -83,13 +83,66 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   LiveMatchesData? _clubMatches;
   int _selectedClub = 0;
 
+  // Home (club) and Events tabs (Ken, 2026-11-26): team members land on
+  // Events; Home is the club screen, with a badge for club news and
+  // fundraisers not seen yet.
+  bool _clubTab = false;
+
+  bool get _onClubScreen => _followerOnly || _clubTab;
+
+  /// Clubs followed plus the clubs of the user's teams.
+  List<FollowedClub> get _myClubs {
+    final out = [..._followed];
+    for (final c in _home.clubs) {
+      if (c.clubId == 0 || out.any((f) => f.clubId == c.clubId)) continue;
+      out.add(FollowedClub(
+          clubId: c.clubId,
+          name: c.clubName,
+          crest: c.crest,
+          county: c.county,
+          following: true));
+    }
+    return out;
+  }
+
+  int get _clubBadge =>
+      [..._msgs.news, ..._msgs.fundraisers].where((m) => !m.seen).length;
+
+  void _markClubSeen() {
+    final unseen = [
+      for (final m in [..._msgs.news, ..._msgs.fundraisers])
+        if (!m.seen) m
+    ];
+    if (unseen.isEmpty) return;
+    for (final m in unseen) {
+      m.seen = true;
+    }
+    unawaited(_messagesApi
+        .markSeen([for (final m in unseen) m.id]).catchError((_) {}));
+  }
+
+  void _openClubTab() {
+    if (_clubTab) return;
+    V3Track.event('club_tab_opened', {'badge': _clubBadge});
+    setState(() => _clubTab = true);
+    if (_clubMatches == null) unawaited(_loadClubMatches());
+    // Seen once Home is open: the badge clears and stays cleared.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _clubTab) setState(_markClubSeen);
+    });
+  }
+
+  void _openEventsTab() {
+    if (_clubTab) setState(() => _clubTab = false);
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _tick = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
-      if (_followerOnly && (_clubMatches?.live.isNotEmpty ?? false)) {
+      if (_onClubScreen && (_clubMatches?.live.isNotEmpty ?? false)) {
         _loadClubMatches();
       }
     });
@@ -161,7 +214,10 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     try {
       final m = await _messagesApi.mine();
       if (!mounted) return;
-      setState(() => _msgs = m);
+      setState(() {
+        _msgs = m;
+        if (_clubTab) _markClubSeen();
+      });
       // Lotto links open already signed in; get the codes ready now.
       V3LottoLink.prefetch(
           [...m.fundraisers, ...m.news, ...m.important].map((x) => x.linkUrl));
@@ -184,7 +240,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     await _load();
     await _loadMessages();
     await V3Sponsors.load(force: true);
-    if (_followerOnly) await _loadClubMatches();
+    if (_onClubScreen) await _loadClubMatches();
   }
 
   void _openFundraiser(AppMessage m) {
@@ -244,7 +300,8 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     }
     _followed = followed;
     _followerOnly = !onTeam;
-    if (_selectedClub != 0 && !followed.any((c) => c.clubId == _selectedClub)) {
+    if (_followerOnly) _clubTab = false;
+    if (_selectedClub != 0 && !_myClubs.any((c) => c.clubId == _selectedClub)) {
       _selectedClub = 0;
     }
     if (_followerOnly) {
@@ -508,7 +565,6 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
     final role = _home.highestRoleLevel;
-    final coach = role >= 30;
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -599,13 +655,15 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
                     // Builder: only a context inside the Scaffold sees the
                     // menu pill's height in its bottom padding.
                     child: Builder(
-                      builder: (c) => _followerOnly
+                      builder: (c) => _onClubScreen
                           ? _clubHome(MediaQuery.paddingOf(c).bottom)
                           : _timeline(MediaQuery.paddingOf(c).bottom),
                     ),
                   ),
-        // Parents get no bottom bar (design §5.10).
-        bottomNavigationBar: _loaded && !_failed && coach ? _tabs(role) : null,
+        // Everyone on a team gets Home (club) and Events (Ken, 2026-11-26);
+        // followers on no team have only the club screen, so no bar.
+        bottomNavigationBar:
+            _loaded && !_failed && !_followerOnly ? _tabs(role) : null,
       ),
     );
   }
@@ -749,7 +807,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   // ---- club home for followers on no team (2026-11-26) --------------------
 
   Widget _clubHome(double bottomInset) => V3ClubHome(
-        clubs: _followed,
+        clubs: _followerOnly ? _followed : _myClubs,
         matches: _clubMatches,
         selectedClub: _selectedClub,
         onSelectClub: (id) => setState(() => _selectedClub = id),
@@ -758,7 +816,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
         bottomInset: bottomInset,
         onOpenMatch: _openClubMatch,
         onOpenMatches: _openMatches,
-        onJoinTeam: _openJoinTeam,
+        onJoinTeam: _followerOnly ? _openJoinTeam : null,
         topCards: [
           if (_msgs.news.isNotEmpty)
             Padding(
@@ -776,34 +834,8 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     final items = buildTimeline(_events, _now);
     final green = nextDay(items);
     final children = <Widget>[];
-    // Order: Club news, fundraisers, then the club's sponsor (club partners
-    // page). The old National Draw box is gone: clubs post a fundraiser
-    // instead (Ken, 2026-11-26).
-    // Club news cards under the team chips, above the sponsor (Ken picked
-    // option C, 2026-11-26: bigger than the old one-line bar).
-    if (_msgs.news.isNotEmpty) {
-      children.add(Padding(
-        padding: const EdgeInsets.only(bottom: 2),
-        child: V3NewsCards(news: _msgs.news, onTap: _openNews),
-      ));
-    }
-    // Fundraisers in their own slim row under the news (Ken, 2026-11-26).
-    if (_msgs.fundraisers.isNotEmpty) {
-      children.add(
-          V3FundraiserRow(items: _msgs.fundraisers, onTap: _openFundraiser));
-    }
-    final team = _selectedTeam == 0 ? null : _selectedTeam;
-    final sponsor = V3Sponsors.forHome(team);
-    if (sponsor != null) {
-      children.add(Padding(
-        padding: const EdgeInsets.only(top: 10, bottom: 4),
-        child: V3SponsorCard(
-            key: ValueKey('sponsor-${sponsor.id}-${team ?? 0}'),
-            sponsor: sponsor,
-            place: V3SponsorPlace.home,
-            teamId: team),
-      ));
-    }
+    // Club news, fundraisers and the club partner live on Home (club) now;
+    // Events is just the user's events (Ken, 2026-11-26).
     // The greeting above the chips now heads the page; the "Events" title
     // went with option B (Ken, 2026-11-12).
     children.add(const SizedBox(height: 6));
@@ -862,7 +894,10 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   // The Scaffold uses extendBody so the events scroll behind the pill.
   Widget _tabs(int role) {
     final items = <_Tab>[
-      _Tab('Home', Icons.home_rounded, null, active: true),
+      _Tab('Home', Icons.shield_rounded, _openClubTab,
+          active: _clubTab, badge: _clubTab ? 0 : _clubBadge),
+      _Tab('Events', Icons.calendar_month_rounded, _openEventsTab,
+          active: !_clubTab),
       // Matches lives in the main menu for now; five tabs were too squashed
       // (Ken, 2026-11-09).
       if (_home.isGaaMember && role >= 30)
@@ -916,10 +951,20 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    t.icon,
-                                    size: 24,
-                                    color: t.active ? V3.green : V3.text,
+                                  Badge(
+                                    isLabelVisible: t.badge > 0,
+                                    label: Text(
+                                        t.badge > 9 ? '9+' : '${t.badge}',
+                                        style: V3.inter(11,
+                                            weight: FontWeight.w700,
+                                            color: Colors.white)),
+                                    backgroundColor: V3.red,
+                                    offset: const Offset(8, -6),
+                                    child: Icon(
+                                      t.icon,
+                                      size: 24,
+                                      color: t.active ? V3.green : V3.text,
+                                    ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
@@ -1116,7 +1161,9 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
 }
 
 class _Tab {
-  _Tab(this.label, this.icon, this.onTap, {this.active = false});
+  _Tab(this.label, this.icon, this.onTap,
+      {this.active = false, this.badge = 0});
+  final int badge;
   final String label;
   final IconData icon;
   final VoidCallback? onTap;
