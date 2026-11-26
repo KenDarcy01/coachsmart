@@ -123,7 +123,7 @@ body{font-family:SS,Georgia,serif;color:var(--ink);-webkit-font-smoothing:antial
 .lead h2{font-family:PF;font-weight:900;font-size:40px;line-height:1;margin:4px 0 8px}
 .deck{font-family:PF;font-style:italic;font-weight:700;font-size:17px;line-height:1.3;color:#333;margin:0 0 10px}
 figure{margin:0 0 10px}
-figure img{width:100%;max-height:320px;object-fit:cover;display:block;border:1px solid #bbb}
+figure img{display:block;max-width:100%;max-height:560px;width:auto;height:auto;margin:0 auto;border:1px solid #bbb}
 .byline{font-family:OS;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 p{font-size:15.5px;line-height:1.5;margin:0 0 9px}
 .dc{font-family:PF;font-weight:900;float:left;font-size:54px;line-height:.85;padding:4px 6px 0 0;color:var(--club)}
