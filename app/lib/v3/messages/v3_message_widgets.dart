@@ -339,19 +339,47 @@ class V3NewsCards extends StatefulWidget {
 class _V3NewsCardsState extends State<V3NewsCards> {
   PageController? _pc;
   int _count = -1;
+  int _page = 0;
+
+  // Moves on by itself every 6 seconds and loops, so no item gets buried
+  // (Ken, 2026-11-26). A touch pauses it for 10 seconds; off when the
+  // phone asks for reduced motion.
+  Timer? _timer;
+  DateTime _pausedUntil = DateTime(0);
 
   PageController _controller() {
     final n = widget.news.length;
     if (_pc == null || n != _count) {
       _pc?.dispose();
       _count = n;
+      _page = 0;
       _pc = PageController(viewportFraction: n > 1 ? 0.84 : 1);
     }
     return _pc!;
   }
 
   @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 6), (_) => _advance());
+  }
+
+  void _advance() {
+    final n = widget.news.length;
+    final pc = _pc;
+    if (!mounted || n < 2 || pc == null || !pc.hasClients) return;
+    if (DateTime.now().isBefore(_pausedUntil)) return;
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return;
+    pc.animateToPage((_page + 1) % n,
+        duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
+  }
+
+  void _pause() =>
+      _pausedUntil = DateTime.now().add(const Duration(seconds: 10));
+
+  @override
   void dispose() {
+    _timer?.cancel();
     _pc?.dispose();
     super.dispose();
   }
@@ -390,16 +418,40 @@ class _V3NewsCardsState extends State<V3NewsCards> {
           ),
         SizedBox(
           height: 132,
-          child: PageView.builder(
-            controller: _controller(),
-            padEnds: false,
-            itemCount: news.length,
-            itemBuilder: (_, i) => Padding(
-              padding: EdgeInsets.only(right: news.length > 1 ? 10 : 0),
-              child: _NewsCard(news[i], onTap: widget.onTap),
+          child: Listener(
+            onPointerDown: (_) => _pause(),
+            child: PageView.builder(
+              controller: _controller(),
+              padEnds: false,
+              itemCount: news.length,
+              onPageChanged: (i) => setState(() => _page = i),
+              itemBuilder: (_, i) => Padding(
+                padding: EdgeInsets.only(right: news.length > 1 ? 10 : 0),
+                child: _NewsCard(news[i], onTap: widget.onTap),
+              ),
             ),
           ),
         ),
+        if (news.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 9),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var k = 0; k < news.length && k < 8; k++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: k == _page ? 18 : 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: k == _page ? V3.green : V3.barGrey,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+              ],
+            ),
+          ),
       ],
     );
   }
