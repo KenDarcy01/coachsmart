@@ -244,7 +244,7 @@ function renderHome() {
       <button class="btn pri" style="width:100%;margin-top:12px" data-a="savesettings">Save settings</button>
     </div>
     <h2>In every issue <span>Added to each new issue, ticked</span></h2>
-    <div class="card hist">${std().length ? std().map((x, i) => `<div class="hi" data-a="editstd" data-id="${i + 1}"><div><b>${esc(x.headline || '(no headline)')}</b><div class="m">${x.placement === 'story' ? 'Story' : 'Short box'}${x.photo_path ? ' · photo' : ''}${x.active ? '' : ' · turned off'}</div></div><span class="m">Edit ›</span></div>`).join('') : '<div class="m" style="padding:6px 0">Nothing yet. Add things like the lotto, membership or the club shop.</div>'}</div>
+    <div class="card hist">${std().length ? std().map((x, i) => `<div class="hi" data-a="editstd" data-id="${i + 1}" style="justify-content:flex-start;gap:12px">${x.photo_path ? `<img class="thumb" src="${esc(stdUrl(x.photo_path))}" alt="" style="flex:none">` : ''}<div style="flex:1"><b>${esc(x.headline || '(no headline)')}</b><div class="m">${x.placement === 'story' ? 'Story' : 'Short box'}${x.photo_path ? ' · photo' : ''}${x.active ? '' : ' · turned off'}</div></div><span class="m">Edit ›</span></div>`).join('') : '<div class="m" style="padding:6px 0">Nothing yet. Add things like the lotto, membership or the club shop.</div>'}</div>
     <button class="add" data-a="addstd">+ Add an every-issue item</button>
     <div class="note">Stories are suggested from this club’s results and its website. Wins are shown with scores; semi-final and final losses are shown kindly; other losses, the lotto, payments and car pooling are never suggested (add your own lotto item under In every issue).</div>
   </div>`;
