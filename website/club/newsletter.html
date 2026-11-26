@@ -70,6 +70,8 @@ h2 span{text-transform:none;letter-spacing:0;font-weight:500}
 .fld{width:100%;background:#fff;border:1px solid #d6d9df;border-radius:11px;padding:11px 12px;font-size:16px;line-height:1.45}
 textarea.fld{min-height:180px;resize:vertical}
 .fld.big{font-weight:700}
+.sws{display:flex;gap:10px;flex-wrap:wrap}.sws button{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;padding:0;width:58px}
+.sws i{display:block;width:44px;height:44px;border-radius:10px;border:2px solid #d3d8df}.sws .on i{outline:3px solid var(--good);outline-offset:2px}.sws .on{color:var(--text)}
 .seg{display:flex;background:#e9ecf0;border-radius:10px;padding:3px}.seg button{flex:1;border:0;background:none;padding:9px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}.seg .on{background:#fff;color:var(--text)}
 .sw{width:46px;height:28px;border-radius:99px;background:#d3d8df;position:relative;border:0;cursor:pointer;flex:none}.sw:after{content:'';position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
 .thumb.nopic{opacity:.3;filter:grayscale(1)}.sw.on{background:var(--good)}.sw.on:after{left:22px}
@@ -269,6 +271,19 @@ function renderIssue() {
   wireDrag();
 }
 const std = () => (C.settings.standing || []);
+function swatches(cur) {
+  const c = window.paperColours(C.club);
+  const opts = [['none', 'No box', 'background:#f6f1e6'], ['club', 'Colour 1', 'background:' + c.a], ['club2', 'Colour 2', 'background:' + c.b], ['paper', 'Paper', 'background:#f6f1e6;border-color:' + c.b], ['dark', 'Black', 'background:#1b1b1b']];
+  return `<div class="sws" id="xBg">${opts.map(([k, l, st]) => `<button type="button" data-bg="${k}" class="${cur === k ? 'on' : ''}"><i style="${st}"></i>${l}</button>`).join('')}</div>`;
+}
+function wireSwatches() {
+  const w = $('xBg'); if (!w) return;
+  w.addEventListener('click', e => { const b = e.target.closest('button[data-bg]'); if (!b) return; w.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); });
+}
+const curBg = () => { const b = document.querySelector('#xBg .on'); return b ? b.dataset.bg : undefined; };
+const linkFields = (label, url) => `<div class="lbl">Button <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional: a tappable link on the web version; printed as text in the PDF)</span></div>
+    <input class="fld" id="xLinkLabel" value="${esc(label || '')}" maxlength="40" placeholder="Button text, e.g. Play the lotto">
+    <input class="fld" id="xLinkUrl" value="${esc(url || '')}" maxlength="300" placeholder="Link, e.g. clontarfgaa.com/lotto" style="margin-top:8px" inputmode="url">`;
 const stdUrl = p => p ? SUPABASE_URL + '/storage/v1/object/public/newsletter/' + p : '';
 let stdIdx = -1, stdDraft = null;
 function renderStd() {
@@ -280,6 +295,8 @@ function renderStd() {
     <div class="lbl">Name <span style="text-transform:none;letter-spacing:0;font-weight:500">(small heading above the headline)</span></div><input class="fld" id="xKicker" value="${esc(x.kicker || '')}" maxlength="120" placeholder="e.g. Club Lotto">
     <div class="lbl">Headline</div><input class="fld big" id="xHead" value="${esc(x.headline || '')}" maxlength="120" placeholder="e.g. This week’s jackpot">
     <div class="lbl">Text <span style="text-transform:none;letter-spacing:0;font-weight:500">(a blank line starts a new paragraph)</span></div><textarea class="fld" id="xBody">${esc(x.body || '')}</textarea>
+    <div class="lbl">Background</div>${swatches(x.bg || (x.placement === 'story' ? 'none' : 'club2'))}
+    ${linkFields(x.link_label, x.link_url)}
     <div class="lbl">Photo or logo</div><div class="photo">${x.photo_path ? `<img src="${esc(stdUrl(x.photo_path))}" alt=""><button data-a="stdnophoto">Remove</button>` : ''}<label>${x.photo_path ? 'Change' : '+ Add a photo'}<input type="file" accept="image/*" id="xPhoto" hidden></label></div>
     <div class="note">Each new issue gets this ticked, near the end. You can change the text for one week (this week’s jackpot, say) in that issue without changing it here.</div>
     ${stdIdx >= 0 ? '<button class="add" style="margin-top:16px;color:#d9363e" data-a="stddelete">Delete this item</button>' : ''}
@@ -288,6 +305,7 @@ function renderStd() {
   const seg = $('xPlace');
   seg.addEventListener('click', e => { const b = e.target.closest('button[data-p]'); if (!b) return; seg.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); });
   $('xOn').addEventListener('click', e => e.currentTarget.classList.toggle('on'));
+  wireSwatches();
   const f = $('xPhoto'); f.addEventListener('change', async () => {
     if (!f.files[0]) return; readStd();
     const data = await shrink(f.files[0]).catch(e => { toast(e.message); return null; }); if (!data) return;
@@ -298,7 +316,7 @@ function renderStd() {
 function readStd() {
   if (!$('xHead')) return;
   const seg = document.querySelector('#xPlace .on');
-  Object.assign(stdDraft, { active: $('xOn').classList.contains('on'), placement: seg ? seg.dataset.p : 'short', kicker: $('xKicker').value, headline: $('xHead').value, body: $('xBody').value });
+  Object.assign(stdDraft, { active: $('xOn').classList.contains('on'), placement: seg ? seg.dataset.p : 'short', kicker: $('xKicker').value, headline: $('xHead').value, body: $('xBody').value, bg: curBg(), link_label: $('xLinkLabel').value, link_url: $('xLinkUrl').value });
 }
 async function saveStd(list) {
   const d = await busy('Saving…', () => api({ action: 'settings', settings: { title: C.settings.title, strap: C.settings.strap, website_url: C.settings.website_url, standing: list } }));
@@ -326,6 +344,8 @@ function renderStory() {
     ${(s.kind === 'win' || s.kind === 'final') ? `<div class="chk">✓ Competition named as in the results: “${esc(d.competition || '')}${d.round ? ' · ' + esc(d.round) : ''}”</div>` : ''}
     ${s.kind === 'final' && !d.show_score ? '<div class="chk">✓ Bigger semi-final or final loss: the score is left out</div>' : ''}
     ${s.kind === 'final' && d.show_score ? '<div class="chk">✓ Lost by 3 points or less: the score is shown and it says it was close</div>' : ''}
+    ${box ? '' : linkFields(d.link_label, d.link_url)}
+    ${s.kind === 'standing' ? `<div class="lbl">Background</div>${swatches(d.bg || (s.placement === 'story' ? 'none' : 'club2'))}` : ''}
     ${box ? '' : `<div class="lbl">Photo</div><div class="photo">${s.photo_url ? `<img src="${esc(s.photo_url)}" alt=""><button data-a="nophoto">Remove</button>` : ''}<label>${s.photo_url ? 'Change' : '+ Add a photo'}<input type="file" accept="image/*" id="ePhoto" hidden></label></div>
     ${s.photo_url ? `<div class="row2"><b>Show the photo with this story</b><button class="sw${(s.data && s.data.hide_photo) ? '' : ' on'}" id="ePic" aria-label="Show photo"></button></div>` : ''}
     <div class="chk w" style="margin-top:8px">Only use photos the club is happy to share. Don’t name children in stories.</div>`}
@@ -340,6 +360,7 @@ function renderStory() {
     const lead = b.dataset.p === 'lead'; $('eDeck').hidden = !lead; $('eDeckL').hidden = !lead;
   });
   $('eInc').addEventListener('click', e => e.currentTarget.classList.toggle('on'));
+  wireSwatches();
   const pic = $('ePic'); if (pic) pic.addEventListener('click', e => e.currentTarget.classList.toggle('on'));
   const f = $('ePhoto'); if (f) f.addEventListener('change', () => f.files[0] && uploadPhoto(s, f.files[0]));
 }
@@ -355,7 +376,7 @@ function renderPreview() {
   <div class="bar"><div class="in"><button class="btn" data-a="backissue">Back to stories</button>
     ${iss.status === 'draft' ? '<button class="btn pri" data-a="build">Build issue</button>' : iss.status === 'built' ? '<button class="btn grn" data-a="approve">Approve</button>' : '<button class="btn" data-a="reopen">Make changes</button>'}</div></div>`;
   const fr = $('pvFrame');
-  fr.srcdoc = window.renderPaper(I, { width: 420, page: '#f6f1e6' });
+  fr.srcdoc = window.renderPaper(I, { width: 420, page: '#f6f1e6', live: true });
   fr.onload = () => { const h = () => { try { fr.style.height = fr.contentDocument.documentElement.scrollHeight + 'px'; } catch (_) { } }; h(); setTimeout(h, 400); setTimeout(h, 1500); };
 }
 
@@ -479,6 +500,8 @@ document.addEventListener('click', async e => {
     const s = story(storyId); const seg = document.querySelector('#ePlace .on');
     const body = { story_id: s.story_id, headline: $('eHead').value, included: $('eInc').classList.contains('on') };
     if ($('ePic')) body.show_photo = $('ePic').classList.contains('on');
+    if ($('xLinkUrl')) Object.assign(body, { link_label: $('xLinkLabel').value, link_url: $('xLinkUrl').value });
+    if (curBg()) body.bg = curBg();
     if ($('eBody')) Object.assign(body, { body: $('eBody').value, deck: $('eDeck').value, kicker: $('eKicker').value, placement: seg ? seg.dataset.p : s.placement });
     const r = await busy('Saving…', () => api({ action: 'save', story: body }));
     if (r) { await refresh(); view = 'issue'; toast('Saved'); render(); } return;

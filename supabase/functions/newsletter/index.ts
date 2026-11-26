@@ -236,6 +236,16 @@ async function uploadImage(sb: any, folder: string, body: any) {
   return path;
 }
 
+// Backgrounds for boxed items, and the optional button link.
+const BGS = ["club", "club2", "paper", "dark", "none"];
+function cleanUrl(u: any) {
+  let v = String(u || "").trim().slice(0, 300);
+  if (!v) return "";
+  if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+  if (!/^https?:\/\/[^\s/]+\.[^\s]+$/i.test(v)) throw new Error("That link doesn't look right. Try something like clontarfgaa.com/lotto");
+  return v;
+}
+
 // "In every issue" items (settings.standing).
 function cleanStanding(list: any[], clubId: number) {
   return list.slice(0, 12).map((x: any) => ({
@@ -246,6 +256,9 @@ function cleanStanding(list: any[], clubId: number) {
     placement: x.placement === "story" ? "story" : "short",
     photo_path: typeof x.photo_path === "string" && x.photo_path.startsWith(`${clubId}/standing/`) ? x.photo_path : null,
     active: x.active !== false,
+    bg: BGS.includes(x.bg) ? x.bg : (x.placement === "story" ? "none" : "club2"),
+    link_label: clip(x.link_label, 40) || "",
+    link_url: cleanUrl(x.link_url),
   })).filter((x: any) => x.headline || x.body);
 }
 async function addStanding(sb: any, iss: any, standing?: any[]) {
@@ -268,7 +281,8 @@ async function addStanding(sb: any, iss: any, standing?: any[]) {
   }
   const { error } = await sb.from("newsletter_stories").insert(rows.map((x: any) => ({
     issue_id: iss.issue_id, kind: "standing", source: "standing", kicker: x.kicker || null, headline: x.headline, body: x.body,
-    placement: x.placement, included: true, position: ++pos, photo_path: x.photo_path, data: { standing_id: x.id },
+    placement: x.placement, included: true, position: ++pos, photo_path: x.photo_path,
+    data: { standing_id: x.id, bg: x.bg || (x.placement === "story" ? "none" : "club2"), link_label: x.link_label || "", link_url: x.link_url || "" },
   })));
   if (error) throw error;
 }
@@ -641,7 +655,12 @@ async function saveStory(sb: any, clubId: number, s: any) {
     body: s.body !== undefined ? clip(s.body, 4000) : st.body,
     kicker: s.kicker !== undefined ? clip(s.kicker, 120) || null : st.kicker,
     included: s.included !== undefined ? !!s.included : st.included,
-    data: s.show_photo !== undefined ? { ...(st.data || {}), hide_photo: !s.show_photo } : st.data,
+    data: {
+      ...(st.data || {}),
+      ...(s.show_photo !== undefined ? { hide_photo: !s.show_photo } : {}),
+      ...(s.link_url !== undefined ? { link_url: cleanUrl(s.link_url), link_label: clip(s.link_label, 40) || "" } : {}),
+      ...(s.bg !== undefined && BGS.includes(s.bg) ? { bg: s.bg } : {}),
+    },
     placement, edited: true, updated_at: new Date().toISOString(),
   }).eq("story_id", st.story_id).select().single();
   if (error) throw error;

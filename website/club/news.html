@@ -20,7 +20,7 @@
   sb.functions.invoke('newsletter', { body: { action: 'public', token } }).then(({ data }) => {
     if (!data || !data.success) { document.getElementById('st').textContent = 'This newsletter isn’t available.'; return; }
     const d = data.data;
-    const html = window.renderPaper(d, { width: 640, pdfUrl: d.issue.pdf_url });
+    const html = window.renderPaper(d, { width: 640, pdfUrl: d.issue.pdf_url, live: true });
     document.open(); document.write(html); document.close();
     if (d.club.crest) { const l = document.createElement('link'); l.rel = 'icon'; l.href = d.club.crest; document.head.appendChild(l); }
   }, () => { document.getElementById('st').textContent = 'This newsletter isn’t available.'; });

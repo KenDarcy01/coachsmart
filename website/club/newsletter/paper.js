@@ -32,12 +32,30 @@
     return { a: list[0] || '#1b1b1b', b: list[1] || list[0] || '#1b1b1b' };
   }
   const paras = t => String(t || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  // Web addresses become live links on the web version (LIVE), plain text in the PDF.
+  let LIVE = false;
+  const URL_RE = /\b((?:https?:\/\/|www\.)[^\s<]+|[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)*\.(?:com|ie|org|net|app|eu|co\.uk)(?:\/[^\s<]*)?)/gi;
+  const href = u => /^https?:\/\//i.test(u) ? u : 'https://' + u;
+  function linkify(escaped) {
+    if (!LIVE) return escaped;
+    return escaped.replace(URL_RE, m => {
+      const tail = (m.match(/[.,;:!?)]+$/) || [''])[0]; const u = tail ? m.slice(0, -tail.length) : m;
+      return `<a href="${href(u.replace(/&amp;/g, '&'))}" target="_blank" rel="noopener">${u}</a>${tail}`;
+    });
+  }
   function bodyHtml(t, drop) {
     return paras(t).map((p, i) => {
-      if (drop && i === 0) return `<p><span class="dc">${esc(p[0])}</span>${esc(p.slice(1))}</p>`;
-      return `<p>${esc(p)}</p>`;
+      if (drop && i === 0) return `<p><span class="dc">${esc(p[0])}</span>${linkify(esc(p.slice(1)))}</p>`;
+      return `<p>${linkify(esc(p))}</p>`;
     }).join('');
   }
+  function cta(d) {
+    if (!d || !d.link_url) return '';
+    const label = d.link_label || 'Find out more';
+    if (LIVE) return `<p class="cta-p"><a class="cta" href="${esc(href(d.link_url))}" target="_blank" rel="noopener">${esc(label)} ›</a></p>`;
+    return `<p class="ctat"><b>${esc(label)}:</b> ${esc(d.link_url.replace(/^https?:\/\//i, '').replace(/\/$/, ''))}</p>`;
+  }
+  const bgClass = s => { const b = s.data && s.data.bg; return b && b !== 'none' ? ' bg-' + b : ''; };
   function scoreBox(d) {
     if (!d || !d.show_score || !d.home_score) return '';
     const hu = d.us === 'home';
@@ -57,21 +75,21 @@
       <h2>${esc(s.headline)}</h2>
       ${s.deck ? `<p class="deck">${esc(s.deck)}</p>` : ''}
       ${photo(s)}${scoreBox(s.data)}${byline(s.data)}
-      ${bodyHtml(s.body, true)}${badge(s)}
+      ${bodyHtml(s.body, true)}${cta(s.data)}${badge(s)}
     </article><hr class="d">`;
   }
   function story(s) {
-    return `<article class="story">
+    return `<article class="story${bgClass(s) ? ' box' + bgClass(s) : ''}">
       ${s.kicker ? `<div class="kicker">${esc(s.kicker)}</div>` : ''}
       ${s.headline ? `<h3>${esc(s.headline)}</h3>` : ''}
-      ${scoreBox(s.data)}${photo(s)}${bodyHtml(s.body)}${badge(s)}
+      ${scoreBox(s.data)}${photo(s)}${bodyHtml(s.body)}${cta(s.data)}${badge(s)}
     </article>`;
   }
   function short(s) {
-    return `<div class="go">
+    return `<div class="go${bgClass(s)}">
       ${s.kicker ? `<div class="kicker">${esc(s.kicker)}</div>` : ''}
       ${s.headline ? `<h3>${esc(s.headline)}</h3>` : ''}
-      ${photo(s)}${bodyHtml(s.body)}
+      ${photo(s)}${bodyHtml(s.body)}${cta(s.data)}
     </div>`;
   }
   function winsBox(s) {
@@ -90,6 +108,7 @@
 
   window.renderPaper = function (d, opts) {
     const o = opts || {};
+    LIVE = !!o.live;
     const { club, settings, issue } = d;
     const c = colours(club);
     const items = (d.stories || []).filter(s => s.included !== false);
@@ -146,6 +165,15 @@ hr.d{border:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rul
 .go h3{font-family:PF;font-weight:900;font-size:23px;margin:2px 0 6px;color:#fff}
 .go p{font-size:14.5px}
 .go figure img{border:0}
+.box{padding:12px 14px;border-bottom:0}
+.bg-club{background:var(--club);color:#fff}.bg-club2{background:var(--club2);color:#fff}.bg-dark{background:#1b1b1b;color:#fff}
+.bg-club h3,.bg-club2 h3,.bg-dark h3{color:#fff}.bg-club .kicker,.bg-club2 .kicker,.bg-dark .kicker{color:#ffffffcc}
+.bg-paper{background:transparent;color:var(--ink);border:2px solid var(--club2)}.bg-paper h3{color:var(--ink)}.bg-paper .kicker{color:var(--club2)}
+.bg-club figure img,.bg-club2 figure img,.bg-dark figure img{border:0}
+a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.cta-p{margin:10px 0 2px}.cta{display:inline-block;background:var(--club);color:#fff;text-decoration:none;font-family:OS,sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:13px;padding:9px 14px}
+.bg-club .cta{background:#fff;color:var(--club)}.bg-club2 .cta,.bg-dark .cta{background:#fff;color:#1b1b1b}
+.ctat{font-size:13.5px;margin:8px 0 2px}
 .fxs h3{font-family:PF;font-weight:900;font-size:25px;margin:2px 0 4px}
 .fx{display:flex;gap:10px;padding:9px 0;border-bottom:1px dotted #999}
 .fx .d{flex:none;width:54px;font-family:OS;text-align:center;border:2px solid var(--club);color:var(--club);line-height:1.05;padding:3px 0;align-self:flex-start}
@@ -168,6 +196,7 @@ ${parts || '<div class="empty">Tick some stories to see them here.</div>'}
 </div></body></html>`;
   };
   window.paperWeekLabel = weekLabel;
+  window.paperColours = colours;
   // html2canvas draws on a canvas in the page that calls it, so the paper's
   // fonts must be loaded there too before a PDF is built.
   window.paperLoadFonts = async function () {
