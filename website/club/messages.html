@@ -138,6 +138,14 @@ a{color:inherit;text-decoration:none}
 .nbar{display:flex;align-items:center;gap:10px;background:#2a2f3a;border-radius:12px;padding:10px 12px}
 .nbar div{flex:1;min-width:0}.nbar b{display:block;font-size:14px}.nbar small{display:block;color:#a1a1a2;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nbar span{color:#a1a1a2;font-size:18px}
+.ncard{background:#1e222b;border:1px solid #2c313b;border-radius:18px;overflow:hidden;height:136px;display:flex;flex-direction:column}
+.ncard .stripe{height:5px;flex:none}
+.ncard .nr{flex:1;display:flex;min-height:0}
+.ncard .nimg{width:104px;height:100%;object-fit:cover;flex:none;border-radius:0}
+.ncard .npan{width:104px;flex:none;background:#14181b;display:flex;align-items:center;justify-content:center}.ncard .npan img{width:64px;height:64px}
+.ncard .nin{flex:1;min-width:0;padding:10px 12px}.ncard small{font-size:11px;font-weight:700;letter-spacing:.08em;color:#87c232}
+.ncard b{display:block;font-size:17px;line-height:1.2;margin:3px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ncard p{font-size:13px;color:#a1a1a2;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .search{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0 4px;font-size:16px}
 .trow{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);cursor:pointer;font-size:15px}
 .trow:first-child{border-top:0;padding-top:2px}
@@ -341,10 +349,10 @@ function renderForm() {
     <div class="field"><label>Button</label><div class="btnrow">${['Buy tickets', 'Order now', 'Donate', 'Sign up'].map(l => `<span class="pre ${d.link_label === l ? 'on' : ''}" onclick="setD('link_label','${l}')">${l}</span>`).join('')}</div>
       <input id="fLabel" maxlength="24" value="${esc(d.link_label)}" placeholder="Or type your own" style="margin-top:8px" oninput="draft.link_label=this.value;pv()"></div>
     <div class="field"><label>Button opens</label><input id="fLink" type="url" value="${esc(d.link_url)}" placeholder="https://your-club-shop.ie/christmas-draw" oninput="draft.link_url=this.value"><div class="hint">Your club’s own page: shop, raffle or lotto. CoachSmart takes no payment.</div></div>` : ''}
-    ${d.kind === 'important' || d.kind === 'fundraiser' ? `<div class="field"><label>Photo <span class="opt">optional</span></label>
+    <div class="field"><label>Photo <span class="opt">optional</span></label>
       ${d.image_url ? `<div class="photo"><img src="${esc(d.image_url)}" alt=""><button class="sm red" onclick="setD('image_url','')">Remove</button></div>`
         : `<div class="pick up" onclick="$('fImg').click()"><span id="upTxt">Add a photo</span><span class="mut">Choose ›</span></div>`}
-      <input id="fImg" type="file" accept="image/*" hidden onchange="upload(this.files[0])"></div>` : ''}
+      <input id="fImg" type="file" accept="image/*" hidden onchange="upload(this.files[0])"></div>
     <div class="field"><label>Who gets it</label>${seg('audience', [['all', 'Everyone'], ['players', 'Players &amp; parents'], ['staff', 'Coaches']], d.audience)}</div>
     <div class="field"><label>Teams</label><div class="pick" onclick="openPicker()"><span>${esc(teamsText())}</span><span class="mut">Change ›</span></div></div>
     <div class="two">
@@ -370,7 +378,8 @@ function pv() {
     return;
   }
   el.innerHTML = d.kind === 'news'
-    ? `<div class="prev"><div class="nbar">${crest}<div><b>${esc(d.title || 'Your title')}</b>${d.body ? `<small>${esc(d.body)}</small>` : ''}</div><span>›</span></div></div>`
+    ? `<div class="prev"><div class="ncard"><i class="stripe"></i><div class="nr">${d.image_url ? `<img class="nimg" src="${esc(d.image_url)}" alt="">` : `<span class="npan">${crest}</span>`}
+       <div class="nin"><small>NEW · TODAY</small><b>${esc(d.title || 'Your title')}</b>${d.body ? `<p>${esc(d.body)}</p>` : ''}</div></div></div></div>`
     : `<div class="prev"><div class="pc"><i class="stripe"></i><div class="pf">${crest}<div><b>${esc(T.club_name)}</b><small>From the club</small></div><span class="x">✕</span></div>
        ${d.image_url ? `<img class="pimg" src="${esc(d.image_url)}" alt="">` : ''}
        <div class="pin"><span class="imp">IMPORTANT</span><b class="pt">${esc(d.title || 'Your title')}</b>
@@ -420,7 +429,7 @@ async function send() {
   const { error } = await sb.rpc('save_app_message', {
     p_id: d.id, p_kind: d.kind, p_title: d.title.trim(), p_body: d.body.trim(), p_link_url: d.link_url, p_link_label: d.link_label,
     p_club_id: clubId, p_team_ids: d.team_ids, p_audience: d.audience,
-    p_image_url: d.kind === 'news' ? '' : (d.image_url || ''), p_price_label: d.kind === 'fundraiser' ? d.price_label.trim() : '', p_starts_at: starts ? starts.toISOString() : (d.id && d.wasLater ? new Date().toISOString() : null), p_ends_at: ends.toISOString() });
+    p_image_url: d.image_url || '', p_price_label: d.kind === 'fundraiser' ? d.price_label.trim() : '', p_starts_at: starts ? starts.toISOString() : (d.id && d.wasLater ? new Date().toISOString() : null), p_ends_at: ends.toISOString() });
   if (error) { b.disabled = false; b.textContent = d.id ? 'Save changes' : 'Send'; return err(/after/.test(error.message) ? 'Stop showing has to be after it starts.' : 'Couldn’t send. Please try again.'); }
   toast(d.id ? 'Saved' : starts ? 'Scheduled' : 'Sent'); view = 'list'; draft = null; load();
 }
