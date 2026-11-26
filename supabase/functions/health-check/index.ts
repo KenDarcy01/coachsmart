@@ -88,6 +88,118 @@ async function githubChecks(migrationsInDb: string[]): Promise<{ findings: Findi
   return { findings, kpis };
 }
 
+
+// Supabase account checks (Ken 2026-11-26, cost watch). Need a personal access
+// token in the edge function secret MGMT_API_TOKEN; without it this is a note.
+const REF = "gyfporsbdftvtakdvukt";
+const KNOWN_PROJECTS = new Set(["gyfporsbdftvtakdvukt", "fpgrghfzlpfxoshlamjo"]); // CoachSmart, Family Quiz
+const MGMT = "https://api.supabase.com/v1";
+
+async function mgmt(token: string, path: string): Promise<any> {
+  const r = await fetch(`${MGMT}${path}`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
+  if (!r.ok) throw new Error(`${path.split("?")[0]} ${r.status}`);
+  return r.json();
+}
+
+async function logsSql(token: string, sql: string): Promise<any[]> {
+  const end = new Date();
+  const start = new Date(end.getTime() - 24 * 3600 * 1000);
+  const q = new URLSearchParams({ sql, iso_timestamp_start: start.toISOString(), iso_timestamp_end: end.toISOString() });
+  const j = await mgmt(token, `/projects/${REF}/analytics/endpoints/logs.all?${q}`);
+  if (j?.error) throw new Error(typeof j.error === "string" ? j.error : JSON.stringify(j.error).slice(0, 160));
+  return j?.result || [];
+}
+
+async function supabaseAccountChecks(history: Record<string, any>[]): Promise<{ findings: Finding[]; kpis: Record<string, unknown> }> {
+  const findings: Finding[] = [];
+  const kpis: Record<string, unknown> = {};
+  const token = Deno.env.get("MGMT_API_TOKEN") || "";
+  const A = "Costs and growth";
+  if (!token) {
+    findings.push({ level: "info", area: A, title: "Supabase usage not checked yet", detail: "Add the MGMT_API_TOKEN secret to see branches, projects, add-ons and function call counts." });
+    return { findings, kpis };
+  }
+  // Extra projects and branches: each one is billed by the hour.
+  try {
+    const projects: any[] = await mgmt(token, "/projects");
+    kpis.supabase_projects = projects.length;
+    const extra = projects.filter((p) => !KNOWN_PROJECTS.has(p.id || p.ref) && !/INACTIVE|PAUSED|REMOVED/i.test(p.status || ""));
+    if (extra.length) {
+      findings.push({ level: "critical", area: A, title: `${extra.length} unexpected Supabase project(s) running`,
+        detail: extra.map((p) => `${p.name} (${p.status})`).join(", ") + ". Each running project costs about $10 a month or more." });
+    }
+  } catch (e) {
+    findings.push({ level: "info", area: A, title: "Couldn't list Supabase projects", detail: String(e) });
+  }
+  try {
+    const branches: any[] = await mgmt(token, `/projects/${REF}/branches`);
+    const extra = (branches || []).filter((b) => !b.is_default);
+    kpis.supabase_branches = extra.length;
+    if (extra.length) {
+      findings.push({ level: "critical", area: A, title: `${extra.length} Supabase preview branch(es) exist`,
+        detail: extra.map((b) => b.name || b.git_branch || b.id).join(", ") + ". Each one is billed by the hour (about $0.32 a day). Delete when done." });
+    }
+  } catch (e) {
+    // A 4xx here usually means branching is off, which is what we want.
+    if (!/ 40[034]$/.test(String(e))) findings.push({ level: "info", area: A, title: "Couldn't list Supabase branches", detail: String(e) });
+    kpis.supabase_branches = 0;
+  }
+  try {
+    const add = await mgmt(token, `/projects/${REF}/billing/addons`);
+    const sel: any[] = add?.selected_addons || [];
+    kpis.supabase_addons = sel.map((a) => `${a.type}:${a.variant?.id || a.variant?.name || ""}`).join(", ") || "none";
+    for (const a of sel) {
+      const vid = String(a.variant?.id || "");
+      if (a.type === "compute_instance" && vid === "ci_micro") continue;
+      findings.push({ level: "warning", area: A, title: `Paid add-on on CoachSmart: ${a.type} ${a.variant?.name || vid}`,
+        detail: a.variant?.price?.amount != null ? `About $${a.variant.price.amount} ${a.variant.price.interval || ""}.` : "Check it was meant to be on." });
+    }
+  } catch (e) {
+    findings.push({ level: "info", area: A, title: "Couldn't read Supabase add-ons", detail: String(e) });
+  }
+  // Edge function calls and errors from the logs (includes calls the app makes).
+  try {
+    const fns: any[] = await mgmt(token, `/projects/${REF}/functions`);
+    const nameOf = new Map(fns.map((f) => [f.id, f.slug || f.name]));
+    const rows = await logsSql(token,
+      "select m.function_id as fid, count(*) as n, countif(r.status_code >= 500) as e5 " +
+      "from function_edge_logs cross join unnest(metadata) as m cross join unnest(m.response) as r " +
+      "group by fid order by n desc limit 100");
+    let total = 0;
+    let errTotal = 0;
+    const errs: string[] = [];
+    for (const r of rows) {
+      total += Number(r.n || 0);
+      const e5 = Number(r.e5 || 0);
+      errTotal += e5;
+      if (e5 >= 5) errs.push(`${nameOf.get(r.fid) || r.fid}: ${e5} of ${r.n}`);
+    }
+    kpis.function_calls = total;
+    kpis.function_errors = errTotal;
+    if (errs.length) {
+      findings.push({ level: errTotal >= 50 ? "critical" : "warning", area: "Edge functions",
+        title: `Edge functions returning errors (${errTotal} in 24h)`, detail: errs.slice(0, 6).join("\n") });
+    }
+    const avgs = history.map((h) => Number(h?.function_calls)).filter(Number.isFinite);
+    const avg = avgs.length ? avgs.reduce((a, b) => a + b, 0) / avgs.length : null;
+    if (avg !== null && avgs.length >= 3 && total > 20000 && total > 3 * Math.max(avg, 1)) {
+      findings.push({ level: "warning", area: A, title: `Edge function calls unusually high: ${total}`,
+        detail: `7-night average ${Math.round(avg)}. Top: ${rows.slice(0, 3).map((r) => `${nameOf.get(r.fid) || r.fid} ${r.n}`).join(", ")}.` });
+    }
+    if (total * 30 > 1_500_000) {
+      findings.push({ level: total * 30 > 2_000_000 ? "critical" : "warning", area: A,
+        title: `On course for ${Math.round(total * 30 / 1000)}k function calls this month`, detail: "The plan includes 2 million; after that Supabase charges per million." });
+    }
+  } catch (e) {
+    findings.push({ level: "info", area: "Edge functions", title: "Couldn't read edge function logs", detail: String(e) });
+  }
+  try {
+    const rows = await logsSql(token, "select count(*) as n from edge_logs");
+    kpis.api_requests = Number(rows?.[0]?.n || 0);
+  } catch (_) { /* KPI only */ }
+  return { findings, kpis };
+}
+
 // KPI rows shown in the email: [key, label, format]
 const KPI_ROWS: [string, string, ((v: any) => string)?][] = [
   ["active_users_24h", "Active users (24h)"],
@@ -115,6 +227,11 @@ const KPI_ROWS: [string, string, ((v: any) => string)?][] = [
   ["storage_mb", "File storage MB"],
   ["storage_growth_mb", "Storage growth MB"],
   ["storage_mb_days_to_cap", "Days until storage passes 100 GB"],
+  ["function_calls", "Edge function calls"],
+  ["function_errors", "Edge function errors"],
+  ["api_requests", "API requests"],
+  ["supabase_branches", "Supabase branches"],
+  ["supabase_projects", "Supabase projects"],
   ["cron_jobs", "Cron jobs"],
   ["deploys_24h", "Deploys (24h)"],
 ];
@@ -216,6 +333,10 @@ Deno.serve(async (req) => {
   const { data: hist } = await sb.from("health_reports").select("kpis").lt("run_date", runDate)
     .order("run_date", { ascending: false }).limit(7);
   const history = (hist || []).map((h: any) => h.kpis || {});
+
+  const sa = await supabaseAccountChecks(history);
+  findings.push(...sa.findings);
+  Object.assign(kpis, sa.kpis);
 
   await sb.from("health_reports").upsert({ run_date: runDate, kpis, findings, snapshot });
 
