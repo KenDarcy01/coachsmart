@@ -622,9 +622,9 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     final items = buildTimeline(_events, _now);
     final green = nextDay(items);
     final children = <Widget>[];
-    // The club's sponsor (club partners page) takes the slot; the old
-    // National Draw box shows only where a team has show_advert and the club
-    // has no sponsor (2026-11-25).
+    // Order: Club news, fundraisers, then the club's sponsor (club partners
+    // page). The old National Draw box is gone: clubs post a fundraiser
+    // instead (Ken, 2026-11-26).
     // Club news cards under the team chips, above the sponsor (Ken picked
     // option C, 2026-11-26: bigger than the old one-line bar).
     if (_msgs.news.isNotEmpty) {
@@ -649,8 +649,6 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
             place: V3SponsorPlace.home,
             teamId: team),
       ));
-    } else if (_home.showAdvert) {
-      children.add(_advert());
     }
     // The greeting above the chips now heads the page; the "Events" title
     // went with option B (Ken, 2026-11-12).
@@ -700,68 +698,6 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       ],
     );
   }
-
-  // The National Draw box from v2, as a quieter card. Still hard-coded;
-  // v3 will make it a club setting.
-  Widget _advert() => Padding(
-        padding: const EdgeInsets.only(top: 10, bottom: 4),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          decoration: BoxDecoration(
-            color: V3.card,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF155B81),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  'GAA',
-                  style: V3.tight(11,
-                      weight: FontWeight.w800, color: Colors.white),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'National Draw',
-                      style: V3.inter(15, weight: FontWeight.w600),
-                    ),
-                    Text('Support your club',
-                        style: V3.inter(13, color: V3.muted)),
-                  ],
-                ),
-              ),
-              FilledButton(
-                onPressed: () => launchURL(
-                  'https://buy.stripe.com/00w9ATfp29iqe7N3Tmds404?client_reference_id=$currentUserUid',
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: V3.green,
-                  foregroundColor: V3.bg,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  'Buy tickets',
-                  style: V3.inter(14, weight: FontWeight.w600, color: V3.bg),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
 
   // ---- bottom tabs ---------------------------------------------------------
 

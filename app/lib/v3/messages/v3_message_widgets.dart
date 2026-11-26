@@ -579,6 +579,32 @@ class V3FundraiserRow extends StatefulWidget {
 
 class _V3FundraiserRowState extends State<V3FundraiserRow> {
   int _page = 0;
+  final _pc = PageController();
+
+  // Two or more running: moves on every 7 seconds like Club news, so none
+  // is hidden; a touch pauses it for 10 seconds.
+  Timer? _timer;
+  DateTime _pausedUntil = DateTime(0);
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 7), (_) {
+      final n = widget.items.length;
+      if (!mounted || n < 2 || !_pc.hasClients) return;
+      if (DateTime.now().isBefore(_pausedUntil)) return;
+      if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return;
+      _pc.animateToPage((_page + 1) % n,
+          duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pc.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -591,11 +617,16 @@ class _V3FundraiserRowState extends State<V3FundraiserRow> {
         children: [
           SizedBox(
             height: 62,
-            child: PageView.builder(
-              itemCount: items.length,
-              onPageChanged: (i) => setState(() => _page = i),
-              itemBuilder: (_, i) => _FundraiserTile(items[i],
-                  onTap: () => widget.onTap(items[i])),
+            child: Listener(
+              onPointerDown: (_) => _pausedUntil =
+                  DateTime.now().add(const Duration(seconds: 10)),
+              child: PageView.builder(
+                controller: _pc,
+                itemCount: items.length,
+                onPageChanged: (i) => setState(() => _page = i),
+                itemBuilder: (_, i) => _FundraiserTile(items[i],
+                    onTap: () => widget.onTap(items[i])),
+              ),
             ),
           ),
           if (items.length > 1)
