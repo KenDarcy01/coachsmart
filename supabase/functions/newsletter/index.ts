@@ -84,8 +84,13 @@ serve(async (req) => {
       case "get": return ok(await issueData(sb, await issueOf(sb, clubId, body.issue_id)));
       case "resuggest": {
         const iss = await issueOf(sb, clubId, body.issue_id);
+        // Remember photos first: the club site's feed only shows recent posts,
+        // so a photo found last time may not be found again.
+        const { data: old } = await sb.from("newsletter_stories").select("data, photo_path").eq("issue_id", iss.issue_id).eq("edited", false).neq("kind", "custom");
+        const prior: Record<string, any> = {};
+        for (const o of old || []) if (o.data?.game_id && o.photo_path) prior[o.data.game_id] = { image: o.data.image, photo_path: o.photo_path };
         await sb.from("newsletter_stories").delete().eq("issue_id", iss.issue_id).eq("edited", false).neq("kind", "custom");
-        await suggest(sb, iss);
+        await suggest(sb, iss, prior);
         return ok(await issueData(sb, await draft(sb, iss)));
       }
       case "save": return ok(await saveStory(sb, clubId, body.story || {}));
@@ -355,7 +360,7 @@ async function copyPhoto(sb: any, url: string, clubId: number, issueId: number) 
   } catch (_) { return null; }
 }
 
-async function suggest(sb: any, iss: any) {
+async function suggest(sb: any, iss: any, prior: Record<string, any> = {}) {
   const club = await clubRow(sb, iss.club_id);
   const settings = await settingsOf(sb, iss.club_id, club);
   const gid = Number(club.gaa_club_id) || 0;
@@ -366,6 +371,7 @@ async function suggest(sb: any, iss: any) {
 
   const { data: kept } = await sb.from("newsletter_stories").select("kind, data, placement, position").eq("issue_id", iss.issue_id);
   const keptGames = new Set((kept || []).map((k: any) => k.data?.game_id).filter(Boolean));
+  const keptImages = new Set((kept || []).map((k: any) => k.data?.image).filter(Boolean));
   const hasLead = (kept || []).some((k: any) => k.placement === "lead");
 
   const played = week.filter((x) => x.g.status === "result" && !x.ccc1 && x.us != null && x.them != null);
@@ -411,9 +417,10 @@ async function suggest(sb: any, iss: any) {
     const twin = items.find((it) => (it.kind === "win" || it.kind === "final") && it.data.home_score && it.data.away_score
       && n.text.includes(it.data.home_score) && n.text.includes(it.data.away_score));
     if (twin) { if (n.image && !twin.data.image) twin.data.image = n.image; n.used = true; }
+    else if ((kept || []).some((k: any) => k.data?.home_score && k.data?.away_score && n.text.includes(k.data.home_score) && n.text.includes(k.data.away_score))) n.used = true;
   }
   for (const n of news) {
-    if (n.used) continue;
+    if (n.used || (n.image && keptImages.has(n.image))) continue;
     items.push({
       kind: "club_news", source: n.source, placement: "story", included: true,
       kicker: n.source === "website" ? "Club news" : "From the club",
@@ -435,7 +442,9 @@ async function suggest(sb: any, iss: any) {
     const it = items[i];
     const w = written[i] || fallback(it);
     let photo_path: string | null = null;
-    if (it.data.image) photo_path = await copyPhoto(sb, it.data.image, iss.club_id, iss.issue_id);
+    const was = it.data.game_id ? prior[it.data.game_id] : null;
+    if (was && (!it.data.image || it.data.image === was.image)) { photo_path = was.photo_path; if (was.image) it.data.image = was.image; }
+    else if (it.data.image) photo_path = await copyPhoto(sb, it.data.image, iss.club_id, iss.issue_id);
     rows.push({
       issue_id: iss.issue_id, kind: it.kind, source: it.source, kicker: it.kicker || w.kicker || null,
       headline: it.headline || w.headline || "", deck: it.placement === "lead" ? (w.deck || null) : null, body: w.body || "",
