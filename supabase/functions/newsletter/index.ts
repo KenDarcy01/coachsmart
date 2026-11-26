@@ -545,8 +545,20 @@ async function suggest(sb: any, iss: any, prior: Record<string, any> = {}) {
   for (const n of news) {
     const twin = items.find((it) => (it.kind === "win" || it.kind === "final") && it.data.home_score && it.data.away_score
       && n.text.includes(it.data.home_score) && n.text.includes(it.data.away_score));
-    if (twin) { if (n.image && !twin.data.image) twin.data.image = n.image; n.used = true; }
+    if (twin) {
+      // Ken 2026-11-26: the club's own post leads the story (and gives its photo).
+      if (n.image && !twin.data.image) twin.data.image = n.image;
+      if (!twin.data.post_text) { twin.data.post_text = n.text.slice(0, 1500); twin.data.post_url = n.url; }
+      n.used = true;
+    }
     else if ((kept || []).some((k: any) => k.data?.home_score && k.data?.away_score && n.text.includes(k.data.home_score) && n.text.includes(k.data.away_score))) n.used = true;
+  }
+  // Ken 2026-11-26: socials first. Among the top wins, the lead goes to the
+  // first one the club posted about (it has a photo and the club's words).
+  if (!hasLead) {
+    const top = items.filter((it) => it.kind === "win").slice(0, 3);
+    const pick = top.find((it) => it.data.post_text || it.data.image);
+    if (pick) for (const it of items) if (it.kind === "win") it.placement = it === pick ? "lead" : "story";
   }
   for (const n of news) {
     if (n.used || (n.image && keptImages.has(n.image))) continue;
@@ -606,6 +618,7 @@ Rules (never break them):
 - result "runners_up" (a bigger semi-final or final loss): NEVER give the score or margin. Celebrate reaching the semi-final or final and the season; you may say the other team "took the honours on the day".
 - Never use words like hammered, thrashed, beaten heavily, defeat, disappointing.
 - Never mention the lotto, payments, money, fees or car pooling.
+- When a result has club_post (the club's own social media post about that game), write the story mainly from the post: use its details and spirit, keep the score and competition from the result facts. Every rule above still applies (no names of under-18s; for runners_up never give the score even if the post does).
 - Club news / social posts: rewrite them as a short newspaper item; keep any dates, times and places exactly. Do not include hashtags or emoji.
 - A short Irish phrase now and then is welcome (Comhghairdeas, Maith sibh, Ar aghaidh linn), not in every story.
 Lengths: lead story headline 2-6 words with a deck (one sentence) and a body of two short paragraphs (70-110 words). Other stories: headline 3-8 words, body 40-70 words, one paragraph. Go Games: headline and 25-45 words. Fixtures and wins box need no body.
@@ -618,7 +631,8 @@ function factsFor(it: any) {
     const opp = d.us === "home" ? d.away : d.home;
     return { type: it.kind === "win" ? "win" : d.result, placement: it.placement, competition: `${d.age} ${d.code} · ${d.competition}${d.round ? " · " + d.round : ""}`,
       opponent: opp, our_score: d.show_score ? ours : undefined, their_score: d.show_score ? theirs : undefined,
-      margin_points: d.show_score ? d.margin : undefined, home_or_away: d.us === "home" ? "home" : "away", day: `${d.dow} ${d.day}`, venue: d.venue };
+      margin_points: d.show_score ? d.margin : undefined, home_or_away: d.us === "home" ? "home" : "away", day: `${d.dow} ${d.day}`, venue: d.venue,
+      club_post: d.post_text || undefined };
   }
   if (it.kind === "go_games") return { type: "go_games", blitzes: d.count, groups: d.groups };
   if (it.kind === "club_news") return { type: "club_news", source: it.source, title: d.title || undefined, text: d.text };
