@@ -70,6 +70,17 @@ serve(async (req) => {
   }
 
   const auth = req.headers.get("Authorization") || "";
+  if (a === "harvest") {
+    // Twice a day from pg_cron (newsletter_harvest_wake) with a service-role
+    // token; the gateway has already checked the token's signature.
+    let role = "";
+    try { role = JSON.parse(atob(auth.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).role; } catch (_) { /* no */ }
+    if (role !== "service_role") return fail("Not allowed.", 403);
+    const { data: rows } = await sb.from("newsletter_settings").select("club_id, website_url").not("website_url", "is", null);
+    let n = 0;
+    for (const r of rows || []) n += (await livePosts(sb, r.club_id, r.website_url, 0, 9e15)).length;
+    return ok({ posts: n });
+  }
   const { data: u } = await sb.auth.getUser(auth.replace(/^Bearer\s+/i, ""));
   const user = u?.user;
   if (!user) return fail("Please sign in again.", 401);
@@ -81,7 +92,15 @@ serve(async (req) => {
 
   try {
     switch (a) {
-      case "club": return ok(await clubData(sb, clubId));
+      case "club": {
+        // Opening the newsletter also stores the club's latest posts (in the background).
+        const st = await settingsOf(sb, clubId, { club_name: "" });
+        if (st.website_url) {
+          const job = livePosts(sb, clubId, st.website_url, 0, 0).catch((e) => console.error("harvest", e));
+          (globalThis as any).EdgeRuntime?.waitUntil?.(job);
+        }
+        return ok(await clubData(sb, clubId));
+      }
       case "open": return ok(await openWeek(sb, clubId, String(body.week_start || "")));
       case "get": return ok(await issueData(sb, await issueOf(sb, clubId, body.issue_id)));
       case "resuggest": {
@@ -392,20 +411,38 @@ function scoreData(x: any, show: boolean) {
   };
 }
 
-async function siteNews(site: string, from: string, to: string) {
-  const out: any[] = [];
-  if (!site) return out;
+// The club site's Instagram strip only shows the latest few posts, so every
+// post we see is kept in newsletter_posts (twice-daily harvest + each
+// suggestion run) and a week's suggestions read from there.
+async function siteNews(sb: any, clubId: number, site: string, from: string, to: string) {
+  if (!site) return [];
   const lo = new Date(addDays(from, -1) + "T00:00:00Z").getTime();
   const hi = new Date(addDays(to, 1) + "T12:00:00Z").getTime();
+  const out = await livePosts(sb, clubId, site, lo, hi);
+  const { data: cached } = await sb.from("newsletter_posts").select("*").eq("club_id", clubId).gte("at", lo).lte("at", hi).order("at");
+  const have = new Set(out.map((x) => x.image || x.text));
+  for (const c of cached || []) {
+    const key = c.image || c.text;
+    if (have.has(key)) continue;
+    have.add(key);
+    out.push({ source: c.source, title: c.title || "", text: c.text, url: c.url || site, image: c.image || "", at: Number(c.at) });
+  }
+  return out;
+}
+
+async function livePosts(sb: any, clubId: number, site: string, lo: number, hi: number) {
+  const out: any[] = [];
+  const all: any[] = [];
   try {
     const r = await fetch(site + "/news?format=json", { headers: { "User-Agent": "CoachSmart newsletter" }, signal: AbortSignal.timeout(8000) });
     if (r.ok) {
       const j = await r.json();
       for (const it of j.items || []) {
-        if (!(it.publishOn >= lo && it.publishOn <= hi)) continue;
         const text = String(it.body || it.excerpt || "").replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi, " ")
           .replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&rsquo;|&#39;/g, "'").replace(/&[a-z]+;/g, " ").replace(/\s+/g, " ").trim();
-        out.push({ source: "website", title: it.title, text: text.slice(0, 2500), url: site + (it.fullUrl || ""), image: it.assetUrl || "", at: it.publishOn });
+        const post = { source: "website", title: it.title, text: text.slice(0, 2500), url: site + (it.fullUrl || ""), image: it.assetUrl || "", at: it.publishOn };
+        if (it.publishOn > Date.now() - 45 * 864e5) all.push(post);
+        if (it.publishOn >= lo && it.publishOn <= hi) out.push(post);
       }
     }
   } catch (e) { console.error("news", e); }
@@ -421,13 +458,20 @@ async function siteNews(site: string, from: string, to: string) {
       while ((m = re.exec(part))) {
         const at = Number(m[3]);
         const text = m[1].replace(/&amp;/g, "&").replace(/&rsquo;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&[a-z]+;/g, " ").trim();
-        if (!text || seen.has(text) || !(at >= lo && at <= hi)) continue;
+        if (!text || seen.has(text)) continue;
         seen.add(text);
         if (/\blott(o|ery)\b|jackpot|car ?pool|payment/i.test(text)) continue; // Ken: never publicly
-        out.push({ source: "instagram", title: "", text: text.slice(0, 1500), url: site, image: m[2].split("?")[0], at });
+        const post = { source: "instagram", title: "", text: text.slice(0, 1500), url: site, image: m[2].split("?")[0], at };
+        if (at > Date.now() - 45 * 864e5) all.push(post);
+        if (at >= lo && at <= hi) out.push(post);
       }
     }
   } catch (e) { console.error("instagram", e); }
+  const keep = all.filter((x) => x.image || x.text).map((x) => ({ club_id: clubId, key: x.image || x.text.slice(0, 300), ...x }));
+  if (keep.length) {
+    const { error } = await sb.from("newsletter_posts").upsert(keep, { onConflict: "club_id,key", ignoreDuplicates: true });
+    if (error) console.error("posts cache", error);
+  }
   return out;
 }
 
@@ -452,7 +496,7 @@ async function suggest(sb: any, iss: any, prior: Record<string, any> = {}) {
   const from = iss.week_start, to = iss.week_end;
   const week = gid ? await gamesFor(sb, gid, from, to) : [];
   const next = gid ? await gamesFor(sb, gid, addDays(to, 1), addDays(to, 7)) : [];
-  const news = await siteNews(settings.website_url || "", from, to);
+  const news = await siteNews(sb, iss.club_id, settings.website_url || "", from, to);
 
   const { data: kept } = await sb.from("newsletter_stories").select("kind, data, placement, position").eq("issue_id", iss.issue_id);
   const keptGames = new Set((kept || []).filter((k: any) => k.data?.home).map((k: any) => gameKey(k.data)));
