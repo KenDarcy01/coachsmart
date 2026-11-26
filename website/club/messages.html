@@ -8,13 +8,15 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/club/home-pill.js"></script>
 <!--
-  Club messages (Ken 2026-11-25): coachsmart.app/club/messages.html?club=ID.
+  Club messages (Ken 2026-11-25; fundraisers 2026-11-26): coachsmart.app/club/messages.html?club=ID.
   Officers with the "Messages" tick (and SuperUsers) send their club an
   important pop-up or a news bar line in the v3 app, to everyone, players and
   parents, or coaches, for all teams or some. Lists what is showing and what
   was sent, with how many saw it. Data: get_app_message_targets,
   get_sent_app_messages, count_app_message_audience, save_app_message,
-  end_app_message (all check app_message_can on the server).
+  end_app_message (all check app_message_can on the server). Fundraisers
+  (2026-11-26): own row on v3 Home with a price and a button to the club's
+  page; taps counted (app_message_tap).
 -->
 <style>
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
@@ -92,7 +94,16 @@ a{color:inherit;text-decoration:none}
 .backlink{background:none;border:0;color:var(--club);font-weight:600;font-size:14px;cursor:pointer;margin:0 4px 10px;padding:0}
 .mrow{display:flex;gap:12px}.mx{flex:1;min-width:0}
 .kind{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px;align-self:flex-start;white-space:nowrap}
-.kind.i{background:#fde8e8;color:#b42318}.kind.n{background:#e7f0fd;color:#1f5fc0}
+.kind.i{background:#fde8e8;color:#b42318}.kind.n{background:#e7f0fd;color:#1f5fc0}.kind.f{background:#fdf1cf;color:#8a5a00}
+.filt{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 0}
+.filt span{font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;background:#fff;border:1.5px solid var(--line);color:#3b4250;cursor:pointer}
+.filt span.on{border-color:var(--club);color:var(--club);background:var(--tint)}
+.ptile{display:flex;align-items:center;gap:12px;cursor:pointer}.ptile b{display:block}.ptile small{color:var(--muted);font-size:13px}.ptile .pchev{margin-left:auto}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap}
+.frow{display:flex;align-items:center;gap:12px;background:#1e222b;border:1px solid #5a4716;border-radius:14px;padding:10px 12px}
+.frow .th{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:none;background:#14181b}
+.frow div{flex:1;min-width:0}.frow b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.frow small{display:block;color:#f5c04a;font-size:12.5px;font-weight:600}
+.frow .buy{flex:none;background:#87c232;color:#14181b;font-weight:600;font-size:14px;padding:8px 12px;border-radius:10px}
 .mt{font-weight:600}.ms{color:var(--muted);font-size:13px;margin-top:2px;line-height:1.4;white-space:pre-line}
 .stat{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);margin-top:8px}.stat b{color:var(--text)}
 .live{color:var(--good);font-weight:700}.soon{color:#1f5fc0;font-weight:700}
@@ -162,7 +173,8 @@ const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const clubId = Number(new URLSearchParams(location.search).get('club')) || null;
 const AUD = { all: 'Everyone', players: 'Players & parents', staff: 'Coaches' };
-let T = null, M = [], view = 'list', draft = null, armed = null, reachT = null;
+const KIND = { important: { c: 'i', l: 'Important' }, news: { c: 'n', l: 'News' }, fundraiser: { c: 'f', l: 'Fundraiser' } };
+let T = null, M = [], view = 'list', draft = null, armed = null, reachT = null, filt = '';
 
 function lum(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null;
@@ -253,32 +265,39 @@ function card(m, i) {
     : `<span>Ended ${dShort(m.ended_at && new Date(m.ended_at) < new Date(m.ends_at) ? m.ended_at : m.ends_at)}</span>`;
   const acts = st === 'ended' ? `<button class="sm" onclick="again(${i})">Send again</button>`
     : `<button class="sm" onclick="edit(${i})">Edit</button><button class="sm red" id="stop${i}" onclick="stop(${i})">Stop showing</button>`;
-  return `<div class="card"><div class="mrow"><span class="kind ${m.kind === 'news' ? 'n' : 'i'}">${m.kind === 'news' ? 'News' : 'Important'}</span>
-    <div class="mx">${m.image_url ? `<img class="thumb" src="${esc(m.image_url)}" alt="">` : ''}<div class="mt">${esc(m.title)}</div>${m.body ? `<div class="ms">${esc(m.body)}</div>` : ''}
-    <div class="stat">${when}<span>${esc(AUD[m.audience] || 'Everyone')}</span><span>${esc(teamsLabel(m))}</span><span><b>${m.seen_count || 0}</b> of ${m.reach || 0} seen</span></div>
+  const tap = m.kind === 'fundraiser' ? `<span><b>${m.tap_count || 0}</b> tapped ${esc(m.link_label || 'the button')}</span>` : '';
+  const sub = m.kind === 'fundraiser' && m.price_label ? esc(m.price_label) + (m.body ? ' · ' : '') : '';
+  return `<div class="card"><div class="mrow"><span class="kind ${KIND[m.kind].c}">${KIND[m.kind].l}</span>
+    <div class="mx">${m.image_url ? `<img class="thumb" src="${esc(m.image_url)}" alt="">` : ''}<div class="mt">${esc(m.title)}</div>${m.body || sub ? `<div class="ms">${sub}${esc(m.body || '')}</div>` : ''}
+    <div class="stat">${when}<span>${esc(AUD[m.audience] || 'Everyone')}</span><span>${esc(teamsLabel(m))}</span><span><b>${m.seen_count || 0}</b> of ${m.reach || 0} seen</span>${tap}</div>
     <div class="acts">${acts}</div></div></div></div>`;
 }
 function render() {
   if (view === 'form') return renderForm();
-  const live = M.map((m, i) => [m, i]).filter(([m]) => status(m) !== 'ended');
-  const done = M.map((m, i) => [m, i]).filter(([m]) => status(m) === 'ended').slice(0, 20);
+  const all = M.map((m, i) => [m, i]).filter(([m]) => !filt || m.kind === filt);
+  const live = all.filter(([m]) => status(m) !== 'ended');
+  const done = all.filter(([m]) => status(m) === 'ended').slice(0, 20);
+  const chip = (v, l) => `<span class="${filt === v ? 'on' : ''}" onclick="filt='${v}';render()">${l}</span>`;
   $('app').innerHTML = band('Messages', T.club_name) + `<div class="wrap">
-    <p class="intro">Send ${esc(T.club_name)} a pop-up message or a line in the news bar on the app’s home screen.</p>
+    <p class="intro">News, important pop-ups and fundraisers for ${esc(T.club_name)} on the app’s home screen.</p>
     <button class="btn" onclick="newMsg()">+ New message</button>
+    <div class="filt">${chip('', 'All')}${chip('news', 'News')}${chip('important', 'Important')}${chip('fundraiser', 'Fundraisers')}</div>
     <div class="h2">Showing now</div>${live.length ? live.map(([m, i]) => card(m, i)).join('') : '<div class="card empty">Nothing is showing right now.</div>'}
     <div class="h2">Sent</div>${done.length ? done.map(([m, i]) => card(m, i)).join('') : '<div class="card empty">Messages you send will be listed here, with how many people saw them.</div>'}
+    <div class="h2">Club partners</div>
+    <a class="card ptile" href="/club/sponsors.html?club=${clubId}"><div><b>Club partners</b><small>Sponsor logos in the app and their reach reports</small></div><span class="pchev">›</span></a>
   </div>`;
 }
 
 // ── New / edit ────────────────────────────────────────────────────
 function blank() {
   const end = new Date(); end.setDate(end.getDate() + 3);
-  return { id: null, kind: 'important', title: '', body: '', link_url: '', link_label: '', image_url: '', audience: 'all', team_ids: [],
+  return { id: null, kind: 'important', title: '', body: '', link_url: '', link_label: '', image_url: '', price_label: '', audience: 'all', team_ids: [],
     later: false, starts: localInput(new Date(Date.now() + 3600e3)), ends: localDate(end), reach: null, picking: false, q: '' };
 }
 function fromMsg(m, copy) {
   const d = blank();
-  Object.assign(d, { id: copy ? null : m.id, kind: m.kind, title: m.title, body: m.body || '', link_url: m.link_url || '', link_label: m.link_label || '', image_url: m.image_url || '',
+  Object.assign(d, { id: copy ? null : m.id, kind: m.kind, title: m.title, body: m.body || '', link_url: m.link_url || '', link_label: m.link_label || '', image_url: m.image_url || '', price_label: m.price_label || '',
     audience: m.audience || 'all', team_ids: (m.team_ids || []).map(Number) });
   if (!copy) {
     d.later = d.wasLater = new Date(m.starts_at) > now(); if (d.later) d.starts = localInput(new Date(m.starts_at));
@@ -297,6 +316,9 @@ function grab() {
   if (!draft || !$('fTitle')) return;
   draft.title = $('fTitle').value; draft.body = $('fBody').value; draft.ends = $('fEnds').value;
   if ($('fStarts')) draft.starts = $('fStarts').value;
+  if ($('fPrice')) draft.price_label = $('fPrice').value;
+  if ($('fLink')) draft.link_url = $('fLink').value;
+  if ($('fLabel')) draft.link_label = $('fLabel').value;
 }
 function setD(k, v) { grab(); draft[k] = v === 'true' ? true : v === 'false' ? false : v; renderForm(); if (k === 'audience') recount(); }
 function teamsText() {
@@ -311,11 +333,15 @@ function renderForm() {
   $('app').innerHTML = band(d.id ? 'Edit message' : 'New message', T.club_name) + `<div class="wrap">
   <button class="backlink" onclick="back()">‹ All messages</button>
   <div class="card">
-    <div class="field"><label>Type</label>${seg('kind', [['important', 'Important pop-up'], ['news', 'News bar']], d.kind)}
-      <div class="hint">${d.kind === 'news' ? 'A line in the news bar at the top of the home screen.' : 'Pops up when people open the app, until they tap Got it.'}</div></div>
-    <div class="field"><label>Title</label><input id="fTitle" maxlength="80" value="${esc(d.title)}" placeholder="${d.kind === 'news' ? 'Christmas social, 12 Dec' : 'Pitches closed Saturday'}" oninput="draft.title=this.value;pv()"></div>
+    <div class="field"><label>Type</label>${seg('kind', [['important', 'Important'], ['news', 'News'], ['fundraiser', 'Fundraiser']], d.kind)}
+      <div class="hint">${d.kind === 'news' ? 'A card in Club news on the home screen.' : d.kind === 'fundraiser' ? 'Its own row under Club news, with a button to buy, order or sign up.' : 'Pops up when people open the app, until they tap Got it.'}</div></div>
+    <div class="field"><label>Title</label><input id="fTitle" maxlength="80" value="${esc(d.title)}" placeholder="${d.kind === 'news' ? 'Christmas social, 12 Dec' : d.kind === 'fundraiser' ? 'Christmas Draw' : 'Pitches closed Saturday'}" oninput="draft.title=this.value;pv()"></div>
     <div class="field"><label>Message</label><textarea id="fBody" maxlength="500" rows="4" placeholder="A line or two people need to know." oninput="draft.body=this.value;pv()">${esc(d.body)}</textarea></div>
-    ${d.kind === 'important' ? `<div class="field"><label>Photo <span class="opt">optional</span></label>
+    ${d.kind === 'fundraiser' ? `<div class="field"><label>Price <span class="opt">optional</span></label><input id="fPrice" maxlength="40" value="${esc(d.price_label)}" placeholder="€10 a line" oninput="draft.price_label=this.value;pv()"></div>
+    <div class="field"><label>Button</label><div class="btnrow">${['Buy tickets', 'Order now', 'Donate', 'Sign up'].map(l => `<span class="pre ${d.link_label === l ? 'on' : ''}" onclick="setD('link_label','${l}')">${l}</span>`).join('')}</div>
+      <input id="fLabel" maxlength="24" value="${esc(d.link_label)}" placeholder="Or type your own" style="margin-top:8px" oninput="draft.link_label=this.value;pv()"></div>
+    <div class="field"><label>Button opens</label><input id="fLink" type="url" value="${esc(d.link_url)}" placeholder="https://your-club-shop.ie/christmas-draw" oninput="draft.link_url=this.value"><div class="hint">Your club’s own page: shop, raffle or lotto. CoachSmart takes no payment.</div></div>` : ''}
+    ${d.kind === 'important' || d.kind === 'fundraiser' ? `<div class="field"><label>Photo <span class="opt">optional</span></label>
       ${d.image_url ? `<div class="photo"><img src="${esc(d.image_url)}" alt=""><button class="sm red" onclick="setD('image_url','')">Remove</button></div>`
         : `<div class="pick up" onclick="$('fImg').click()"><span id="upTxt">Add a photo</span><span class="mut">Choose ›</span></div>`}
       <input id="fImg" type="file" accept="image/*" hidden onchange="upload(this.files[0])"></div>` : ''}
@@ -338,6 +364,11 @@ function renderForm() {
 function pv() {
   const d = draft, el = $('pv'); if (!el) return;
   const crest = T.crest ? `<img src="${esc(T.crest)}" alt="">` : '';
+  if (d.kind === 'fundraiser') {
+    const th = d.image_url ? `<img class="th" src="${esc(d.image_url)}" alt="">` : (T.crest ? `<img class="th" style="object-fit:contain;padding:3px" src="${esc(T.crest)}" alt="">` : '<span class="th"></span>');
+    el.innerHTML = `<div class="prev"><div class="frow">${th}<div><b>${esc(d.title || 'Your title')}</b><small>Fundraiser${d.price_label ? ' · ' + esc(d.price_label) : ''}</small></div><span class="buy">${esc(d.link_label || 'Buy tickets')}</span></div></div>`;
+    return;
+  }
   el.innerHTML = d.kind === 'news'
     ? `<div class="prev"><div class="nbar">${crest}<div><b>${esc(d.title || 'Your title')}</b>${d.body ? `<small>${esc(d.body)}</small>` : ''}</div><span>›</span></div></div>`
     : `<div class="prev"><div class="pc"><i class="stripe"></i><div class="pf">${crest}<div><b>${esc(T.club_name)}</b><small>From the club</small></div><span class="x">✕</span></div>
@@ -376,6 +407,12 @@ async function send() {
   const err = t => ($('fMsg').textContent = t);
   if (!d.title.trim()) return err('Give the message a title.');
   if (!d.ends) return err('Pick a day to stop showing it.');
+  if (d.kind === 'fundraiser') {
+    if (!d.link_label.trim()) d.link_label = 'Buy tickets';
+    let u = d.link_url.trim(); if (u && !/^https?:\/\//i.test(u)) u = 'https://' + u;
+    if (!/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(u)) return err('Add the web address the button opens.');
+    d.link_url = u;
+  }
   const ends = new Date(d.ends + 'T23:59:00');
   const starts = d.later && d.starts ? new Date(d.starts) : null;
   if (ends <= (starts || new Date())) return err('Stop showing has to be after it starts.');
@@ -383,7 +420,7 @@ async function send() {
   const { error } = await sb.rpc('save_app_message', {
     p_id: d.id, p_kind: d.kind, p_title: d.title.trim(), p_body: d.body.trim(), p_link_url: d.link_url, p_link_label: d.link_label,
     p_club_id: clubId, p_team_ids: d.team_ids, p_audience: d.audience,
-    p_image_url: d.kind === 'important' ? (d.image_url || '') : '', p_starts_at: starts ? starts.toISOString() : (d.id && d.wasLater ? new Date().toISOString() : null), p_ends_at: ends.toISOString() });
+    p_image_url: d.kind === 'news' ? '' : (d.image_url || ''), p_price_label: d.kind === 'fundraiser' ? d.price_label.trim() : '', p_starts_at: starts ? starts.toISOString() : (d.id && d.wasLater ? new Date().toISOString() : null), p_ends_at: ends.toISOString() });
   if (error) { b.disabled = false; b.textContent = d.id ? 'Save changes' : 'Send'; return err(/after/.test(error.message) ? 'Stop showing has to be after it starts.' : 'Couldn’t send. Please try again.'); }
   toast(d.id ? 'Saved' : starts ? 'Scheduled' : 'Sent'); view = 'list'; draft = null; load();
 }
