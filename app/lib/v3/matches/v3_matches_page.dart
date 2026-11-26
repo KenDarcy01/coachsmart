@@ -1,5 +1,5 @@
-// v3 Matches: every match in the user's clubs today, live now, results from
-// the last 12 hours and matches they follow. Native copy of
+// v3 Matches: every match in the user's clubs for the next 14 days (Upcoming,
+// by day), live now, results from the last 12 hours and followed matches. Native copy of
 // webviews/matches.html (the old app keeps the web page). A row per squad
 // when an event has more than one squad playing, each row with a squad chip
 // whenever a squad was picked. Tap a row for the live
@@ -33,11 +33,14 @@ class V3MatchesPage extends StatefulWidget {
 class _V3MatchesPageState extends State<V3MatchesPage> {
   LiveMatchesData? _data;
   bool _failed = false;
-  String? _tab; // live | today | following
+  String? _tab; // live | upcoming | following
   LivePulse? _pulse;
   Timer? _tick;
 
   bool get _test => widget.testData != null;
+
+  /// How far ahead the Upcoming tab looks (Ken, 2026-11-26).
+  static const _upcomingDays = 14;
 
   /// Server time now.
   DateTime get _now =>
@@ -76,7 +79,8 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
 
   Future<void> _load() async {
     try {
-      final r = await SupaFlow.client.rpc('get_live_matches');
+      final r = await SupaFlow.client
+          .rpc('get_live_matches', params: {'p_upcoming_days': _upcomingDays});
       final d = LiveMatchesData.fromJson(r is Map ? r : const {});
       if (!mounted) return;
       setState(() {
@@ -168,9 +172,10 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
     final now = _now;
     final live = d.live;
     final today = d.today(now);
+    final days = d.upcomingByDays(now);
     final fol = d.following;
     final results = d.results;
-    _tab ??= live.isNotEmpty || results.isNotEmpty ? 'live' : 'today';
+    _tab ??= live.isNotEmpty || results.isNotEmpty ? 'live' : 'upcoming';
 
     final out = <Widget>[_tabs(live.length)];
     Widget section(String title, List<LiveMatchRow> list) => list.isEmpty
@@ -190,10 +195,26 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
       out.add(section(
           'Coming up today', today.where((m) => m.phase == 'pre').toList()));
       out.add(section('Results', results));
-    } else if (_tab == 'today') {
-      out.add(today.isNotEmpty
-          ? _card(today, now)
-          : _empty('No matches in your club today.'));
+    } else if (_tab == 'upcoming') {
+      // Every match at the user's clubs, not just their teams, so they can
+      // follow any team in the club; one card per day (Ken, 2026-11-26).
+      if (days.isEmpty) {
+        out.add(_empty(
+            'No matches coming up in your club\nin the next two weeks.'));
+      }
+      for (final (day, list) in days) {
+        final (head, rest) = upcomingDayHeading(day, now);
+        out.add(Padding(
+          padding: const EdgeInsets.fromLTRB(4, 18, 4, 0),
+          child: Text.rich(TextSpan(children: [
+            TextSpan(text: head, style: V3.inter(14, weight: FontWeight.w600)),
+            TextSpan(
+                text: rest,
+                style: V3.inter(14, weight: FontWeight.w600, color: V3.muted)),
+          ])),
+        ));
+        out.add(_card(list, now, upcoming: true));
+      }
     } else {
       out.add(fol.isNotEmpty
           ? _card(fol, now)
@@ -241,24 +262,27 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
           color: V3.card, borderRadius: BorderRadius.circular(13)),
       child: Row(children: [
         seg('live', 'Live now${liveCount > 0 ? ' · $liveCount' : ''}'),
-        seg('today', 'Today'),
+        seg('upcoming', 'Upcoming'),
         seg('following', 'Following'),
       ]),
     );
   }
 
-  Widget _card(List<LiveMatchRow> list, DateTime now) => Container(
+  Widget _card(List<LiveMatchRow> list, DateTime now,
+          {bool upcoming = false}) =>
+      Container(
         margin: const EdgeInsets.only(top: 10),
         decoration: BoxDecoration(
             color: V3.card, borderRadius: BorderRadius.circular(14)),
         clipBehavior: Clip.antiAlias,
         child: Column(children: [
           for (var i = 0; i < list.length; i++)
-            _row(list[i], now, last: i == list.length - 1),
+            _row(list[i], now, last: i == list.length - 1, upcoming: upcoming),
         ]),
       );
 
-  Widget _row(LiveMatchRow m, DateTime now, {required bool last}) {
+  Widget _row(LiveMatchRow m, DateTime now,
+      {required bool last, bool upcoming = false}) {
     Widget? pill;
     if (m.phase == 'play') {
       pill = PhasePill(
@@ -269,7 +293,9 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
     } else if (m.done) {
       pill = const PhasePill('ft', 'FULL TIME', size: 11);
     }
-    final place = m.place;
+    // Upcoming rows name the venue so anyone going to watch knows where.
+    final place =
+        upcoming && m.venue.trim().isNotEmpty ? m.venue.trim() : m.place;
     // Every row of a squad's match carries a chip with the squad name, even
     // when it is the only squad playing, so followers know which match they
     // are opening (Ken, 2026-11-23). No chip when the scorer kept Whole team.
@@ -303,7 +329,11 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
             Text('v ${m.score!.opp.text}',
                 style: V3.inter(13, color: V3.muted)),
           ])
-        : Text(m.eventDateTime == null ? '' : untilLabel(m.eventDateTime!, now),
+        : Text(
+            m.eventDateTime == null ||
+                    (upcoming && !sameDublinDay(m.eventDateTime!, now))
+                ? ''
+                : untilLabel(m.eventDateTime!, now),
             style: V3.inter(15, weight: FontWeight.w600, color: V3.muted));
     return InkWell(
       onTap: () => _open(m),

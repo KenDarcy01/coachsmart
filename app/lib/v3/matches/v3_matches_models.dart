@@ -3,7 +3,7 @@
 // cs-match-charts.js). Pure parsing and maths only, so it can be unit tested.
 //
 // RPCs (same as the web pages):
-//   get_live_matches()                         the Matches list, a row per squad
+//   get_live_matches(14)                       the Matches list, a row per squad
 //   get_live_match_v2(p_event_id, p_squad)     one squad's match + every squad
 //   set_live_follow(p_event_id, p_level, ...)  follow / alert level
 //   get_live_share_link(p_event_id)            share token for the web page
@@ -146,6 +146,25 @@ String whenLabel(DateTime t) =>
 bool sameDublinDay(DateTime a, DateTime b) {
   final x = dublin(a), y = dublin(b);
   return x.year == y.year && x.month == y.month && x.day == y.day;
+}
+
+/// The Irish calendar day of [t], as a plain date.
+DateTime dublinDate(DateTime t) {
+  final d = dublin(t);
+  return DateTime.utc(d.year, d.month, d.day);
+}
+
+/// Upcoming tab day heading: (Today, ''), (Tomorrow, ' · Fri 27 Nov'),
+/// (Saturday, ' · 28 Nov').
+(String, String) upcomingDayHeading(DateTime day, DateTime now) {
+  final gap = day.difference(dublinDate(now)).inDays;
+  if (gap <= 0) return ('Today', '');
+  if (gap == 1)
+    return ('Tomorrow', ' · ${DateFormat('EEE d MMM').format(day)}');
+  return (
+    DateFormat('EEEE').format(day),
+    ' · ${DateFormat('d MMM').format(day)}'
+  );
 }
 
 /// Time to throw-in on the Matches list: Due, 45m, 2h 5m, or the day.
@@ -366,6 +385,24 @@ class LiveMatchesData {
       .where((m) =>
           m.eventDateTime != null && sameDublinDay(m.eventDateTime!, now))
       .toList();
+
+  /// Not started yet, from today on, one list per Irish day in throw-in
+  /// order (the Upcoming tab: every match at the user's clubs).
+  List<(DateTime, List<LiveMatchRow>)> upcomingByDays(DateTime now) {
+    final today = dublinDate(now);
+    final out = <(DateTime, List<LiveMatchRow>)>[];
+    for (final m in matches) {
+      if (m.started || m.eventDateTime == null) continue;
+      final day = dublinDate(m.eventDateTime!);
+      if (day.isBefore(today)) continue;
+      if (out.isEmpty || out.last.$1 != day) {
+        out.add((day, [m]));
+      } else {
+        out.last.$2.add(m);
+      }
+    }
+    return out;
+  }
 
   List<LiveMatchRow> get following =>
       matches.where((m) => m.follow.on && !m.done).toList();

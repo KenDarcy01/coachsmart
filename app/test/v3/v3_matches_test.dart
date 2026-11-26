@@ -266,6 +266,14 @@ void main() {
     expect(d.results.single.title, 'Senior Hurling v Cuala');
     expect(d.results.single.place, 'Away');
     expect(d.following.length, 2);
+    final days = d.upcomingByDays(now);
+    expect(days.length, 1);
+    expect(days.single.$2.single.title, 'U12 Girls v Naomh Barróg');
+    expect(upcomingDayHeading(days.single.$1, now), ('Today', ''));
+    expect(upcomingDayHeading(DateTime.utc(2026, 11, 12), now),
+        ('Tomorrow', ' · Thu 12 Nov'));
+    expect(upcomingDayHeading(DateTime.utc(2026, 11, 14), now),
+        ('Saturday', ' · 14 Nov'));
     expect(d.eventIds, [20, 10]);
     d.setFollow(10, const LiveFollow());
     expect(d.following, isEmpty);
@@ -387,9 +395,12 @@ void widgetTests() {
     expect(find.text('Senior Hurling v Cuala'), findsNothing);
     expect(find.text('U12 Girls v Naomh Barróg'), findsOneWidget);
     expect(find.text('Red'), findsOneWidget); // squad chip
-    await tester.tap(find.text('Today'));
+    await tester.tap(find.text('Upcoming'));
     await settle(tester);
-    expect(find.text('Senior Hurling v Cuala'), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget); // day heading
+    expect(find.text('U12 Girls v Naomh Barróg'), findsOneWidget);
+    expect(find.text('Senior Hurling v Cuala'), findsNothing); // finished
+    expect(find.text('U12 Girls v Raheny'), findsNothing); // live
     await tester.pumpWidget(const SizedBox());
   });
 
