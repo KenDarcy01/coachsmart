@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'package:intl/intl.dart';
 
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_util.dart' show launchURL;
 import '../v3_crest_image.dart';
 import '../v3_theme.dart';
@@ -340,6 +341,45 @@ class _V3NewsCardsState extends State<V3NewsCards> {
   PageController? _pc;
   int _count = -1;
 
+  /// clubs.third_colour by club id, for the stripe's third band; not in
+  /// get_my_app_messages, so read once per app run.
+  static final Map<int?, String> _thirdCache = {};
+  Map<int?, String> get _third => _thirdCache;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThird();
+  }
+
+  @override
+  void didUpdateWidget(V3NewsCards old) {
+    super.didUpdateWidget(old);
+    _loadThird();
+  }
+
+  Future<void> _loadThird() async {
+    final ids = {
+      for (final n in widget.news)
+        if (n.clubId != null && !_thirdCache.containsKey(n.clubId)) n.clubId!
+    };
+    if (ids.isEmpty) return;
+    for (final id in ids) {
+      _thirdCache[id] = '';
+    }
+    try {
+      final rows = await SupaFlow.client
+          .from('clubs')
+          .select('club_id,third_colour')
+          .inFilter('club_id', ids.toList());
+      for (final r in rows) {
+        _thirdCache[r['club_id'] as int?] =
+            (r['third_colour'] ?? '').toString();
+      }
+      if (mounted) setState(() {});
+    } catch (_) {}
+  }
+
   PageController _controller() {
     final n = widget.news.length;
     if (_pc == null || n != _count) {
@@ -396,7 +436,9 @@ class _V3NewsCardsState extends State<V3NewsCards> {
             itemCount: news.length,
             itemBuilder: (_, i) => Padding(
               padding: EdgeInsets.only(right: news.length > 1 ? 10 : 0),
-              child: _NewsCard(news[i], onTap: widget.onTap),
+              child: _NewsCard(news[i],
+                  onTap: widget.onTap,
+                  thirdColour: _third[news[i].clubId] ?? ''),
             ),
           ),
         ),
@@ -406,20 +448,22 @@ class _V3NewsCardsState extends State<V3NewsCards> {
 }
 
 class _NewsCard extends StatelessWidget {
-  const _NewsCard(this.m, {required this.onTap});
+  const _NewsCard(this.m, {required this.onTap, this.thirdColour = ''});
   final AppMessage m;
   final VoidCallback onTap;
+  final String thirdColour;
 
   @override
   Widget build(BuildContext context) {
-    final accent = m.clubColour ?? V3.green;
     final when = _when(m.startsAt).toUpperCase();
     final kicker =
         m.seen ? when : ['NEW', if (when.isNotEmpty) when].join(' · ');
+    // Crest on a plain dark panel, no club colour behind it (Ken,
+    // 2026-11-26: the red block looked heavy).
     final panel = Container(
-      color: accent,
+      color: V3.bg,
       alignment: Alignment.center,
-      child: V3MessageBadge(m, size: 58),
+      child: V3MessageBadge(m, size: 70),
     );
     return Material(
       color: V3.card,
@@ -434,7 +478,16 @@ class _NewsCard extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Container(height: 4, color: accent),
+              // Split stripe in the club's colours (Ken, 2026-11-26).
+              SizedBox(
+                height: 5,
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final c in m.stripeColours(thirdColour))
+                        Expanded(child: ColoredBox(color: c)),
+                    ]),
+              ),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,

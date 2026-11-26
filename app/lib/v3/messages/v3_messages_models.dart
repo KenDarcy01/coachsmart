@@ -123,7 +123,9 @@ class AppMessage {
   Color? get clubColour {
     Color? parse(String h) {
       final m = RegExp(r'^#?([0-9a-fA-F]{6})$').firstMatch(h.trim());
-      return m == null ? null : Color(0xFF000000 | int.parse(m.group(1)!, radix: 16));
+      return m == null
+          ? null
+          : Color(0xFF000000 | int.parse(m.group(1)!, radix: 16));
     }
 
     bool usable(Color? c) {
@@ -136,6 +138,22 @@ class AppMessage {
     if (usable(p)) return p;
     if (usable(s)) return s;
     return null;
+  }
+
+  /// The news card's split stripe (Ken, 2026-11-26): the club colour, then
+  /// the club's other colours (secondary, third) that differ from it.
+  /// CoachSmart green alone for CoachSmart-wide messages.
+  List<Color> stripeColours([String thirdColour = '']) {
+    final first = clubColour;
+    if (first == null) return const [Color(0xFF87C232)];
+    final out = [first];
+    for (final h in [primaryColour, secondaryColour, thirdColour]) {
+      final m = RegExp(r'^#?([0-9a-fA-F]{6})$').firstMatch(h.trim());
+      if (m == null) continue;
+      final c = Color(0xFF000000 | int.parse(m.group(1)!, radix: 16));
+      if (!out.contains(c)) out.add(c);
+    }
+    return out;
   }
 
   bool get isNews => kind == MessageKind.news;
