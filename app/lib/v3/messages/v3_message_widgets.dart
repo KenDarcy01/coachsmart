@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'package:intl/intl.dart';
 
-import '/flutter_flow/flutter_flow_util.dart' show launchURL;
+import '../lotto/v3_lotto_link.dart';
 import '../v3_crest_image.dart';
 import '../v3_theme.dart';
 import 'v3_messages_models.dart';
@@ -235,7 +235,7 @@ class V3ImportantCard extends StatelessWidget {
             // With a link, tapping the message opens it too (Ken, 2026-11-15).
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: m.linkUrl.isEmpty ? null : () => launchURL(m.linkUrl),
+              onTap: m.linkUrl.isEmpty ? null : () => V3LottoLink.open(m.linkUrl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -263,7 +263,7 @@ class V3ImportantCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () => launchURL(m.linkUrl),
+                    onTap: () => V3LottoLink.open(m.linkUrl),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
@@ -786,7 +786,7 @@ class _NewsRow extends StatelessWidget {
   @override
   // With a link, a tap anywhere on the item opens it (Ken, 2026-11-15).
   Widget build(BuildContext context) => InkWell(
-        onTap: m.linkUrl.isEmpty ? null : () => launchURL(m.linkUrl),
+        onTap: m.linkUrl.isEmpty ? null : () => V3LottoLink.open(m.linkUrl),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: const BoxDecoration(

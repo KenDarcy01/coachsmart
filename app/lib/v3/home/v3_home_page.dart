@@ -25,6 +25,7 @@ import '../sponsors/v3_sponsors.dart';
 import '../messages/v3_message_widgets.dart';
 import '../messages/v3_messages_models.dart';
 import '../messages/v3_messages_page.dart';
+import '../lotto/v3_lotto_link.dart';
 import '/v3/tracking/v3_track.dart';
 import '../pitches/v3_pitch_api.dart';
 
@@ -146,6 +147,9 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       final m = await _messagesApi.mine();
       if (!mounted) return;
       setState(() => _msgs = m);
+      // Lotto links open already signed in; get the codes ready now.
+      V3LottoLink.prefetch(
+          [...m.fundraisers, ...m.news, ...m.important].map((x) => x.linkUrl));
       if (popUp && m.important.isNotEmpty && !_popupOpen) {
         _popupOpen = true;
         await showImportantMessages(context, m.important, _messagesApi);
@@ -170,7 +174,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   void _openFundraiser(AppMessage m) {
     V3Track.event('fundraiser_tap');
     unawaited(_messagesApi.tap(m.id).catchError((_) {}));
-    launchURL(m.linkUrl);
+    V3LottoLink.open(m.linkUrl);
   }
 
   Future<void> _openNews() async {
