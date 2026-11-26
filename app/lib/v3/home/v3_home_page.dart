@@ -28,6 +28,10 @@ import '../messages/v3_messages_page.dart';
 import '../lotto/v3_lotto_link.dart';
 import '/v3/tracking/v3_track.dart';
 import '../pitches/v3_pitch_api.dart';
+import '../clubs/v3_club_home.dart';
+import '../clubs/v3_follow_api.dart';
+import '../clubs/v3_follow_club_page.dart';
+import '../matches/v3_matches_models.dart';
 
 class V3HomePage extends StatefulWidget {
   const V3HomePage({super.key});
@@ -71,12 +75,23 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
 
   bool _popupOpen = false;
 
+  // Club followers (Ken, 2026-11-26): clubs followed with a club code, and
+  // whether this user is on no team at all (Home is then the club home).
+  static const _followApi = FollowApi();
+  List<FollowedClub> _followed = const [];
+  bool _followerOnly = false;
+  LiveMatchesData? _clubMatches;
+  int _selectedClub = 0;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _tick = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
+      if (_followerOnly && (_clubMatches?.live.isNotEmpty ?? false)) {
+        _loadClubMatches();
+      }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _firstLoad());
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadPitchAccess());
@@ -169,6 +184,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     await _load();
     await _loadMessages();
     await V3Sponsors.load(force: true);
+    if (_followerOnly) await _loadClubMatches();
   }
 
   void _openFundraiser(AppMessage m) {
@@ -215,9 +231,25 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       return;
     }
     final data = UserEventsHomeStruct.maybeFromMap(res.jsonBody ?? '');
-    if (data == null || data.userOnboarded != true) {
+    var followed = const <FollowedClub>[];
+    try {
+      followed = await _followApi.myClubs();
+    } catch (_) {}
+    if (!mounted) return;
+    // No team: onboarding, unless the user follows a club (2026-11-26).
+    final onTeam = data != null && data.userOnboarded == true;
+    if (data == null || (!onTeam && followed.isEmpty)) {
       context.pushNamed(OnBoardingWidget.routeName);
       return;
+    }
+    _followed = followed;
+    _followerOnly = !onTeam;
+    if (_selectedClub != 0 && !followed.any((c) => c.clubId == _selectedClub)) {
+      _selectedClub = 0;
+    }
+    if (_followerOnly) {
+      unawaited(_loadClubMatches());
+      precacheCrests(context, followed.map((c) => c.crest));
     }
     FFAppState().homePageEvents = data;
     FFAppState().notificationBadgeCount = data.unreadNotifications;
@@ -234,6 +266,98 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   }
 
   UserEventsHomeStruct get _home => FFAppState().homePageEvents;
+
+  Future<void> _loadClubMatches() async {
+    try {
+      final r = await SupaFlow.client
+          .rpc('get_live_matches', params: {'p_upcoming_days': 14});
+      if (!mounted) return;
+      setState(() =>
+          _clubMatches = LiveMatchesData.fromJson(r is Map ? r : const {}));
+    } catch (_) {
+      if (mounted && _clubMatches == null) {
+        setState(() => _clubMatches = LiveMatchesData.fromJson(const {}));
+      }
+    }
+  }
+
+  Future<void> _openClubMatch(LiveMatchRow m) async {
+    await Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3MatchLivePage'),
+        builder: (_) =>
+            V3MatchLivePage(eventId: m.eventId, squad: m.squadKey)));
+    if (mounted) _loadClubMatches();
+  }
+
+  Future<void> _openJoinTeam() async {
+    await Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3JoinTeamPage'),
+        builder: (_) => const V3JoinTeamPage()));
+    if (mounted) _load();
+  }
+
+  Future<void> _openFollowClub() async {
+    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3FollowClubPage'),
+        builder: (_) => const V3FollowClubPage()));
+    if (changed == true && mounted) await _refresh();
+  }
+
+  Future<void> _confirmUnfollow(FollowedClub c) async {
+    final go = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: V3.card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            V3CrestImage(c.crest, size: 52),
+            const SizedBox(height: 10),
+            Text('Stop following ${c.name}?',
+                textAlign: TextAlign.center,
+                style: V3.tight(20, weight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Text("You can follow it again with the club's code.",
+                textAlign: TextAlign.center,
+                style: V3.inter(15, color: V3.muted)),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(
+                    backgroundColor: V3.red, foregroundColor: Colors.white),
+                child: Text('Unfollow',
+                    style: V3.inter(16,
+                        weight: FontWeight.w700, color: Colors.white)),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              style: TextButton.styleFrom(minimumSize: const Size(44, 48)),
+              child: Text('Cancel', style: V3.inter(16, color: V3.muted)),
+            ),
+          ]),
+        ),
+      ),
+    );
+    if (go != true || !mounted) return;
+    try {
+      await _followApi.unfollow(c.clubId);
+      V3Track.event('club_unfollowed', {'club_id': c.clubId});
+    } catch (_) {}
+    if (mounted) await _refresh();
+  }
+
+  String get _greetingLine {
+    final h = _now.hour;
+    final part = h < 12 ? 'morning' : (h < 18 ? 'afternoon' : 'evening');
+    final name = _home.firstName.trim();
+    return name.isEmpty ? 'Good $part' : 'Good $part, $name';
+  }
 
   /// Chips in the order user_teams arrives, without the "All Teams" row.
   List<UserTeamsStruct> get _teams =>
@@ -475,7 +599,9 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
                     // Builder: only a context inside the Scaffold sees the
                     // menu pill's height in its bottom padding.
                     child: Builder(
-                      builder: (c) => _timeline(MediaQuery.paddingOf(c).bottom),
+                      builder: (c) => _followerOnly
+                          ? _clubHome(MediaQuery.paddingOf(c).bottom)
+                          : _timeline(MediaQuery.paddingOf(c).bottom),
                     ),
                   ),
         // Parents get no bottom bar (design §5.10).
@@ -619,6 +745,30 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       ),
     );
   }
+
+  // ---- club home for followers on no team (2026-11-26) --------------------
+
+  Widget _clubHome(double bottomInset) => V3ClubHome(
+        clubs: _followed,
+        matches: _clubMatches,
+        selectedClub: _selectedClub,
+        onSelectClub: (id) => setState(() => _selectedClub = id),
+        greeting: _greetingLine,
+        now: _now,
+        bottomInset: bottomInset,
+        onOpenMatch: _openClubMatch,
+        onOpenMatches: _openMatches,
+        onJoinTeam: _openJoinTeam,
+        topCards: [
+          if (_msgs.news.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 2),
+              child: V3NewsCards(news: _msgs.news, onTap: _openNews),
+            ),
+          if (_msgs.fundraisers.isNotEmpty)
+            V3FundraiserRow(items: _msgs.fundraisers, onTap: _openFundraiser),
+        ],
+      );
 
   // ---- timeline (design §5.3 to §6.8) -------------------------------------
 
@@ -877,12 +1027,48 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
             ),
             const Divider(color: V3.line, height: 1),
             const SizedBox(height: 8),
-            item(
-              Icons.groups_sharp,
-              'Teams',
-              () => context.pushNamed(V3TeamsPage.routeName),
-            ),
+            if (!_followerOnly)
+              item(
+                Icons.groups_sharp,
+                'Teams',
+                () => context.pushNamed(V3TeamsPage.routeName),
+              ),
             item(Icons.sports, 'Matches', _openMatches),
+            if (_followerOnly)
+              item(Icons.group_add_outlined, 'Join a team', _openJoinTeam),
+            // My clubs (2026-11-26): clubs followed with a club code; tap
+            // one to stop following it.
+            if (_followed.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                child: Text('MY CLUBS',
+                    style: V3.inter(12,
+                        weight: FontWeight.w700,
+                        color: V3.muted,
+                        letterSpacing: 1.2)),
+              ),
+              for (final c in _followed)
+                ListTile(
+                  leading: V3CrestImage(c.crest,
+                      size: 30,
+                      fallback: const Icon(Icons.shield_outlined,
+                          color: V3.text, size: 28)),
+                  title: Text(c.name,
+                      style: V3.tight(18, weight: FontWeight.w400)),
+                  trailing:
+                      Text('Following', style: V3.inter(13, color: V3.muted)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmUnfollow(c);
+                  },
+                ),
+            ],
+            item(
+                Icons.add_circle_outline,
+                _followed.isEmpty ? 'Follow a club' : 'Follow another club',
+                _openFollowClub),
+            const Divider(color: V3.line, height: 17),
+
             if (role >= 30)
               item(
                 Icons.search,

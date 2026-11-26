@@ -14,12 +14,15 @@
 // goes to Home, as the wrapper did.
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../auth/v3_auth_widgets.dart' show V3Field;
+import '../v3_crest_image.dart';
 import '../v3_theme.dart';
 import 'v3_onboarding_backend.dart';
 import 'v3_onboarding_models.dart';
@@ -86,6 +89,22 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
   Timer? _debounce;
   int _lookupSeq = 0;
 
+  // "Got a code?" (2026-11-26): one box for team and club codes.
+  final _start = TextEditingController();
+  _Preview _startPreview = _Preview.none;
+  ObCodeLookup _startLookup = ObCodeLookup.none;
+  Timer? _startDebounce;
+  int _startSeq = 0;
+  String? _clipCode; // a code-like text on the clipboard, offered as Paste
+
+  /// A team code from "Got a code?", filled into the team code screen.
+  String _startCode = '';
+  String _startTeam = '';
+
+  /// The club behind a club code, for "Is this your club?".
+  ObCodeLookup _club = ObCodeLookup.none;
+  String _clubCode = '';
+
   bool _another = false; // "Register another person?" on the who screen
   String _sentName = '';
   String _sentPrefix = '';
@@ -111,6 +130,7 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _startDebounce?.cancel();
     _statusSub?.cancel();
     for (final c in [
       _detailsFirst,
@@ -119,6 +139,7 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
       _theirLast,
       _memberCode,
       _code,
+      _start,
       _reqName,
       _reqEmail,
       _reqClub,
@@ -206,9 +227,13 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
             await _api.pendingAccessRequests());
       }
     }
+    final follows = active ? false : await _api.followsAnyClub();
     if (!mounted) return;
     final route = obDecideRoute(
-        ownedIds: owned, hasActiveLink: active, pendingCount: pending.length);
+        ownedIds: owned,
+        hasActiveLink: active,
+        pendingCount: pending.length,
+        followsClub: follows);
     setState(() => _loading = false);
     switch (route) {
       case ObRoute.home:
@@ -217,7 +242,7 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
         _pendingItems = pending;
         _show(ObScreen.pendingStatus);
       default:
-        _show(ObScreen.who);
+        _showStart();
     }
   }
 
@@ -263,7 +288,135 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
       _myFirst = first;
       _myLast = last;
     });
-    _show(ObScreen.who);
+    _showStart();
+  }
+
+  // ------------------------------------------------------------ got a code
+
+  void _showStart() {
+    _show(ObScreen.start);
+    _readClipboard();
+  }
+
+  /// Offer a copied code (from the club's landing page) as a Paste button.
+  /// Android reads it quietly; iPhone and the web would ask first, so
+  /// there the button reads only when tapped.
+  Future<void> _readClipboard() async {
+    if (kIsWeb || Theme.of(context).platform == TargetPlatform.iOS) {
+      if (mounted) setState(() => _clipCode = '');
+      return;
+    }
+    try {
+      final d = await Clipboard.getData(Clipboard.kTextPlain);
+      final c = obCodeFromClipboard(d?.text);
+      if (mounted && c != null && _start.text.trim().isEmpty) {
+        setState(() => _clipCode = c);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _paste() async {
+    final c = _clipCode?.isNotEmpty == true
+        ? _clipCode
+        : obCodeFromClipboard(
+            (await Clipboard.getData(Clipboard.kTextPlain))?.text);
+    if (!mounted) return;
+    if (c == null) {
+      _setError(ObScreen.start, 'Nothing to paste. Type the code instead.');
+      return;
+    }
+    _start.text = c;
+    _onStartChanged(c);
+  }
+
+  void _onStartChanged(String raw) {
+    final upper = raw.toUpperCase();
+    if (upper != raw) {
+      _start.value = _start.value.copyWith(
+          text: upper,
+          selection: TextSelection.collapsed(offset: upper.length));
+    }
+    final code = obNormaliseCode(upper);
+    _startDebounce?.cancel();
+    _startSeq++;
+    _errors.remove(ObScreen.start);
+    setState(() {
+      _startLookup = ObCodeLookup.none;
+      _startPreview = obShouldLookUp(code) ? _Preview.looking : _Preview.none;
+    });
+    if (!obShouldLookUp(code)) return;
+    final seq = _startSeq;
+    _startDebounce = Timer(obLookupDelay, () => _lookupStart(code, seq));
+  }
+
+  Future<ObCodeLookup> _lookupStartNow(String code) async {
+    try {
+      return obParseCodeLookup(await _api.lookupJoinCode(code));
+    } catch (_) {
+      return ObCodeLookup.none;
+    }
+  }
+
+  Future<void> _lookupStart(String code, int seq) async {
+    final r = await _lookupStartNow(code);
+    if (!mounted || seq != _startSeq) return;
+    setState(() {
+      _startLookup = r;
+      _startPreview =
+          r.kind == ObCodeKind.none ? _Preview.unknown : _Preview.found;
+    });
+  }
+
+  Future<void> _submitStart() async {
+    final code = obNormaliseCode(_start.text);
+    if (code.isEmpty) {
+      _setError(ObScreen.start, 'Please enter your code.');
+      return;
+    }
+    setState(() => _busy = true);
+    _setError(ObScreen.start, null);
+    final r = _startPreview == _Preview.found
+        ? _startLookup
+        : await _lookupStartNow(code);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    switch (r.kind) {
+      case ObCodeKind.club:
+        _club = r;
+        _clubCode = code;
+        _errors.remove(ObScreen.club);
+        V3Track.event('join_code', {'kind': 'club', 'from': 'onboarding'});
+        _show(ObScreen.club);
+      case ObCodeKind.team:
+        _startCode = code;
+        _startTeam = r.teamName;
+        _another = false;
+        V3Track.event('join_code', {'kind': 'team', 'from': 'onboarding'});
+        _show(ObScreen.who);
+      case ObCodeKind.none:
+        _setError(ObScreen.start,
+            "That code isn't recognised. Check it with your club or coach.");
+    }
+  }
+
+  Future<void> _followClub() async {
+    setState(() => _busy = true);
+    _setError(ObScreen.club, null);
+    dynamic r;
+    try {
+      r = await _api.followClubByCode(_clubCode);
+    } catch (_) {
+      r = null;
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (r is Map && r['ok'] == true) {
+      V3Track.event(
+          'club_followed', {'club_id': _club.clubId, 'from': 'onboarding'});
+      _returnToApp();
+    } else {
+      _setError(ObScreen.club, obTryAgain);
+    }
   }
 
   // ------------------------------------------------------------------- who
@@ -272,8 +425,18 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
     _regFirst = _myFirst;
     _regLast = _myLast;
     _isMyself = true;
-    _codeTotal = 3;
+    _codeTotal = 4;
+    _prefillTeamCode();
     _show(ObScreen.code);
+  }
+
+  /// The team code typed on "Got a code?" goes straight into the team code
+  /// screen, already looked up, so it's one tap to send the request.
+  void _prefillTeamCode() {
+    if (_startCode.isEmpty) return;
+    _code.text = _startCode;
+    _resolvedTeam = _startTeam.isEmpty ? null : _startTeam;
+    _preview = _startTeam.isEmpty ? _Preview.none : _Preview.found;
   }
 
   void _selectSomeoneElse() {
@@ -300,7 +463,8 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
     _regFirst = first;
     _regLast = last;
     _isMyself = false;
-    _codeTotal = 4;
+    _codeTotal = 5;
+    _prefillTeamCode();
     _show(ObScreen.code);
   }
 
@@ -498,6 +662,8 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
     _theirLast.clear();
     _errors.remove(ObScreen.theirName);
     _resetCodeScreen();
+    _startCode = '';
+    _startTeam = '';
     _another = true;
     _show(ObScreen.who);
   }
@@ -585,7 +751,8 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
   /// "Done" after a new team request. The web page closed itself (the
   /// native wrapper ignored that), so here it goes back to the start.
   void _doneNewTeam() {
-    setState(() => _history.reset(ObScreen.who));
+    setState(() => _history.reset(ObScreen.start));
+    _readClipboard();
   }
 
   // ----------------------------------------------------------------- build
@@ -756,6 +923,10 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
     switch (_screen) {
       case ObScreen.details:
         return _details();
+      case ObScreen.start:
+        return _startScreen();
+      case ObScreen.club:
+        return _clubScreen();
       case ObScreen.who:
         return _who();
       case ObScreen.theirName:
@@ -806,7 +977,9 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
   List<Widget> _who() => [
         _title(_another
             ? 'Register another person?'
-            : 'How would you like to get started?'),
+            : _startTeam.isNotEmpty
+                ? 'Who is joining $_startTeam?'
+                : 'How would you like to get started?'),
         _sub(_another
             ? "Choose how you'd like to continue."
             : 'Choose one to continue.'),
@@ -826,6 +999,179 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
             sub: 'Request a new team setup on CoachSmart',
             highlight: true,
             onTap: _selectNewTeam),
+      ];
+
+  // "Got a code?" (Ken, 2026-11-26): the only way in. A team code joins a
+  // team (the coach approves); a club code follows the club straight away.
+  // No club search: no code, no club.
+  List<Widget> _startScreen() => [
+        _title('Got a code?', centre: true),
+        _sub('From your club or your coach.', centre: true),
+        TextField(
+          key: const ValueKey('start-code'),
+          controller: _start,
+          textAlign: TextAlign.center,
+          textCapitalization: TextCapitalization.characters,
+          autocorrect: false,
+          enableSuggestions: false,
+          maxLength: 20,
+          textInputAction: TextInputAction.go,
+          onChanged: _onStartChanged,
+          onSubmitted: (_) => _submitStart(),
+          cursorColor: V3.green,
+          style:
+              V3.tight(26, weight: FontWeight.w700).copyWith(letterSpacing: 3),
+          decoration: InputDecoration(
+            counterText: '',
+            hintText: 'Team or club code',
+            hintStyle: V3.inter(17, color: const Color(0xFF6F737C)),
+            filled: true,
+            fillColor: V3.card,
+            contentPadding: const EdgeInsets.symmetric(vertical: 20),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: V3.line, width: 1.5)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: V3.green, width: 1.5)),
+          ),
+        ),
+        if (_clipCode != null && _start.text.trim().isEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: OutlinedButton.icon(
+                onPressed: _paste,
+                icon: const Icon(Icons.content_paste, size: 18),
+                label: Text(
+                    _clipCode!.isEmpty ? 'Paste code' : 'Paste "$_clipCode"',
+                    style:
+                        V3.inter(15, weight: FontWeight.w600, color: V3.green)),
+                style: OutlinedButton.styleFrom(
+                    foregroundColor: V3.green,
+                    minimumSize: const Size(44, 44),
+                    side: const BorderSide(color: V3.nextLine, width: 1.5),
+                    shape: const StadiumBorder()),
+              ),
+            ),
+          ),
+        const SizedBox(height: 12),
+        _startPreviewLine(),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Text(
+              'A team code joins a team (the coach approves). '
+              'A club code follows the club straight away.',
+              style: V3.inter(14.5, color: V3.muted, height: 1.45)),
+        ),
+        _PrimaryButton(label: 'Continue', busy: _busy, onPressed: _submitStart),
+        _error(ObScreen.start),
+        const SizedBox(height: 26),
+        Row(children: [
+          const Expanded(child: Divider(color: V3.line)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text('No code?', style: V3.inter(14, color: V3.muted)),
+          ),
+          const Expanded(child: Divider(color: V3.line)),
+        ]),
+        const SizedBox(height: 8),
+        Text('Ask your club or your coach for one.',
+            textAlign: TextAlign.center, style: V3.inter(15, color: V3.muted)),
+        const SizedBox(height: 16),
+        _ChoiceCard(
+            icon: Icons.stadium_outlined,
+            label: 'Set up a new team',
+            sub: 'Request a new team setup on CoachSmart',
+            highlight: true,
+            onTap: _selectNewTeam),
+      ];
+
+  Widget _startPreviewLine() {
+    if (_startPreview == _Preview.none) return const SizedBox(height: 4);
+    final found = _startPreview == _Preview.found;
+    final l = _startLookup;
+    final text = switch (_startPreview) {
+      _Preview.looking => 'Looking up code…',
+      _Preview.found => l.kind == ObCodeKind.club
+          ? 'Club: ${l.clubName}'
+          : 'Team: ${l.teamName}',
+      _ => 'Code not recognised',
+    };
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: _startPreview == _Preview.looking
+          ? null
+          : BoxDecoration(
+              color: found ? V3.greenTint : V3.card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: found ? V3.nextLine : V3.line)),
+      child: Row(children: [
+        if (found) ...[
+          const Icon(Icons.check, color: V3.green, size: 20),
+          const SizedBox(width: 8),
+        ],
+        Expanded(
+          child: Text(text,
+              style: V3.inter(found ? 16 : 15,
+                  weight: found ? FontWeight.w600 : FontWeight.w400,
+                  color: found ? V3.green : V3.muted)),
+        ),
+      ]),
+    );
+  }
+
+  List<Widget> _clubScreen() => [
+        _title('Is this your club?', centre: true),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+              color: V3.card,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: V3.nextLine, width: 1.5)),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              V3CrestImage(_club.crest,
+                  size: 56,
+                  fallback: const Icon(Icons.shield_outlined,
+                      color: V3.green, size: 44)),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_club.clubName,
+                          style: V3.tight(21, weight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Text(_club.clubLine,
+                          style: V3.inter(15, color: V3.muted)),
+                    ]),
+              ),
+            ]),
+            const SizedBox(height: 14),
+            Text(
+                "You'll follow the club: its news, matches and results on "
+                'Home. No team needed.',
+                style: V3.inter(15.5, height: 1.45)),
+            const SizedBox(height: 10),
+            Text(
+                'Got a child on a team? Add their team code any time from '
+                'the menu.',
+                style: V3.inter(14.5, color: V3.muted, height: 1.45)),
+          ]),
+        ),
+        const SizedBox(height: 22),
+        _PrimaryButton(
+            label: 'Follow ${_club.clubName}',
+            busy: _busy,
+            onPressed: _followClub),
+        _error(ObScreen.club),
+        const SizedBox(height: 4),
+        _SecondaryButton(label: 'Not my club', onPressed: _goBack),
       ];
 
   List<Widget> _theirName() => [

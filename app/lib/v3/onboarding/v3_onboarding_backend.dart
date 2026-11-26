@@ -28,6 +28,15 @@ abstract class OnboardingBackend {
 
   Future<void> saveDetails(String firstName, String lastName);
   Future<dynamic> teamByCode(String code);
+
+  /// lookup_join_code: a club code or a team code (2026-11-26).
+  Future<dynamic> lookupJoinCode(String code);
+
+  /// follow_club_by_code: follow the club straight away, no approval.
+  Future<dynamic> followClubByCode(String code);
+
+  /// True when the user follows at least one club (get_my_followed_clubs).
+  Future<bool> followsAnyClub();
   Future<dynamic> createMemberByCode(
       String firstName, String lastName, String code);
   Future<dynamic> requestMemberAccess(int memberId, String code);
@@ -131,6 +140,24 @@ class SupabaseOnboardingBackend implements OnboardingBackend {
   @override
   Future<dynamic> teamByCode(String code) =>
       _sb.rpc('get_team_by_code', params: {'p_joining_code': code});
+
+  @override
+  Future<dynamic> lookupJoinCode(String code) =>
+      _sb.rpc('lookup_join_code', params: {'p_code': code});
+
+  @override
+  Future<dynamic> followClubByCode(String code) =>
+      _sb.rpc('follow_club_by_code', params: {'p_code': code});
+
+  @override
+  Future<bool> followsAnyClub() async {
+    try {
+      final r = await _sb.rpc('get_my_followed_clubs');
+      return r is List && r.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   Future<dynamic> createMemberByCode(

@@ -314,6 +314,7 @@ class LiveMatchRow {
         eventDateTime = _t(j['event_date_time']),
         teamName = _s(j['team_name']),
         clubName = _s(j['club_name']),
+        clubId = _iN(j['club_id']),
         opposition = _s(j['opposition']),
         venue = _s(j['venue']),
         homeAway = _s(j['home_away']),
@@ -326,6 +327,9 @@ class LiveMatchRow {
   final int eventId, squadsInEvent;
   final int? squadKey;
   final String squadName, squadColourText, teamName, clubName, opposition;
+
+  /// The team's club (sent since 2026-11-26; followers' Home groups by it).
+  final int? clubId;
   final String venue, homeAway, phase;
   final DateTime? eventDateTime;
   final LiveTimer? timer;

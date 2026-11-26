@@ -20,6 +20,7 @@ class FakeBackend implements OnboardingBackend {
   dynamic joinResult = {'status': 'pending', 'team_name': 'U12 Girls'};
   dynamic accessResult = {'success': true};
   dynamic lookupResult;
+  bool follows = false;
   String? newTeamError;
   final calls = <String>[];
   final statuses = <String>[];
@@ -46,6 +47,33 @@ class FakeBackend implements OnboardingBackend {
     calls.add('team $code');
     return code == 'ABC123' ? {'team_name': 'U12 Girls'} : null;
   }
+
+  @override
+  Future<dynamic> lookupJoinCode(String code) async {
+    calls.add('lookup $code');
+    if (code == 'ABC123') return {'kind': 'team', 'team_name': 'U12 Girls'};
+    if (code == 'CLONTARFGAA') {
+      return {
+        'kind': 'club',
+        'club': {
+          'club_id': 1,
+          'club_name': 'Clontarf GAA',
+          'county': 'Dublin',
+          'sport_id': 1
+        }
+      };
+    }
+    return {'kind': 'none'};
+  }
+
+  @override
+  Future<dynamic> followClubByCode(String code) async {
+    calls.add('follow $code');
+    return {'ok': true};
+  }
+
+  @override
+  Future<bool> followsAnyClub() async => follows;
 
   @override
   Future<dynamic> createMemberByCode(String f, String l, String code) async {
@@ -195,16 +223,18 @@ void main() {
       expect(obCounties.length, 32);
     });
 
-    test('history does not go back past who into details', () {
+    test('history does not go back past "Got a code?" into details', () {
       final h = ObHistory()
         ..push(ObScreen.details)
+        ..push(ObScreen.start)
         ..push(ObScreen.who)
         ..push(ObScreen.who)
         ..push(ObScreen.code);
-      expect(h.stack.length, 3);
+      expect(h.stack.length, 4);
       expect(h.back(hasFirstName: true), ObScreen.who);
-      expect(h.back(hasFirstName: true), ObScreen.who);
-      expect(h.stack, [ObScreen.who]);
+      expect(h.back(hasFirstName: true), ObScreen.start);
+      expect(h.back(hasFirstName: true), ObScreen.start);
+      expect(h.stack, [ObScreen.start]);
       expect(h.back(hasFirstName: true), isNull);
       final h2 = ObHistory()
         ..push(ObScreen.details)
@@ -214,6 +244,8 @@ void main() {
 
     test('progress', () {
       expect(obProgress(ObScreen.code, codeTotal: 4)!.label, 'Step 4 of 4');
+      expect(obProgress(ObScreen.start)!.label, 'Step 2 of 3');
+      expect(obProgress(ObScreen.club)!.label, 'Step 3 of 3');
       expect(obProgress(ObScreen.sent), isNull);
     });
   });
@@ -235,7 +267,61 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       expect(b.calls, contains('save Ken Darcy'));
-      expect(find.text('How would you like to get started?'), findsOneWidget);
+      expect(find.text('Got a code?'), findsOneWidget);
+    });
+
+    Future<void> enterStartCode(WidgetTester tester, String code) async {
+      await tester.enterText(find.byKey(const ValueKey('start-code')), code);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('club code: follow the club, no approval, then home',
+        (tester) async {
+      _tall(tester);
+      var finished = 0;
+      final b = FakeBackend();
+      await tester.pumpWidget(_app(b, onFinished: () => finished++));
+      await tester.pumpAndSettle();
+      expect(find.text('Got a code?'), findsOneWidget);
+      await tester.enterText(
+          find.byKey(const ValueKey('start-code')), 'clontarfgaa');
+      await tester.pump();
+      expect(find.text('Looking up code…'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(find.text('Club: Clontarf GAA'), findsOneWidget);
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.text('Is this your club?'), findsOneWidget);
+      expect(find.text('GAA · Dublin'), findsOneWidget);
+      await tester.tap(find.text('Follow Clontarf GAA'));
+      await tester.pumpAndSettle();
+      expect(b.calls, contains('follow CLONTARFGAA'));
+      expect(finished, 1);
+    });
+
+    testWidgets('an unknown code says so', (tester) async {
+      _tall(tester);
+      final b = FakeBackend();
+      await tester.pumpWidget(_app(b));
+      await tester.pumpAndSettle();
+      await enterStartCode(tester, 'NOPE99');
+      expect(
+          find.text(
+              "That code isn't recognised. Check it with your club or coach."),
+          findsOneWidget);
+    });
+
+    testWidgets('someone who already follows a club goes straight home',
+        (tester) async {
+      _tall(tester);
+      var finished = 0;
+      final f = FakeBackend()..follows = true;
+      await tester.pumpWidget(_app(f, onFinished: () => finished++));
+      await tester.pumpAndSettle();
+      expect(finished, 1);
     });
 
     testWidgets('join as myself: code preview, request sent', (tester) async {
@@ -243,15 +329,13 @@ void main() {
       final b = FakeBackend();
       await tester.pumpWidget(_app(b));
       await tester.pumpAndSettle();
+      await enterStartCode(tester, 'abc123');
+      expect(find.text('Who is joining U12 Girls?'), findsOneWidget);
       await tester.tap(find.text('Join as myself'));
       await tester.pumpAndSettle();
-      expect(find.text('STEP 3 OF 3'), findsOneWidget);
+      expect(find.text('STEP 4 OF 4'), findsOneWidget);
       expect(find.text('Joining as Ken Darcy', findRichText: true),
           findsOneWidget);
-      await tester.enterText(find.byKey(const ValueKey('team-code')), 'abc123');
-      await tester.pump();
-      expect(find.text('Looking up code…'), findsOneWidget);
-      await tester.pump(const Duration(milliseconds: 600));
       expect(find.text('Request to Join U12 Girls'), findsOneWidget);
       await tester.tap(find.text('Request to Join U12 Girls'));
       await tester.pumpAndSettle();
@@ -274,14 +358,16 @@ void main() {
         };
       await tester.pumpWidget(_app(b));
       await tester.pumpAndSettle();
+      await enterStartCode(tester, 'abc123');
       await tester.tap(find.text('Register someone else'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).at(0), 'Aoife');
       await tester.enterText(find.byType(TextField).at(1), 'Darcy');
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-      expect(find.text('STEP 4 OF 4'), findsOneWidget);
+      expect(find.text('STEP 5 OF 5'), findsOneWidget);
       await tester.enterText(find.byKey(const ValueKey('team-code')), 'XY');
+      await tester.pump();
       await tester.tap(find.text('Request to Join'));
       await tester.pumpAndSettle();
       expect(find.text('Already on the roster'), findsOneWidget);
@@ -344,7 +430,7 @@ void main() {
       expect(find.text('Request received!'), findsOneWidget);
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
-      expect(find.text('How would you like to get started?'), findsOneWidget);
+      expect(find.text('Got a code?'), findsOneWidget);
     });
   });
 }

@@ -4,6 +4,8 @@
 /// The screens of the flow, named after the web page's screen ids.
 enum ObScreen {
   details, // screen-details: step 1, your name
+  start, // v3 only: "Got a code?" - a team code or a club code (2026-11-26)
+  club, // v3 only: "Is this your club?" - follow a club, no approval
   who, // screen-who: myself / someone else / new team
   theirName, // screen-their-name
   memberCode, // screen-member-code
@@ -20,6 +22,7 @@ enum ObScreen {
 /// Screens that show the web page's back chevron. screen-details only had
 /// closeFlow, which the native wrapper ignored, so it has none here.
 bool obHasBack(ObScreen s) => const {
+      ObScreen.club,
       ObScreen.who,
       ObScreen.theirName,
       ObScreen.memberCode,
@@ -29,17 +32,22 @@ bool obHasBack(ObScreen s) => const {
     }.contains(s);
 
 /// Progress dots and step label for a screen: (total, current, label).
-/// [codeTotal] is 3 when joining as myself and 4 for someone else.
+/// [codeTotal] is 4 when joining as myself and 5 for someone else: name,
+/// code, who, (their name), team code (2026-11-26: the code comes first).
 ({int total, int current, String label})? obProgress(ObScreen s,
     {int codeTotal = 3}) {
   switch (s) {
     case ObScreen.details:
       return (total: 3, current: 1, label: 'Step 1 of 3');
-    case ObScreen.who:
+    case ObScreen.start:
       return (total: 3, current: 2, label: 'Step 2 of 3');
+    case ObScreen.club:
+      return (total: 3, current: 3, label: 'Step 3 of 3');
+    case ObScreen.who:
+      return (total: 4, current: 3, label: 'Step 3 of 4');
     case ObScreen.theirName:
     case ObScreen.memberCode:
-      return (total: 4, current: 3, label: 'Step 3 of 4');
+      return (total: 5, current: 4, label: 'Step 4 of 5');
     case ObScreen.code:
       return (
         total: codeTotal,
@@ -66,15 +74,16 @@ class ObHistory {
     if (top != s) stack.add(s);
   }
 
-  /// goBack(): pop one; never go back past "who" into "details" once the
-  /// user has a first name. Returns the screen to show, or null to stay.
+  /// goBack(): pop one; never go back past "Got a code?" into "details"
+  /// once the user has a first name. Returns the screen to show, or null to
+  /// stay.
   ObScreen? back({required bool hasFirstName}) {
     if (stack.length <= 1) return null;
     stack.removeLast();
     if (stack.last == ObScreen.details && hasFirstName) {
       stack
         ..clear()
-        ..add(ObScreen.who);
+        ..add(ObScreen.start);
     }
     return stack.last;
   }
@@ -96,18 +105,70 @@ bool obNeedsDetails(Map<String, dynamic>? user) {
 }
 
 /// checkAndRoute(): an active team link for any member the user owns goes
-/// home; otherwise any pending request shows the pending list; otherwise
-/// the user picks how to start.
+/// home, and so does following a club (2026-11-26); otherwise any pending
+/// request shows the pending list; otherwise the user starts with a code.
 ObRoute obDecideRoute({
   required List<int> ownedIds,
   required bool hasActiveLink,
   required int pendingCount,
+  bool followsClub = false,
 }) {
-  if (ownedIds.isNotEmpty) {
-    if (hasActiveLink) return ObRoute.home;
-    if (pendingCount > 0) return ObRoute.pendingStatus;
-  }
+  if (ownedIds.isNotEmpty && hasActiveLink) return ObRoute.home;
+  if (followsClub) return ObRoute.home;
+  if (ownedIds.isNotEmpty && pendingCount > 0) return ObRoute.pendingStatus;
   return ObRoute.who;
+}
+
+/// What a code typed on "Got a code?" turned out to be (lookup_join_code).
+enum ObCodeKind { none, club, team }
+
+class ObCodeLookup {
+  const ObCodeLookup(this.kind,
+      {this.clubId = 0,
+      this.clubName = '',
+      this.crest = '',
+      this.county = '',
+      this.sportId = 1,
+      this.teamName = ''});
+  final ObCodeKind kind;
+  final int clubId;
+  final String clubName, crest, county, teamName;
+  final int sportId;
+
+  static const none = ObCodeLookup(ObCodeKind.none);
+
+  /// "GAA · Dublin"
+  String get clubLine {
+    final sport = switch (sportId) { 2 => 'Soccer', 3 => 'Rugby', _ => 'GAA' };
+    return county.isEmpty ? sport : '$sport · $county';
+  }
+}
+
+ObCodeLookup obParseCodeLookup(dynamic v) {
+  if (v is! Map) return ObCodeLookup.none;
+  switch (v['kind']) {
+    case 'club':
+      final c = _map(v['club']);
+      if (_int(c['club_id']) == 0) return ObCodeLookup.none;
+      return ObCodeLookup(ObCodeKind.club,
+          clubId: _int(c['club_id']),
+          clubName: _s(c['club_name']),
+          crest: _s(c['crest']),
+          county: _s(c['county']),
+          sportId: _int(c['sport_id']) == 0 ? 1 : _int(c['sport_id']));
+    case 'team':
+      return ObCodeLookup(ObCodeKind.team, teamName: _s(v['team_name']));
+    default:
+      return ObCodeLookup.none;
+  }
+}
+
+/// A copied code from the clipboard, if it looks like one (letters and
+/// digits, 3 to 20 long, spaces ignored); else null.
+String? obCodeFromClipboard(String? text) {
+  final t = (text ?? '').replaceAll(RegExp(r'\s'), '').toUpperCase();
+  if (t.length < 3 || t.length > 20) return null;
+  return RegExp(r'^[A-Z0-9]+$').hasMatch(t) ? t : null;
 }
 
 int _int(dynamic v) => v is int ? v : int.tryParse('${v ?? ''}') ?? 0;
