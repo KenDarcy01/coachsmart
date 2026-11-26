@@ -274,10 +274,12 @@ function card(m, i) {
   const acts = st === 'ended' ? `<button class="sm" onclick="again(${i})">Send again</button>`
     : `<button class="sm" onclick="edit(${i})">Edit</button><button class="sm red" id="stop${i}" onclick="stop(${i})">Stop showing</button>`;
   const tap = m.kind === 'fundraiser' ? `<span><b>${m.tap_count || 0}</b> tapped ${esc(m.link_label || 'the button')}</span>` : '';
+  const push = m.kind !== 'important' ? '' : m.push_sent_at ? `<span>Push to <b>${m.push_count ?? '…'}</b> ${m.push_count === 1 ? 'phone' : 'phones'}</span>`
+    : m.push && st === 'soon' ? '<span>Push when it starts</span>' : '';
   const sub = m.kind === 'fundraiser' && m.price_label ? esc(m.price_label) + (m.body ? ' · ' : '') : '';
   return `<div class="card"><div class="mrow"><span class="kind ${KIND[m.kind].c}">${KIND[m.kind].l}</span>
     <div class="mx">${m.image_url ? `<img class="thumb" src="${esc(m.image_url)}" alt="">` : ''}<div class="mt">${esc(m.title)}</div>${m.body || sub ? `<div class="ms">${sub}${esc(m.body || '')}</div>` : ''}
-    <div class="stat">${when}<span>${esc(AUD[m.audience] || 'Everyone')}</span><span>${esc(teamsLabel(m))}</span><span><b>${m.seen_count || 0}</b> of ${m.reach || 0} seen</span>${tap}</div>
+    <div class="stat">${when}<span>${esc(AUD[m.audience] || 'Everyone')}</span><span>${esc(teamsLabel(m))}</span><span><b>${m.seen_count || 0}</b> of ${m.reach || 0} seen</span>${tap}${push}</div>
     <div class="acts">${acts}</div></div></div></div>`;
 }
 function render() {
@@ -301,13 +303,14 @@ function render() {
 function blank() {
   const end = new Date(); end.setDate(end.getDate() + 3);
   return { id: null, kind: 'important', title: '', body: '', link_url: '', link_label: '', image_url: '', price_label: '', audience: 'all', team_ids: [],
-    later: false, starts: localInput(new Date(Date.now() + 3600e3)), ends: localDate(end), reach: null, picking: false, q: '' };
+    push: false, pushN: null, pushSent: null, pushCount: null, later: false, starts: localInput(new Date(Date.now() + 3600e3)), ends: localDate(end), reach: null, picking: false, q: '' };
 }
 function fromMsg(m, copy) {
   const d = blank();
   Object.assign(d, { id: copy ? null : m.id, kind: m.kind, title: m.title, body: m.body || '', link_url: m.link_url || '', link_label: m.link_label || '', image_url: m.image_url || '', price_label: m.price_label || '',
     audience: m.audience || 'all', team_ids: (m.team_ids || []).map(Number) });
   if (!copy) {
+    d.push = !!m.push; d.pushSent = m.push_sent_at || null; d.pushCount = m.push_count;
     d.later = d.wasLater = new Date(m.starts_at) > now(); if (d.later) d.starts = localInput(new Date(m.starts_at));
     d.ends = localDate(new Date(m.ends_at));
   }
@@ -360,6 +363,9 @@ function renderForm() {
         ${d.later ? `<input id="fStarts" type="datetime-local" value="${esc(d.starts)}" style="margin-top:6px">` : ''}</div>
       <div class="field"><label>Stop showing</label><input id="fEnds" type="date" value="${esc(d.ends)}" min="${localDate(new Date())}"><div class="hint">At the end of that day</div></div>
     </div>
+    ${d.kind === 'important' ? `<div class="field"><label>Push notification</label>${d.pushSent
+        ? `<div class="hint">Push sent ${dShort(d.pushSent)} ${hm(d.pushSent)}${d.pushCount != null ? ' to ' + d.pushCount + (d.pushCount === 1 ? ' phone' : ' phones') : ''}. It isn’t sent again.</div>`
+        : seg('push', [['false', 'Off'], ['true', 'Send a push too']], String(d.push)) + `<div class="hint" id="pushHint">${pushHint()}</div>`}</div>` : ''}
     <div class="reach" id="reach">${n == null ? 'Counting who it reaches…' : `Reaches about ${n} ${n === 1 ? 'person' : 'people'} at ${esc(T.club_name)}`}</div>
     <div class="warn">Only people on the new app see messages for now. Everyone gets them after the January switch.</div>
     <button class="btn" id="sendBtn" onclick="send()">${d.id ? 'Save changes' : 'Send'}</button>
@@ -385,6 +391,11 @@ function pv() {
        <div class="pin"><span class="imp">IMPORTANT</span><b class="pt">${esc(d.title || 'Your title')}</b>
        ${d.body ? `<div class="pb">${esc(d.body)}</div>` : ''}<div class="pg">Got it</div></div></div></div>`;
 }
+function pushHint() {
+  const d = draft; if (!d.push) return 'Off. It still pops up when people open the app.';
+  const n = d.pushN == null ? 'about …' : 'about ' + d.pushN;
+  return `Goes to ${n} ${d.pushN === 1 ? 'phone' : 'phones'} with notifications on, ${d.later ? 'when it starts showing' : 'as soon as you send'}. Push only, no email.`;
+}
 function openPicker() { grab(); draft.picking = true; draft.q = ''; renderForm(); }
 function renderPicker() {
   const q = draft.q.toLowerCase();
@@ -405,9 +416,12 @@ function recount() {
   const el = $('reach'); if (el) el.textContent = 'Counting who it reaches…';
   const want = JSON.stringify([draft.team_ids, draft.audience]);
   reachT = setTimeout(async () => {
-    const { data, error } = await sb.rpc('count_app_message_audience', { p_club_id: clubId, p_team_ids: draft.team_ids, p_audience: draft.audience });
+    const args = { p_club_id: clubId, p_team_ids: draft.team_ids, p_audience: draft.audience };
+    const [{ data, error }, pc] = await Promise.all([sb.rpc('count_app_message_audience', args), sb.rpc('count_app_message_push', args)]);
     if (!draft || JSON.stringify([draft.team_ids, draft.audience]) !== want) return;
     draft.reach = error ? null : data;
+    draft.pushN = pc.error ? null : pc.data;
+    const ph = $('pushHint'); if (ph) ph.textContent = pushHint();
     const e2 = $('reach'); if (e2) e2.textContent = error ? 'Couldn’t count who it reaches.' : `Reaches about ${data} ${data === 1 ? 'person' : 'people'} at ${T.club_name}`;
   }, 250);
 }
@@ -426,12 +440,18 @@ async function send() {
   const starts = d.later && d.starts ? new Date(d.starts) : null;
   if (ends <= (starts || new Date())) return err('Stop showing has to be after it starts.');
   const b = $('sendBtn'); b.disabled = true; b.textContent = d.id ? 'Saving…' : 'Sending…'; err('');
-  const { error } = await sb.rpc('save_app_message', {
+  const { data: savedId, error } = await sb.rpc('save_app_message', {
     p_id: d.id, p_kind: d.kind, p_title: d.title.trim(), p_body: d.body.trim(), p_link_url: d.link_url, p_link_label: d.link_label,
     p_club_id: clubId, p_team_ids: d.team_ids, p_audience: d.audience,
     p_image_url: d.image_url || '', p_price_label: d.kind === 'fundraiser' ? d.price_label.trim() : '', p_starts_at: starts ? starts.toISOString() : (d.id && d.wasLater ? new Date().toISOString() : null), p_ends_at: ends.toISOString() });
   if (error) { b.disabled = false; b.textContent = d.id ? 'Save changes' : 'Send'; return err(/after/.test(error.message) ? 'Stop showing has to be after it starts.' : 'Couldn’t send. Please try again.'); }
-  toast(d.id ? 'Saved' : starts ? 'Scheduled' : 'Sent'); view = 'list'; draft = null; load();
+  let pushed = false, pushErr = false;
+  if (savedId && !d.pushSent && (d.push || d.id)) {
+    const pr = await sb.rpc('set_app_message_push', { p_id: savedId, p_push: d.kind === 'important' && d.push });
+    pushErr = !!pr.error; pushed = !pr.error && d.kind === 'important' && d.push;
+  }
+  toast(pushErr ? 'Saved, but the push couldn’t be set. Edit it to try again.'
+    : d.id ? 'Saved' : starts ? (pushed ? 'Scheduled, push goes when it starts' : 'Scheduled') : (pushed ? 'Sent with a push' : 'Sent')); view = 'list'; draft = null; load();
 }
 // Photo: shrunk in the browser to at most 1200px wide JPEG, then stored in
 // message-images/<club>/ (only Messages officers of this club may upload).
