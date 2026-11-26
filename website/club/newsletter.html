@@ -244,7 +244,7 @@ function renderHome() {
       <button class="btn pri" style="width:100%;margin-top:12px" data-a="savesettings">Save settings</button>
     </div>
     <h2>In every issue <span>Added to each new issue, ticked</span></h2>
-    <div class="card hist">${std().length ? std().map((x, i) => `<div class="hi" data-a="editstd" data-id="${i + 1}" style="justify-content:flex-start;gap:12px">${x.photo_path ? `<img class="thumb" src="${esc(stdUrl(x.photo_path))}" alt="" style="flex:none">` : ''}<div style="flex:1"><b>${esc(x.headline || '(no headline)')}</b><div class="m">${x.placement === 'story' ? 'Story' : 'Short box'}${x.photo_path ? ' · photo' : ''}${x.active ? '' : ' · turned off'}</div></div><span class="m">Edit ›</span></div>`).join('') : '<div class="m" style="padding:6px 0">Nothing yet. Add things like the lotto, membership or the club shop.</div>'}</div>
+    <div class="card hist">${std().length ? std().map((x, i) => `<div class="hi" data-a="editstd" data-id="${i + 1}" style="justify-content:flex-start;gap:12px">${x.photo_path ? `<img class="thumb" src="${esc(stdUrl(x.photo_path))}" alt="" style="flex:none">` : ''}<div style="flex:1"><b>${esc(x.kicker || x.headline || '(no name)')}</b><div class="m">${x.kicker && x.headline ? esc(x.headline) + ' · ' : ''}${x.placement === 'story' ? 'Story' : 'Short box'}${x.photo_path ? ' · photo' : ''}${x.active ? '' : ' · turned off'}</div></div><span class="m">Edit ›</span></div>`).join('') : '<div class="m" style="padding:6px 0">Nothing yet. Add things like the lotto, membership or the club shop.</div>'}</div>
     <button class="add" data-a="addstd">+ Add an every-issue item</button>
     <div class="note">Stories are suggested from this club’s results and its website. Wins are shown with scores; semi-final and final losses are shown kindly; other losses, the lotto, payments and car pooling are never suggested (add your own lotto item under In every issue).</div>
   </div>`;
@@ -273,11 +273,11 @@ const stdUrl = p => p ? SUPABASE_URL + '/storage/v1/object/public/newsletter/' +
 let stdIdx = -1, stdDraft = null;
 function renderStd() {
   const x = stdDraft;
-  $('app').innerHTML = band('In every issue', x.headline || 'New item', 'home') + `<div class="wrap">
+  $('app').innerHTML = band('In every issue', x.kicker || x.headline || 'New item', 'home') + `<div class="wrap">
     <div class="row2" style="margin-top:0"><b>Add to each new issue</b><button class="sw${x.active ? ' on' : ''}" id="xOn" aria-label="On"></button></div>
     <div class="lbl">Place in the issue</div>
     <div class="seg" id="xPlace">${[['short', 'Short box'], ['story', 'Story']].map(([k, l]) => `<button data-p="${k}" class="${x.placement === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    <div class="lbl">Small heading above</div><input class="fld" id="xKicker" value="${esc(x.kicker || '')}" maxlength="120" placeholder="e.g. Club Lotto">
+    <div class="lbl">Name <span style="text-transform:none;letter-spacing:0;font-weight:500">(small heading above the headline)</span></div><input class="fld" id="xKicker" value="${esc(x.kicker || '')}" maxlength="120" placeholder="e.g. Club Lotto">
     <div class="lbl">Headline</div><input class="fld big" id="xHead" value="${esc(x.headline || '')}" maxlength="120" placeholder="e.g. This week’s jackpot">
     <div class="lbl">Text <span style="text-transform:none;letter-spacing:0;font-weight:500">(a blank line starts a new paragraph)</span></div><textarea class="fld" id="xBody">${esc(x.body || '')}</textarea>
     <div class="lbl">Photo or logo</div><div class="photo">${x.photo_path ? `<img src="${esc(stdUrl(x.photo_path))}" alt=""><button data-a="stdnophoto">Remove</button>` : ''}<label>${x.photo_path ? 'Change' : '+ Add a photo'}<input type="file" accept="image/*" id="xPhoto" hidden></label></div>
