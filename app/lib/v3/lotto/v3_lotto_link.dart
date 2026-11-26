@@ -75,7 +75,8 @@ class V3LottoLink {
       final res = await SupaFlow.client.functions
           .invoke('lotto', body: {'action': 'handoff', 'slug': slug});
       final data = res.data;
-      final code = data is Map ? (data['data'] as Map?)?['code'] : null;
+      final inner = data is Map ? data['data'] : null;
+      final code = inner is Map ? inner['code'] : null;
       if (code is! String || code.isEmpty) return null;
       _codes[slug] = (code: code, at: DateTime.now());
       return code;
