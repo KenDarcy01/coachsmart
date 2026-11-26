@@ -146,8 +146,10 @@ serve(async (req) => {
       case "rewrite": return ok(await rewrite(sb, clubId, body.story_id));
       case "build": return ok(await build(sb, clubId, body, user.id));
       case "approve": {
+        // The paper is made when it is approved (Ken 2026-11-26): build, then approve.
+        if (body.pdf) await build(sb, clubId, body, user.id);
         const iss = await issueOf(sb, clubId, body.issue_id);
-        if (iss.status !== "built" || !iss.pdf_path) throw new Error("Build the issue before approving it.");
+        if (iss.status !== "built" || !iss.pdf_path) throw new Error("Couldn't make the paper. Please try again.");
         await sb.from("newsletter_issues").update({ status: "approved", approved_at: new Date().toISOString(), approved_by: user.id, updated_at: new Date().toISOString() }).eq("issue_id", iss.issue_id);
         return ok(await issueData(sb, await issueOf(sb, clubId, iss.issue_id)));
       }

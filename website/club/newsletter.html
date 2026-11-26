@@ -93,12 +93,28 @@ textarea.fld{min-height:180px;resize:vertical}
 .msg{font-size:14px;color:#d9363e;min-height:20px;margin-top:6px}
 .ldpill{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:20;background:#1a1d23;color:#fff;font-size:14px;font-weight:600;padding:9px 16px;border-radius:999px;display:none}
 body.busy .ldpill{display:block}
+.press{position:fixed;inset:0;z-index:40;background:#14181bcc;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+body.pressing .press{display:flex}
+.press .pc{background:#f6f1e6;border-radius:18px;padding:26px 26px 22px;width:290px;text-align:center;box-shadow:0 10px 40px #0005}
+.press .sheet{width:92px;height:116px;margin:0 auto 16px;background:#fff;border:2px solid #1b1b1b;position:relative;overflow:hidden;animation:bob 1.6s ease-in-out infinite;transform-origin:50% 100%}
+.press .sheet i{position:absolute;left:10px;right:10px;height:6px;background:#1b1b1b;border-radius:2px;transform:scaleX(0);transform-origin:left;animation:ink 2.4s ease-in-out infinite}
+.press .sheet i.h{top:10px;height:12px;background:var(--club)}
+.press .sheet i:nth-child(2){top:30px;animation-delay:.25s}.press .sheet i:nth-child(3){top:42px;animation-delay:.45s;right:30px}
+.press .sheet i.p{top:56px;height:28px;background:#c9c1b0;animation-delay:.7s}
+.press .sheet i:nth-child(5){top:90px;animation-delay:.95s}.press .sheet i:nth-child(6){top:102px;animation-delay:1.15s;right:40px}
+@keyframes ink{0%{transform:scaleX(0)}35%,80%{transform:scaleX(1)}100%{transform:scaleX(1);opacity:0}}
+@keyframes bob{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg) translateY(-4px)}}
+.press b{display:block;font-family:Georgia,serif;font-size:19px;color:#1b1b1b}
+.press .pst{color:#5d574d;font-size:14px;margin-top:6px;min-height:20px}
+.press .bar2{height:5px;background:#e3dccd;border-radius:9px;margin-top:14px;overflow:hidden}.press .bar2 span{display:block;height:100%;width:30%;background:var(--club);border-radius:9px;animation:slide 1.3s ease-in-out infinite}
+@keyframes slide{0%{margin-left:-30%}100%{margin-left:100%}}
 .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#1a1d23;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;display:none;max-width:90vw;text-align:center}
 #buildFrame{position:fixed;left:-2000px;top:0;width:420px;height:800px;border:0}
 </style>
 </head>
 <body>
 <div class="ldpill" id="ld">Working…</div>
+<div class="press" id="press"><div class="pc"><div class="sheet"><i class="h"></i><i></i><i></i><i class="p"></i><i></i><i></i></div><b id="pressT">Hold the front page!</b><div class="pst" id="pressS">Setting the headlines…</div><div class="bar2"><span></span></div></div></div>
 <div class="toast" id="toast"></div>
 <div id="app"><div class="state">Loading…</div></div>
 <div class="login" id="login">
@@ -163,6 +179,13 @@ function toast(t) { const el = $('toast'); el.textContent = t; el.style.display 
 async function busy(label, fn) {
   $('ld').textContent = label; document.body.classList.add('busy');
   try { return await fn(); } catch (e) { toast(e.message); return null; } finally { document.body.classList.remove('busy'); }
+}
+async function pressing(fn) {
+  const steps = ['Setting the headlines…', 'Placing the photos…', 'Inking the press…', 'Folding the paper…', 'Off to the newsstand…'];
+  let i = 0; $('pressS').textContent = steps[0];
+  const t = setInterval(() => { i = Math.min(i + 1, steps.length - 1); $('pressS').textContent = steps[i]; }, 1400);
+  document.body.classList.add('pressing');
+  try { return await fn(); } catch (e) { toast(e.message); return null; } finally { clearInterval(t); document.body.classList.remove('pressing'); }
 }
 async function boot() {
   const { data: { session } } = await sb.auth.getSession();
@@ -267,7 +290,7 @@ function renderIssue() {
     <div class="note">Not right? <button class="lk" style="background:none;border:0;color:var(--club);font-weight:600;cursor:pointer" data-a="resuggest">Suggest again</button> (keeps the stories you edited).</div>
     ${iss.status !== 'approved' ? '<button class="add" style="margin-top:16px;color:#d9363e" data-a="delissue">Delete this draft</button>' : ''}
   </div>
-  <div class="bar"><div class="in"><button class="btn" data-a="preview">Preview</button><button class="btn pri" data-a="build">${iss.status === 'draft' ? 'Build issue' : 'Rebuild'}</button></div></div>`;
+  <div class="bar"><div class="in">${iss.status === 'approved' ? '<button class="btn pri" data-a="preview">View the issue</button>' : '<button class="btn pri" data-a="preview">Preview and approve</button>'}</div></div>`;
   wireDrag();
 }
 const std = () => (C.settings.standing || []);
@@ -368,13 +391,12 @@ function renderPreview() {
   const iss = I.issue;
   $('app').innerHTML = band('Preview issue ' + iss.issue_no, wk(iss.week_start, iss.week_end) + ' · ' + I.stories.filter(s => s.included).length + ' stories', 'backissue') + `<div class="wrap">
     <div class="pv"><iframe id="pvFrame" title="Preview"></iframe></div>
-    ${iss.status === 'draft' ? '<div class="chk w">Not built yet. Build it to make the PDF, then approve.</div>' : ''}
-    ${iss.status === 'built' ? `<div class="chk">✓ Built ${esc(nice(iss.built_at))} · <a href="${esc(iss.pdf_url)}" target="_blank" rel="noopener">open the PDF</a></div><div class="chk w">Waiting for approval</div>` : ''}
+    ${iss.status !== 'approved' ? '<div class="chk w">Not published yet. Check it over, then approve to publish it and get the share link.</div>' : ''}
     ${iss.status === 'approved' ? `<div class="chk">✓ Approved ${esc(nice(iss.approved_at))} · <a href="${esc(iss.pdf_url)}" target="_blank" rel="noopener">open the PDF</a></div>
       <div class="row2"><b>Share link</b><button class="lk" data-a="copy">Copy link</button></div>` : ''}
   </div>
   <div class="bar"><div class="in"><button class="btn" data-a="backissue">Back to stories</button>
-    ${iss.status === 'draft' ? '<button class="btn pri" data-a="build">Build issue</button>' : iss.status === 'built' ? '<button class="btn grn" data-a="approve">Approve</button>' : '<button class="btn" data-a="reopen">Make changes</button>'}</div></div>`;
+    ${iss.status !== 'approved' ? '<button class="btn grn" data-a="approve">Approve and publish</button>' : '<button class="btn" data-a="reopen">Make changes</button>'}</div></div>`;
   const fr = $('pvFrame');
   fr.srcdoc = window.renderPaper(I, { width: 420, page: '#f6f1e6', live: true });
   fr.onload = () => { const h = () => { try { fr.style.height = fr.contentDocument.documentElement.scrollHeight + 'px'; } catch (_) { } }; h(); setTimeout(h, 400); setTimeout(h, 1500); };
@@ -516,12 +538,11 @@ document.addEventListener('click', async e => {
     const r = await busy('Deleting…', () => api({ action: 'remove', story_id: storyId })); if (r) { await refresh(); view = 'issue'; render(); } return;
   }
   if (a === 'preview') { view = 'preview'; return render(); }
-  if (a === 'build') {
+  if (a === 'approve') {
     if (!I.stories.some(s => s.included)) return toast('Tick at least one story first.');
-    const d = await busy('Building the PDF…', async () => { const pdf = await buildPdf(); return api({ action: 'build', issue_id: I.issue.issue_id, pdf }); });
-    if (d) { I = d; view = 'preview'; render(); toast('Built. Check it over, then approve.'); } return;
+    const d = await pressing(async () => { const pdf = await buildPdf(); return api({ action: 'approve', issue_id: I.issue.issue_id, pdf }); });
+    if (d) { I = d; view = 'preview'; render(); toast('Published! Copy the share link to send it out.'); } return;
   }
-  if (a === 'approve') { const d = await busy('Approving…', () => api({ action: 'approve', issue_id: I.issue.issue_id })); if (d) { I = d; render(); toast('Approved. Share the link or the PDF.'); } return; }
   if (a === 'reopen') { const d = await busy('Opening for changes…', () => api({ action: 'reopen', issue_id: I.issue.issue_id })); if (d) { I = d; view = 'issue'; render(); } return; }
   if (a === 'copy') {
     const u = shareUrl(I.issue);
