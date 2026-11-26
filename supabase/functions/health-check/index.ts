@@ -129,6 +129,11 @@ async function supabaseAccountChecks(history: Record<string, any>[]): Promise<{ 
         detail: extra.map((p) => `${p.name} (${p.status})`).join(", ") + ". Each running project costs about $10 a month or more." });
     }
   } catch (e) {
+    if (/ 401$/.test(String(e))) {
+      findings.push({ level: "warning", area: A, title: "Supabase token expired or revoked",
+        detail: "Make a new read-only token and replace the MGMT_API_TOKEN secret. Until then branches, projects and function calls aren't checked." });
+      return { findings, kpis };
+    }
     findings.push({ level: "info", area: A, title: "Couldn't list Supabase projects", detail: String(e) });
   }
   try {
