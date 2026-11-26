@@ -467,13 +467,10 @@ class _NewsCard extends StatelessWidget {
     final when = _when(m.startsAt).toUpperCase();
     final kicker =
         m.seen ? when : ['NEW', if (when.isNotEmpty) when].join(' · ');
-    // Crest on a plain dark panel, no club colour behind it (Ken,
-    // 2026-11-26: the red block looked heavy).
-    final panel = Container(
-      color: V3.bg,
-      alignment: Alignment.center,
-      child: V3MessageBadge(m, size: 70),
-    );
+    // Photo on the left only when the story has one; otherwise the text
+    // takes the full width with a small crest top right, like the event
+    // cards (Ken, 2026-11-26: a big crest on its own means nothing).
+    final photo = m.imageUrl.isNotEmpty;
     return Material(
       color: V3.card,
       borderRadius: BorderRadius.circular(18),
@@ -494,21 +491,22 @@ class _NewsCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(
-                      width: 104,
-                      child: m.imageUrl.isEmpty
-                          ? panel
-                          : Image.network(m.imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => panel),
-                    ),
+                    if (photo)
+                      SizedBox(
+                        width: 104,
+                        child: Image.network(m.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                const ColoredBox(color: V3.bg)),
+                      ),
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(13, 10, 12, 8),
+                        padding:
+                            EdgeInsets.fromLTRB(photo ? 13 : 15, 10, 12, 8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (kicker.isNotEmpty)
+                            if (kicker.isNotEmpty || !photo)
                               Row(children: [
                                 if (!m.seen)
                                   Container(
@@ -519,7 +517,7 @@ class _NewsCard extends StatelessWidget {
                                         color: V3.green,
                                         shape: BoxShape.circle),
                                   ),
-                                Flexible(
+                                Expanded(
                                   child: Text(kicker,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -528,6 +526,10 @@ class _NewsCard extends StatelessWidget {
                                           color: m.seen ? V3.muted : V3.green,
                                           letterSpacing: 1.1)),
                                 ),
+                                if (!photo) ...[
+                                  const SizedBox(width: 8),
+                                  V3MessageBadge(m, size: 34),
+                                ],
                               ]),
                             const SizedBox(height: 4),
                             Text(m.title,
