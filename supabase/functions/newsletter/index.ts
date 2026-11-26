@@ -79,7 +79,16 @@ serve(async (req) => {
     const { data: rows } = await sb.from("newsletter_settings").select("club_id, website_url").not("website_url", "is", null);
     let n = 0;
     for (const r of rows || []) n += (await livePosts(sb, r.club_id, r.website_url, 0, 9e15)).length;
-    return ok({ posts: n });
+    // Tidy-up: delete files nothing points to any more (Ken 2026-11-26).
+    const { data: unused, error: uErr } = await sb.rpc("newsletter_unused_files");
+    let removed = 0;
+    if (uErr) console.error("unused files", uErr);
+    const names = (unused || []).map((x: any) => typeof x === "string" ? x : x.newsletter_unused_files).filter(Boolean);
+    for (let i = 0; i < names.length; i += 100) {
+      const { error } = await sb.storage.from(BUCKET).remove(names.slice(i, i + 100));
+      if (error) console.error("remove", error); else removed += Math.min(100, names.length - i);
+    }
+    return ok({ posts: n, removed });
   }
   const { data: u } = await sb.auth.getUser(auth.replace(/^Bearer\s+/i, ""));
   const user = u?.user;
