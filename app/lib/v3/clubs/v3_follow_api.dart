@@ -81,6 +81,17 @@ class FollowApi {
     ];
   }
 
+  /// Clubs on ClubSmart the user is on a team in or follows: the Home
+  /// (club) tab.
+  Future<List<FollowedClub>> homeClubs() async {
+    final r = await _sb.rpc('get_my_home_clubs');
+    return [
+      if (r is List)
+        for (final x in r)
+          if (x is Map) FollowedClub.fromJson(x)
+    ];
+  }
+
   Future<CodeLookup> lookup(String code) async => CodeLookup.fromJson(
       await _sb.rpc('lookup_join_code', params: {'p_code': code}));
 

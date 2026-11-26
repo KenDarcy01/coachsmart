@@ -90,20 +90,15 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
 
   bool get _onClubScreen => _followerOnly || _clubTab;
 
-  /// Clubs followed plus the clubs of the user's teams.
-  List<FollowedClub> get _myClubs {
-    final out = [..._followed];
-    for (final c in _home.clubs) {
-      if (c.clubId == 0 || out.any((f) => f.clubId == c.clubId)) continue;
-      out.add(FollowedClub(
-          clubId: c.clubId,
-          name: c.clubName,
-          crest: c.crest,
-          county: c.county,
-          following: true));
-    }
-    return out;
-  }
+  /// Clubs on ClubSmart the user is on a team in or follows
+  /// (get_my_home_clubs). A club with only teams on CoachSmart is left out
+  /// (Ken, 2026-11-26).
+  List<FollowedClub> _homeClubs = const [];
+  List<FollowedClub> get _myClubs => _homeClubs;
+
+  /// No ClubSmart club: no Home (club) tab, and Events keeps the club news,
+  /// fundraisers and partner as before.
+  bool get _hasClubTab => _homeClubs.isNotEmpty;
 
   int get _clubBadge =>
       [..._msgs.news, ..._msgs.fundraisers].where((m) => !m.seen).length;
@@ -299,9 +294,17 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       context.pushNamed(OnBoardingWidget.routeName);
       return;
     }
+    var homeClubs = const <FollowedClub>[];
+    if (onTeam) {
+      try {
+        homeClubs = await _followApi.homeClubs();
+      } catch (_) {}
+      if (!mounted) return;
+    }
     _followed = followed;
+    _homeClubs = homeClubs;
     _followerOnly = !onTeam;
-    if (_followerOnly) _clubTab = false;
+    if (_followerOnly || !_hasClubTab) _clubTab = false;
     if (_selectedClub != 0 && !_myClubs.any((c) => c.clubId == _selectedClub)) {
       _selectedClub = 0;
     }
@@ -664,7 +667,9 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
         // Everyone on a team gets Home (club) and Events (Ken, 2026-11-26);
         // followers on no team have only the club screen, so no bar.
         bottomNavigationBar:
-            _loaded && !_failed && !_followerOnly ? _tabs(role) : null,
+            _loaded && !_failed && !_followerOnly && (_hasClubTab || role >= 30)
+                ? _tabs(role)
+                : null,
       ),
     );
   }
@@ -843,7 +848,32 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     final green = nextDay(items);
     final children = <Widget>[];
     // Club news, fundraisers and the club partner live on Home (club) now;
-    // Events is just the user's events (Ken, 2026-11-26).
+    // Events is just the user's events (Ken, 2026-11-26). Without a
+    // ClubSmart club there is no Home tab, so they stay here.
+    if (!_hasClubTab) {
+      if (_msgs.news.isNotEmpty) {
+        children.add(Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: V3NewsCards(news: _msgs.news, onTap: _openNews),
+        ));
+      }
+      if (_msgs.fundraisers.isNotEmpty) {
+        children.add(
+            V3FundraiserRow(items: _msgs.fundraisers, onTap: _openFundraiser));
+      }
+      final team = _selectedTeam == 0 ? null : _selectedTeam;
+      final sponsor = V3Sponsors.forHome(team);
+      if (sponsor != null) {
+        children.add(Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 4),
+          child: V3SponsorCard(
+              key: ValueKey('sponsor-${sponsor.id}-${team ?? 0}'),
+              sponsor: sponsor,
+              place: V3SponsorPlace.home,
+              teamId: team),
+        ));
+      }
+    }
     // The greeting above the chips now heads the page; the "Events" title
     // went with option B (Ken, 2026-11-12).
     children.add(const SizedBox(height: 6));
@@ -902,8 +932,9 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   // The Scaffold uses extendBody so the events scroll behind the pill.
   Widget _tabs(int role) {
     final items = <_Tab>[
-      _Tab('Home', Icons.shield_rounded, _openClubTab,
-          active: _clubTab, badge: _clubTab ? 0 : _clubBadge),
+      if (_hasClubTab)
+        _Tab('Home', Icons.shield_rounded, _openClubTab,
+            active: _clubTab, badge: _clubTab ? 0 : _clubBadge),
       _Tab('Events', Icons.calendar_month_rounded, _openEventsTab,
           active: !_clubTab),
       // Matches lives in the main menu for now; five tabs were too squashed
