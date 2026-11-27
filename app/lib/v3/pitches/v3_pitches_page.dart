@@ -6,6 +6,7 @@
 // get the published plan, read-only.
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../v3_crest_image.dart';
 import '/v3/web/v3_club_pwa.dart';
@@ -640,7 +641,15 @@ class _Side extends StatelessWidget {
         Row(children: [
           IconButton(
               tooltip: 'Back',
-              onPressed: () => Navigator.of(context).maybePop(),
+              // In the club look the planner is a club admin tool: back
+              // goes to the club's admin landing page, not into the app
+              // (Ken 2026-11-27). Inside the app it just goes back.
+              onPressed: () => PT.dark
+                  ? Navigator.of(context).maybePop()
+                  : launchUrl(
+                      Uri.parse(
+                          'https://coachsmart.app/club/?club=${club.clubId}'),
+                      webOnlyWindowName: '_self'),
               icon: Icon(Icons.arrow_back, color: PT.muted, size: 20)),
         ]),
         Container(
