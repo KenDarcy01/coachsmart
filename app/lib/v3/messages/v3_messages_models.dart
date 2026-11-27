@@ -165,38 +165,6 @@ class AppMessage {
     return null;
   }
 
-  /// News card stripe: half primary, half secondary (Ken, 2026-11-27),
-  /// or one colour when the secondary is near-black or too close to it.
-  List<Color> get stripeColours {
-    Color? parse(String h) {
-      final m = RegExp(r'^#?([0-9a-fA-F]{6})$').firstMatch(h.trim());
-      return m == null
-          ? null
-          : Color(0xFF000000 | int.parse(m.group(1)!, radix: 16));
-    }
-
-    bool usable(Color? c) {
-      if (c == null) return false;
-      final l = c.computeLuminance();
-      return l > 0.02 && l < 0.85;
-    }
-
-    final p = parse(primaryColour), s = parse(secondaryColour);
-    // White is fine as the second colour on the dark card (Clontarf is red
-    // and white, Ken 2026-11-27); only near-black would disappear.
-    final sOk = s != null && s.computeLuminance() > 0.02;
-    if (usable(p) && sOk) {
-      int hex(String h) =>
-          int.parse(h.trim().replaceFirst('#', ''), radix: 16);
-      final hp = hex(primaryColour), hs = hex(secondaryColour);
-      final d = [16, 8, 0]
-          .map((k) => (((hp >> k) & 0xFF) - ((hs >> k) & 0xFF)).abs())
-          .reduce((a, b) => a + b);
-      if (d > 90) return [p!, s!];
-    }
-    return [clubColour ?? const Color(0xFF87C232)];
-  }
-
   bool get isNews => kind == MessageKind.news;
   bool get isFundraiser => kind == MessageKind.fundraiser;
 

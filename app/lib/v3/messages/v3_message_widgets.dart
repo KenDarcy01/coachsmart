@@ -637,18 +637,9 @@ class _NewsCard extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // Stripe half primary, half secondary of the club that sent
-              // it (Ken, 2026-11-27); CoachSmart green for CoachSmart news.
-              SizedBox(
-                height: 5,
-                // stretch: a ColoredBox with no child is otherwise 0 high.
-                child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                  for (final c in m.stripeColours)
-                    Expanded(child: ColoredBox(color: c)),
-                ]),
-              ),
+              // A white line on every card (Ken, 2026-11-27: club colours
+              // didn't work; the crest shows the club).
+              Container(height: 4, color: Colors.white),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
