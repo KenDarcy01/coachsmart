@@ -25,9 +25,7 @@ import 'v3_pitch_fixtures.dart';
 import 'v3_pitch_insights.dart';
 import 'v3_pitch_weekend.dart';
 import 'v3_pitch_sheets.dart';
-
-/// Shown in a frame on the club tools page (coachsmart.app/club/pitches.html).
-bool get _inFrame => Uri.base.queryParameters['frame'] == '1';
+import 'v3_pitch_club_header.dart';
 
 // Fixtures first: the planner opens on it (Ken, 2026-11-16).
 enum PitchTab {
@@ -98,6 +96,10 @@ class _PitchesBody extends StatefulWidget {
 
 class _V3PitchesPageState extends State<_PitchesBody> {
   List<PitchClub> _officerClubs = [];
+
+  /// club_home() for the ClubSmart header (club look only).
+  Map? _home;
+  int? _homeFor;
   List<PitchClub> _memberClubs = [];
   PitchClub? _club;
   bool _officer = false;
@@ -204,6 +206,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
   }
 
   void _useClub(PitchClub club, {required bool officer}) {
+    _loadHome(club.clubId);
     _c?.dispose();
     _club = club;
     _officer = officer;
@@ -212,6 +215,39 @@ class _V3PitchesPageState extends State<_PitchesBody> {
         if (mounted) setState(() {});
       })
       ..load();
+  }
+
+  Future<void> _loadHome(int clubId) async {
+    if (_homeFor == clubId) return;
+    _homeFor = clubId;
+    try {
+      final h = await widget.api.clubHome(clubId);
+      if (mounted) setState(() => _home = h);
+    } catch (_) {}
+  }
+
+  /// In the club look (a browser link) the page carries the ClubSmart
+  /// header of the club tools and scrolls as one page: the header scrolls
+  /// away with the planner (Ken 2026-11-27). Inside the app: unchanged.
+  Widget _shell(PitchClub club, Widget body) {
+    if (PT.dark) return body;
+    return NestedScrollView(
+      headerSliverBuilder: (_, __) => [
+        SliverToBoxAdapter(
+            child: ClubToolsHeader(
+                club: club,
+                home: _home,
+                onSignOut: _signOut,
+                pitchesUnread: _c?.unreadChanges ?? 0)),
+      ],
+      // Lists in the planner follow the page scroll on every platform
+      // (desktop browsers too), so the header scrolls away first.
+      body: Builder(
+          builder: (ctx) => PrimaryScrollController(
+              controller: PrimaryScrollController.of(ctx),
+              automaticallyInheritForPlatforms: TargetPlatform.values.toSet(),
+              child: body)),
+    );
   }
 
   Future<void> _publish() async {
@@ -298,59 +334,33 @@ class _V3PitchesPageState extends State<_PitchesBody> {
       return Scaffold(
         backgroundColor: PT.bg,
         body: SafeArea(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            _Side(
-                club: club,
-                officer: _officer,
-                tab: _tab,
-                changes: _c?.unreadChanges ?? 0,
-                clubs: _officerClubs,
-                onTab: (t) => setState(() => _tab = t),
-                onClub: (c) => setState(() {
-                      _useClub(c, officer: true);
-                      _tab = PitchTab.fixtures;
-                    })),
-            Expanded(child: content),
-          ]),
+          child: _shell(
+              club,
+              Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                _Side(
+                    club: club,
+                    officer: _officer,
+                    tab: _tab,
+                    changes: _c?.unreadChanges ?? 0,
+                    clubs: _officerClubs,
+                    onTab: (t) => setState(() => _tab = t),
+                    onClub: (c) => setState(() {
+                          _useClub(c, officer: true);
+                          _tab = PitchTab.fixtures;
+                        })),
+                Expanded(child: content),
+              ])),
         ),
       );
     }
     final dayActions = _officer && _tab == PitchTab.board && _c?.board != null;
     return Scaffold(
       backgroundColor: PT.bg,
-      // Inside the club tools page (frame=1) its header shows the crest and
-      // the tool name: no red bar here, just the Day tab's buttons in a
-      // plain row; the tabs stay at the bottom.
-      appBar: _inFrame
-          ? (dayActions
-              ? AppBar(
-                  backgroundColor: PT.card,
-                  surfaceTintColor: Colors.transparent,
-                  automaticallyImplyLeading: false,
-                  toolbarHeight: 46,
-                  actions: [
-                    IconButton(
-                        tooltip: 'New booking',
-                        onPressed: () => showPitchSheet(
-                            context,
-                            BookingSheet(
-                                c: _c!, at: atMinutes(_c!.day, 18 * 60))),
-                        icon: Icon(Icons.add, color: PT.text)),
-                    IconButton(
-                        tooltip: 'Close a pitch',
-                        onPressed: () =>
-                            showPitchSheet(context, ClosePitchSheet(c: _c!)),
-                        icon: Icon(Icons.block, color: PT.text)),
-                    IconButton(
-                        tooltip: 'Publish week',
-                        onPressed: _publish,
-                        icon: Icon(Icons.campaign_outlined,
-                            color: _c!.board!.changedSincePublish
-                                ? PT.amber
-                                : PT.text)),
-                  ],
-                )
-              : null)
+      // In the club look the ClubSmart header shows the crest and the
+      // tool name: no red bar; the Day buttons sit in a plain row above the
+      // day and the tabs stay at the bottom.
+      appBar: !PT.dark
+          ? null
           : AppBar(
               backgroundColor: club.band,
               foregroundColor: onAccent(club.band),
@@ -403,7 +413,39 @@ class _V3PitchesPageState extends State<_PitchesBody> {
                   ),
               ],
             ),
-      body: content,
+      body: _shell(
+          club,
+          !PT.dark && dayActions
+              ? Column(children: [
+                  Container(
+                    color: PT.card,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      IconButton(
+                          tooltip: 'New booking',
+                          onPressed: () => showPitchSheet(
+                              context,
+                              BookingSheet(
+                                  c: _c!, at: atMinutes(_c!.day, 18 * 60))),
+                          icon: Icon(Icons.add, color: PT.text)),
+                      IconButton(
+                          tooltip: 'Close a pitch',
+                          onPressed: () =>
+                              showPitchSheet(context, ClosePitchSheet(c: _c!)),
+                          icon: Icon(Icons.block, color: PT.text)),
+                      IconButton(
+                          tooltip: 'Publish week',
+                          onPressed: _publish,
+                          icon: Icon(Icons.campaign_outlined,
+                              color: _c!.board!.changedSincePublish
+                                  ? PT.amber
+                                  : PT.text)),
+                    ]),
+                  ),
+                  Expanded(child: content),
+                ])
+              : content),
       // Phone: three tabs only (Ken, 2026-11-18); set-up stays on the
       // laptop version.
       bottomNavigationBar: _officer
@@ -680,9 +722,9 @@ class _Side extends StatelessWidget {
       decoration: BoxDecoration(
           color: PT.card, border: Border(right: BorderSide(color: PT.line))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        // Inside the club tools page (frame=1) its header already shows the
-        // club and the way back, so no back arrow or club box here.
-        if (!_inFrame) ...[
+        // In the club look the ClubSmart header above shows the club and
+        // the way back, so no back arrow or club box here.
+        if (PT.dark) ...[
           Row(children: [
             IconButton(
                 tooltip: 'Back',

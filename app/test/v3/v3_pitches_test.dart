@@ -341,6 +341,25 @@ class FakePitchApi extends PitchApi {
   @override
   Future<void> saveBooking(int clubId, Map<String, dynamic> booking) async =>
       saved.add(booking);
+  @override
+  Future<Map?> clubHome(int clubId) async => {
+        'club': {
+          'club_name': 'Clontarf GAA',
+          'primary_colour': '#e61e28',
+          'secondary_colour': '#ffffff',
+        },
+        'me': {'first_name': 'Ken'},
+        'tiles': {
+          'dashboard': {},
+          'pitches': {'unread': 1},
+          'newsletter': {'title': 'An Tarbh Times', 'status': 'built'},
+          'messages': {},
+          'sponsors': {},
+          'officers': {},
+          'spend': {'claims': 2, 'gear': 1},
+          'lotto': {'lotto_id': 1},
+        },
+      };
   List<Map> later = [];
   @override
   Future<List<Map>> futureClashes(
@@ -1053,9 +1072,12 @@ void main() {
     expect(find.text('Fill them from the usual pitches'), findsOneWidget);
     expect(find.textContaining('Official fixture changes (1)'), findsOneWidget);
     await _shot(t, 'pp-todo-phone');
-    await t.scrollUntilVisible(find.text('See all fixtures this week'), 300);
+    await t.scrollUntilVisible(find.text('See all fixtures this week'), 300,
+        scrollable: find.byType(Scrollable).last);
     expect(find.text('Publish the week'), findsOneWidget);
     await _shot(t, 'pp-todo-phone-2');
+    await t.ensureVisible(find.text('See all fixtures this week'));
+    await t.pumpAndSettle();
     await t.tap(find.text('See all fixtures this week'));
     await t.pumpAndSettle();
     expect(find.text('Back to the checklist'), findsOneWidget);
@@ -1104,7 +1126,12 @@ void main() {
     await _pumpBoard(t, const Size(1440, 900), FakePitchApi());
     await t.tap(find.text('Needs a pitch · Groups'));
     await t.pumpAndSettle();
-    await t.tap(find.text('Nursery').first);
+    final nursery = find
+        .descendant(of: find.byType(PitchInbox), matching: find.text('Nursery'))
+        .first;
+    await t.ensureVisible(nursery);
+    await t.pumpAndSettle();
+    await t.tap(nursery);
     await t.pumpAndSettle();
     expect(find.text('+ Add a session'), findsOneWidget);
     expect(find.text('Nursery  ×'), findsOneWidget);
@@ -1215,7 +1242,8 @@ void main() {
     expect(find.text('Official'), findsWidgets);
     expect(find.text('Unofficial'), findsWidgets);
     expect(find.text('Unassigned'), findsWidgets);
-    await t.scrollUntilVisible(find.text('MEN / BOYS'), 200);
+    await t.scrollUntilVisible(find.text('MEN / BOYS'), 200,
+        scrollable: find.byType(Scrollable).last);
     await _shot(t, 'pp-fixtures-sheet');
   });
 
@@ -1249,6 +1277,8 @@ void main() {
     Navigator.of(t.element(find.text('Free pitches'))).pop();
     await t.pumpAndSettle();
     // So does an unofficial match the board's list doesn't have.
+    await t.ensureVisible(find.text('Unassigned').last);
+    await t.pumpAndSettle();
     await t.tap(find.text('Unassigned').last);
     await t.pumpAndSettle();
     expect(find.text('Free pitches'), findsOneWidget);

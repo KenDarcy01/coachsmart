@@ -29,6 +29,12 @@ class PitchApi {
     return r is Map ? PitchClub.fromJson(r) : null;
   }
 
+  /// The club tools menu and greeting (same data as the club home page).
+  Future<Map?> clubHome(int clubId) async {
+    final r = await _rpc('club_home', {'p_club': clubId});
+    return r is Map && r['error'] == null ? r : null;
+  }
+
   String _d(DateTime d) => isoLocal(dayOf(d)).substring(0, 10);
 
   /// Clubs the signed-in user can plan pitches for.
