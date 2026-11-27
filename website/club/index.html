@@ -22,35 +22,39 @@
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2');font-weight:600;font-display:swap}
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2');font-weight:700;font-display:swap}
-:root{--club:#1a1d23;--band:#1a1d23;--onband:#fff;--tint:#1a1d2314;--bg:#f3f4f7;--card:#fff;--text:#1a1d23;--muted:#667080;--line:#e6e8ec;--good:#2f9e44;--bad:#d9363e;--moneybg:#fdf6e3}
+:root{--club:#1a1d23;--band:#1a1d23;--onband:#fff;--tint:#1a1d2314;--bg:#f3f4f7;--card:#fff;--text:#1a1d23;--muted:#667080;--line:#e6e8ec;--good:#2f9e44;--bad:#d9363e;--gold:#b7791f;--goldbg:#fdf3df}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg)}
 body{color:var(--text);font-family:DM,system-ui,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased;min-height:100vh}
 button,input{font:inherit;color:inherit}
 a{color:inherit;text-decoration:none}
-.band{background:var(--band);color:var(--onband);padding:18px 16px 20px;padding-top:max(18px,env(safe-area-inset-top))}
-.top{display:flex;align-items:center;gap:12px;max-width:1080px;margin:0 auto}
-.crest{width:52px;height:52px;background:#fff;border-radius:50%;padding:4px;object-fit:contain;flex:none}
-.band h1{font-size:21px;font-weight:700;line-height:1.15}.band .sub{font-size:13.5px;opacity:.88;margin-top:2px}
-.out{margin-left:auto;font-size:13px;opacity:.85;text-decoration:underline;background:none;border:0;color:var(--onband);cursor:pointer;align-self:flex-start;margin-top:4px}
-.hello{font-size:15px;margin:14px auto 0;opacity:.95;max-width:1080px}
-.wrap{padding:16px 14px 28px;max-width:1080px;margin:0 auto}
-.h2{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:18px 4px 8px}
-.h2:first-child{margin-top:2px}
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.tile{background:var(--card);border-radius:16px;padding:14px;min-height:124px;box-shadow:0 1px 2px #0000000f;display:flex;flex-direction:column;position:relative;cursor:pointer;text-align:left;border:0;transition:transform .08s}
-.tile:active{transform:scale(.98)}
-.ic{width:38px;height:38px;border-radius:11px;background:var(--tint);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:2px;flex:none}
-.tile b{font-size:15.5px;margin-top:12px}.tile small{color:var(--muted);font-size:12.5px;margin-top:3px;line-height:1.35}
-.badge{position:absolute;top:12px;right:12px;background:var(--bad);color:#fff;font-size:12px;font-weight:700;min-width:22px;height:22px;border-radius:11px;display:flex;align-items:center;justify-content:center;padding:0 7px}
-.tile.money .ic{background:var(--moneybg)}
-.tile.wide{grid-column:1/-1;min-height:auto;flex-direction:row;align-items:center;gap:12px}
-.tile.wide b{margin:0}.tile.wide .txt{flex:1}
-.tile.wide .chev{color:#b4b9c2;font-size:22px}
-.tile.wide .badge{position:static}
-.foot{text-align:center;color:var(--muted);font-size:12.5px;margin-top:22px}
-.hint{background:var(--card);border:1.5px dashed var(--line);border-radius:14px;padding:13px 14px;color:var(--muted);font-size:13.5px;line-height:1.45;margin-top:12px}
-.state{padding:70px 30px;text-align:center;color:var(--muted);font-size:16px;line-height:1.5}
+.band{background:var(--card);border-bottom:5px solid var(--club);padding-top:env(safe-area-inset-top)}
+.top{display:flex;align-items:center;gap:18px;max-width:1180px;margin:0 auto;padding:26px 48px}
+.crest{width:64px;height:64px;object-fit:contain;flex:none}
+.band h1{font-size:28px;font-weight:700;line-height:1.15}.band .sub{font-size:17px;color:var(--muted);margin-top:2px}
+.out{margin-left:auto;font-size:16px;font-weight:600;color:var(--muted);background:none;border:0;cursor:pointer}
+.out:hover{color:var(--text)}
+.wrap{max-width:1180px;margin:0 auto;padding:34px 48px 40px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+.cols.one{grid-template-columns:1fr;max-width:620px;margin:0 auto}
+.h2{font-size:15px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:0 6px 12px}
+.list{background:var(--card);border-radius:18px;box-shadow:0 1px 3px #0000000f;overflow:hidden;margin-bottom:28px}
+.r{display:flex;align-items:center;gap:20px;padding:22px 24px;border-top:1px solid var(--line);cursor:pointer;transition:background .1s}
+.r:first-child{border-top:0}
+.r:hover{background:#f8f9fb}
+.r.hot{background:#fffaf0}.r.hot:hover{background:#fff5e3}
+.ic{width:54px;height:54px;border-radius:50%;background:var(--club);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.ic svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.r.money .ic{background:var(--gold)}
+.txt{flex:1;min-width:0}
+.r h3{font-size:20px;font-weight:700}.r p{font-size:16.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+.st{flex:none;text-align:right}
+.pill{display:inline-block;font-size:15px;font-weight:600;white-space:nowrap;background:var(--tint);color:var(--club);border-radius:999px;padding:6px 14px}
+.pill.ok{background:#e8f5ec;color:#2b7a3d}.pill.gold{background:var(--goldbg);color:var(--gold)}.pill.plain{background:#eef0f3;color:var(--muted)}
+.chev{color:#b3b8c1;font-size:28px;line-height:1;flex:none}
+.foot{text-align:center;color:var(--muted);font-size:14px;margin-top:4px}
+.hint{background:var(--card);border:1.5px dashed var(--line);border-radius:14px;padding:16px 18px;color:var(--muted);font-size:16px;line-height:1.45;margin-bottom:24px}
+.state{padding:70px 30px;text-align:center;color:var(--muted);font-size:17px;line-height:1.5}
 .link{background:none;border:0;color:var(--muted);cursor:pointer;margin-top:12px;font-size:14px;text-decoration:underline}
 /* sign in */
 .login{display:none;align-items:center;justify-content:center;padding:20px;min-height:100vh}
@@ -62,12 +66,14 @@ a{color:inherit;text-decoration:none}
 .btn{background:var(--club);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;width:100%}
 .msg{font-size:14px;color:var(--bad);min-height:20px;margin-top:6px}.msg.ok{color:var(--good)}
 .lbox .link{display:block;margin:12px auto 0}
-@media (min-width:760px){
- .band{padding:18px 40px}
- .wrap{padding:22px 40px}
- .tiles{grid-template-columns:repeat(4,1fr);gap:14px}
- .tile{min-height:150px;padding:18px}
- .tile.wide{grid-column:span 2}
+@media (max-width:760px){
+ .top{padding:18px 16px;gap:14px}.crest{width:50px;height:50px}
+ .band h1{font-size:23px}.band .sub{font-size:15px}.out{font-size:15px}
+ .wrap{padding:20px 14px 28px}.cols{grid-template-columns:1fr;gap:0}
+ .r{padding:16px;gap:14px;flex-wrap:wrap}.ic{width:46px;height:46px}.ic svg{width:23px;height:23px}
+ .r h3{font-size:18px}.r p{font-size:15px}
+ .st{order:4;flex-basis:100%;text-align:left;padding-left:60px;margin-top:-4px}
+ .st:empty{display:none}.pill{font-size:14px;padding:5px 12px}
 }
 </style>
 </head>
@@ -156,73 +162,87 @@ function dayLabel(iso) {
   const d = new Date(iso); return DAY[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()];
 }
 function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
-// Each tile: [key, icon, title, subtitle, badge, href, money]
-function tilesFor(H) {
+// Club home rows (design C, Ken 2026-11-27): big list rows in three groups
+// with a status pill on the right. Each row:
+// {k, g: 'run'|'talk'|'money', ic, title, desc, pill: [text, kind], href}
+// pill kind: '' club tint (wants action), ok green, gold, plain grey.
+const ICONS = {
+  dashboard: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/>',
+  week: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
+  pitches: '<rect x="2" y="5" width="20" height="14" rx="1.5"/><path d="M12 5v14"/><circle cx="12" cy="12" r="2.5"/><path d="M2 9h3v6H2M22 9h-3v6h3"/>',
+  newsletter: '<path d="M4 4h13v16H6a2 2 0 0 1-2-2z"/><path d="M17 8h3v10a2 2 0 0 1-2 2"/><path d="M8 8h5M8 12h5M8 16h3"/>',
+  sponsors: '<path d="M12 2l3 6.5 7 .8-5.2 4.8 1.4 7L12 17.6 5.8 21l1.4-7L2 9.3l7-.8z"/>',
+  messages: '<path d="M3 11l15-6v14L3 13z"/><path d="M7 13v5a2 2 0 0 0 4 0v-3.5"/><path d="M21 9v6"/>',
+  officers: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14a5 5 0 0 1 5 5"/>',
+  spend: '<path d="M5 2h14v20l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h3"/>',
+  lotto: '<path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"/><path d="M14 7v10" stroke-dasharray="2 2"/>'
+};
+function rowsFor(H) {
   const t = H.tiles || {}, q = '?club=' + clubId, out = [];
-  if (t.dashboard) out.push(['dashboard', '📊', 'Club dashboard', 'Results, tables, turnout, health check', 0, '/club/dashboard.html' + q + '&period=season']);
+  const add = (k, g, title, desc, pill, href) => out.push({ k, g, title, desc, pill, href });
+  if (t.dashboard) add('dashboard', 'run', 'Club dashboard', 'Results, tables, turnout, health check', null, '/club/dashboard.html' + q + '&period=season');
   if (t.week) {
     const w = t.week, bits = [];
     if (w.games) bits.push(plural(w.games, 'fixture', 'fixtures'));
     if (w.events) bits.push(plural(w.events, 'team event', 'team events'));
-    out.push(['week', '🗓', 'This week', bits.join(' · ') || 'Results and fixtures', 0, '/club/dashboard.html' + q + '&period=week']);
+    add('week', 'run', 'This week', bits.join(' · ') || 'Results and fixtures', null, '/club/dashboard.html' + q + '&period=week');
   }
   if (t.pitches) {
     const n = t.pitches.unread || 0;
-    out.push(['pitches', '🏟', 'Pitch planner', n ? plural(n, 'change', 'changes') + ' to official fixtures' : 'Pitch bookings and slots', n, '#pitches']);
-  }
-  if (t.newsletter) {
-    const nl = t.newsletter, no = nl.issue_no ? 'Issue ' + nl.issue_no : '';
-    const sub = !nl.status ? 'Set up your first issue'
-      : nl.status === 'built' ? no + ' ready to approve'
-      : nl.status === 'approved' ? no + ' is out'
-      : no + ' being put together';
-    out.push(['newsletter', '📰', nl.title || 'Newsletter', sub, nl.status === 'built' ? 1 : 0, '/club/newsletter.html' + q]);
-  }
-  if (t.sponsors) {
-    const s = t.sponsors;
-    out.push(['sponsors', '🤝', 'Club partners', s.live ? s.live + ' · live' : s.drafts ? plural(s.drafts, 'draft', 'drafts') : 'Add your club sponsor', 0, '/club/sponsors.html' + q]);
-  }
-  if (t.messages) {
-    const m = t.messages, bits = [];
-    if (m.live) bits.push(m.live + ' live'); if (m.sent) bits.push(m.sent + ' sent this month');
-    out.push(['messages', '📣', 'Messages', bits.join(' · ') || 'Pop-ups and news in the app', 0, '/club/messages.html' + q]);
+    add('pitches', 'run', 'Pitch planner', 'Pitch bookings and slots', n ? [plural(n, 'fixture change', 'fixture changes'), ''] : null, '#pitches');
   }
   if (t.officers) {
     const o = t.officers;
-    out.push(['officers', '👥', 'Club officers', plural(o.officers, 'officer', 'officers') + (o.invites ? ' · ' + plural(o.invites, 'invite', 'invites') + ' out' : ''), 0, '/club/officers.html' + q]);
+    add('officers', 'run', 'Club officers', plural(o.officers, 'officer', 'officers'), o.invites ? [plural(o.invites, 'invite', 'invites') + ' out', 'plain'] : null, '/club/officers.html' + q);
+  }
+  if (t.newsletter) {
+    const nl = t.newsletter, no = nl.issue_no ? 'Issue ' + nl.issue_no : 'Issue';
+    const pill = !nl.status ? ['Set up first issue', '']
+      : nl.status === 'built' ? [no + ' to approve', '']
+      : nl.status === 'approved' ? [no + ' is out', 'ok']
+      : [no + ' in progress', 'plain'];
+    add('newsletter', 'talk', nl.title || 'Newsletter', 'Weekly club newsletter', pill, '/club/newsletter.html' + q);
+  }
+  if (t.messages) {
+    const m = t.messages;
+    add('messages', 'talk', 'Messages', m.sent ? m.sent + ' sent this month' : 'Pop-ups and news in the app', m.live ? [m.live + ' live', 'ok'] : null, '/club/messages.html' + q);
+  }
+  if (t.sponsors) {
+    const s = t.sponsors;
+    add('sponsors', 'talk', 'Club partners', 'Sponsor slots in the app', s.live ? [s.live + ' live', 'ok'] : s.drafts ? [plural(s.drafts, 'draft', 'drafts'), 'plain'] : ['Add a sponsor', ''], '/club/sponsors.html' + q);
   }
   if (t.spend) {
-    const c = t.spend.claims || 0, g = t.spend.gear || 0, bits = [];
-    if (c) bits.push(plural(c, 'claim', 'claims')); if (g) bits.push(plural(g, 'gear request', 'gear requests'));
-    out.push(['spend', '🧾', 'Spend & gear', bits.length ? bits.join(', ') + ' to look at' : 'Nothing waiting', c + g, '/club/spend.html' + q, true]);
+    const n = (t.spend.claims || 0) + (t.spend.gear || 0);
+    add('spend', 'money', 'Spend & gear', 'Coach expenses and gear requests', n ? [n + ' to look at', ''] : ['Nothing waiting', 'ok'], '/club/spend.html' + q);
   }
   if (t.lotto) {
-    out.push(['lotto', '🎟', 'Club lotto', t.lotto.next_draw ? 'Next draw ' + dayLabel(t.lotto.next_draw) : 'Draws, sales and winners', 0, '/lotto/admin.html?lotto=' + t.lotto.lotto_id, true]);
+    add('lotto', 'money', 'Club lotto', 'Draws, sales and winners', t.lotto.next_draw ? ['Draw ' + dayLabel(t.lotto.next_draw), 'gold'] : null, '/lotto/admin.html?lotto=' + t.lotto.lotto_id);
   }
   return out;
 }
-function tileHtml([key, ic, title, sub, badge, href, money], wide) {
-  return `<a class="tile${money ? ' money' : ''}${wide ? ' wide' : ''}" href="${esc(href)}" data-k="${key}">
-    ${!wide && badge ? `<span class="badge">${badge > 99 ? '99+' : badge}</span>` : ''}
-    <div class="ic">${ic}</div>
-    ${wide ? `<div class="txt"><b>${esc(title)}</b><br><small>${esc(sub)}</small></div>${badge ? `<span class="badge">${badge > 99 ? '99+' : badge}</span>` : '<span class="chev">›</span>'}`
-           : `<b>${esc(title)}</b><small>${esc(sub)}</small>`}</a>`;
+function rowHtml(r) {
+  const hot = r.pill && r.pill[1] === '' && r.k !== 'sponsors';
+  return `<a class="r${r.g === 'money' ? ' money' : ''}${hot ? ' hot' : ''}" href="${esc(r.href)}" data-k="${r.k}">
+    <div class="ic"><svg viewBox="0 0 24 24">${ICONS[r.k]}</svg></div>
+    <div class="txt"><h3>${esc(r.title)}</h3><p>${esc(r.desc)}</p></div>
+    <div class="st">${r.pill ? `<span class="pill ${r.pill[1]}">${esc(r.pill[0])}</span>` : ''}</div>
+    <span class="chev">›</span></a>`;
 }
 function render(H) {
   brand(H.club);
-  const all = tilesFor(H), club = all.filter(t => !t[6]), money = all.filter(t => t[6]);
-  const me = H.me || {}, hello = [me.first_name ? 'Hi ' + me.first_name : '', me.title].filter(Boolean).join(' · ');
-  const one = all.length === 1;
+  const all = rowsFor(H), me = H.me || {};
+  const by = g => all.filter(r => r.g === g);
+  const group = (label, rows) => rows.length ? `<div class="h2">${label}</div><div class="list">${rows.map(rowHtml).join('')}</div>` : '';
+  const left = group('Run the club', by('run')) + group('Money', by('money')), right = group('Talk to members', by('talk'));
+  const sub = ['Club tools', me.first_name ? 'Hi ' + me.first_name : ''].filter(Boolean).join(' · ');
   $('app').innerHTML = `<div class="band"><div class="top">
       ${H.club.crest ? `<img class="crest" src="${esc(H.club.crest)}" alt="">` : ''}
-      <div><h1>${esc(H.club.club_name)}</h1><div class="sub">Club tools</div></div>
-      <button class="out" onclick="signOut()">Sign out</button></div>
-      ${hello ? `<div class="hello">${esc(hello)}</div>` : ''}</div>
+      <div><h1>${esc(H.club.club_name)}</h1><div class="sub">${esc(sub)}</div></div>
+      <button class="out" onclick="signOut()">Sign out</button></div></div>
     <div class="wrap">
       ${!all.length ? `<div class="state">You don’t have access to any ${esc(H.club.club_name)} tools yet. Ask your chairperson or CoachSmart to add you.</div>` : ''}
-      ${club.length ? `<div class="h2">${one ? 'Your tools' : 'Club'}</div><div class="tiles">${club.map(t => tileHtml(t, one)).join('')}</div>` : ''}
-      ${money.length ? `<div class="h2">${one ? 'Your tools' : 'Money'}</div><div class="tiles">${money.map(t => tileHtml(t, one)).join('')}</div>` : ''}
-      ${one ? '<div class="hint">Need something else? Ask your chairperson to give you access.</div>' : ''}
+      ${all.length ? `<div class="cols${left && right ? '' : ' one'}"><div>${left}</div>${right ? `<div>${right}</div>` : ''}</div>` : ''}
+      ${all.length === 1 ? '<div class="cols one"><div class="hint">Need something else? Ask your chairperson to give you access.</div></div>' : ''}
       <div class="foot">Powered by CoachSmart</div>
     </div>`;
   const pt = document.querySelector('[data-k="pitches"]');
