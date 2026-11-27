@@ -86,19 +86,19 @@
 @view-transition{navigation:auto}
 .csh{view-transition-name:csh}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.18s}
-@media (max-width:760px){body.cs-shell .wrap{padding-left:14px!important;padding-right:14px!important}body.cs-shell .band{padding:18px 14px 8px!important}body.cs-shell .band h1{font-size:22px!important}body.cs-shell .band .sub{font-size:15px!important}}
+@media (max-width:760px){body.cs-shell:not(.cs-own) .wrap{padding-left:14px!important;padding-right:14px!important}body.cs-shell:not(.cs-own) .band{padding:18px 14px 8px!important}body.cs-shell:not(.cs-own) .band h1{font-size:22px!important}body.cs-shell:not(.cs-own) .band .sub{font-size:15px!important}}
 /* The page's own header becomes a plain title under the shell. */
-body.cs-shell .band{background:transparent!important;color:var(--text,#16191f)!important;--onband:var(--text,#16191f);box-shadow:none!important;position:static!important;border:0!important}
-body.cs-shell .band .hub,body.cs-shell .band .crest{display:none!important}
-body.cs-shell .band h1{font-size:26px!important;line-height:1.2!important}
-body.cs-shell .band .sub{font-size:16px!important;color:var(--muted,#5d6573)!important;opacity:1!important}
-body.cs-shell .band .back{color:var(--club,var(--csh))!important;opacity:1!important}
-body.cs-shell .band [onclick="signOut()"],body.cs-shell .band [data-a="signout"]{display:none!important}
-body.cs-shell .band .links button,body.cs-shell .band .links a{color:var(--club,var(--csh))!important;font-size:15px!important;font-weight:600;text-decoration:none!important;opacity:1!important;white-space:nowrap}
-body.cs-shell .band .links{flex-wrap:wrap;row-gap:6px}
-body.cs-shell .band .links span{font-size:14px;color:var(--muted,#5d6573)}
-body.cs-shell .band .chip{background:#fff!important;color:#3b4250!important;border:1.5px solid var(--line,#e4e6eb)!important;font-size:15px!important}
-body.cs-shell .band .chip.on{background:var(--club,var(--csh))!important;border-color:var(--club,var(--csh))!important;color:#fff!important}
+body.cs-shell:not(.cs-own) .band{background:transparent!important;color:var(--text,#16191f)!important;--onband:var(--text,#16191f);box-shadow:none!important;position:static!important;border:0!important}
+body.cs-shell:not(.cs-own) .band .hub,body.cs-shell:not(.cs-own) .band .crest{display:none!important}
+body.cs-shell:not(.cs-own) .band h1{font-size:26px!important;line-height:1.2!important}
+body.cs-shell:not(.cs-own) .band .sub{font-size:16px!important;color:var(--muted,#5d6573)!important;opacity:1!important}
+body.cs-shell:not(.cs-own) .band .back{color:var(--club,var(--csh))!important;opacity:1!important}
+body.cs-shell:not(.cs-own) .band [onclick="signOut()"],body.cs-shell:not(.cs-own) .band [data-a="signout"]{display:none!important}
+body.cs-shell:not(.cs-own) .band .links button,body.cs-shell:not(.cs-own) .band .links a{color:var(--club,var(--csh))!important;font-size:15px!important;font-weight:600;text-decoration:none!important;opacity:1!important;white-space:nowrap}
+body.cs-shell:not(.cs-own) .band .links{flex-wrap:wrap;row-gap:6px}
+body.cs-shell:not(.cs-own) .band .links span{font-size:14px;color:var(--muted,#5d6573)}
+body.cs-shell:not(.cs-own) .band .chip{background:#fff!important;color:#3b4250!important;border:1.5px solid var(--line,#e4e6eb)!important;font-size:15px!important}
+body.cs-shell:not(.cs-own) .band .chip.on{background:var(--club,var(--csh))!important;border-color:var(--club,var(--csh))!important;color:#fff!important}
 `;
   document.head.appendChild(st);
 

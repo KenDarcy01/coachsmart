@@ -8,6 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/club/home-pill.js"></script>
 <script src="/club/shell.js"></script>
+<!-- Keeps its own look under the shared ClubSmart header (Ken 2026-11-27). -->
+<script>document.addEventListener('DOMContentLoaded', () => document.body.classList.add('cs-own'));</script>
 <style>
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
@@ -25,12 +27,6 @@ a{color:inherit;text-decoration:none}
 .band .crest{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:50%;padding:4px;flex:none}
 .band h1{font-size:23px;font-weight:700;line-height:1.1}
 .band .sub{font-size:13.5px;opacity:.85;margin-top:2px}
- /* Inside the shared club tools header (Ken 2026-11-27) */
-body.cs-shell .band{padding:24px 28px 14px}
-body.cs-shell .band .links a{display:none!important}
-body.cs-shell .side{top:0;height:100vh}
-body.cs-shell .layout{min-height:100vh}
-body.cs-shell .sk-band{background:none;color:var(--text)}body.cs-shell .sk-band img{display:none}body.cs-shell .sk-band .sub{color:var(--muted);opacity:1;font-size:16px}
 .band .right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
@@ -1170,7 +1166,7 @@ function sidebar(sel) {
 // ── Shell ─────────────────────────────────────────────────────────
 function shell(sel, body) {
   const c = D.club;
-  return `<div class="band">${clubHomePill(clubId, c.crest)}<div><h1>Club dashboard</h1><div class="sub">${esc(c.club_name)} · ${period === 'week' ? (tab === 'fixtures' ? 'fixtures' : 'the week') : periodLabel()}</div>${period === 'week' ? weekStepper() : ''}</div>
+  return `<div class="band">${clubHomePill(clubId, c.crest)}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club dashboard · ${period === 'week' ? (tab === 'fixtures' ? 'fixtures' : 'the week') : periodLabel()}</div>${period === 'week' ? weekStepper() : ''}</div>
    <div class="right">${chips()}<div class="links">${newsOn ? newsLink() : ''}${spendOn ? spendLink() : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
    <div class="layout"><nav class="side" id="side">${sidebar(sel)}</nav><main class="main"><button class="menu-btn" onclick="$('side').classList.toggle('open')">Teams and groups<span>▾</span></button>${body}</main></div>`;
 }
