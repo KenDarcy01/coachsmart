@@ -191,7 +191,7 @@ function rowsFor(H) {
   }
   if (t.pitches) {
     const n = t.pitches.unread || 0;
-    add('pitches', 'run', 'Pitch planner', 'Pitch bookings and slots', n ? [plural(n, 'fixture change', 'fixture changes'), ''] : null, '#pitches');
+    add('pitches', 'run', 'Pitch planner', 'Pitch bookings and slots', n ? [plural(n, 'fixture change', 'fixture changes'), ''] : null, '/club/pitches.html' + q);
   }
   if (t.officers) {
     const o = t.officers;
@@ -243,20 +243,7 @@ function render(H) {
       ${all.length === 1 ? '<div class="cols one"><div class="hint">Need something else? Ask your chairperson to give you access.</div></div>' : ''}
       <div class="foot">Powered by CoachSmart</div>
     </div>`;
-  const pt = document.querySelector('[data-k="pitches"]');
-  if (pt) pt.addEventListener('click', openPlanner);
 }
-// The planner is another website with its own login store: hand this login
-// over in the link's #fragment (never sent to a server; the planner wipes it).
-async function openPlanner(e) {
-  e.preventDefault();
-  const url = `https://coachsmart-v3.web.app/pitches?club=${clubId}&look=club`;
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    location.href = session ? url + '#cs_rt=' + encodeURIComponent(session.refresh_token) : url;
-  } catch (err) { location.href = url; }
-}
-
 async function boot() {
   if (!clubId) return state('Open this page from your club’s link, for example coachsmart.app/club/?club=1.');
   const { data: { session } } = await sb.auth.getSession();
