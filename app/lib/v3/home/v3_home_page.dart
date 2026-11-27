@@ -83,6 +83,10 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   LiveMatchesData? _clubMatches;
   int _selectedClub = 0;
 
+  // Fixtures / Results pill on the club screen (Ken, 2026-11-27).
+  ClubResultsData? _clubResults;
+  bool _clubShowResults = false;
+
   // Home (club) and Events tabs (Ken, 2026-11-26): team members land on
   // Events; Home is the club screen, with a badge for club news and
   // fundraisers not seen yet.
@@ -346,7 +350,25 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
 
   UserEventsHomeStruct get _home => FFAppState().homePageEvents;
 
+  Future<void> _loadClubResults() async {
+    final ids = [
+      for (final c in (_followerOnly ? _followed : _myClubs)) c.clubId
+    ];
+    try {
+      final r = await SupaFlow.client.rpc('get_club_home_results',
+          params: {'p_club_ids': ids, 'p_days': 14});
+      if (!mounted) return;
+      setState(() => _clubResults =
+          ClubResultsData.fromJson(r is Map ? r : const {}));
+    } catch (_) {
+      if (mounted && _clubResults == null) {
+        setState(() => _clubResults = ClubResultsData.empty);
+      }
+    }
+  }
+
   Future<void> _loadClubMatches() async {
+    unawaited(_loadClubResults());
     try {
       final r = await SupaFlow.client
           .rpc('get_live_matches', params: {'p_upcoming_days': 14});
@@ -841,6 +863,12 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
         onOpenMatch: _openClubMatch,
         onOpenMatches: _openMatches,
         onJoinTeam: _followerOnly ? _openJoinTeam : null,
+        results: _clubResults,
+        showResults: _clubShowResults,
+        onShowResults: (v) {
+          V3Track.event('club_home_pill', {'tab': v ? 'results' : 'fixtures'});
+          setState(() => _clubShowResults = v);
+        },
         topCards: [
           // Important messages stay here until they end (Ken, 2026-11-26).
           for (final m in _msgs.pinned)

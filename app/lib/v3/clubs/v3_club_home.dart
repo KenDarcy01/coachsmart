@@ -6,12 +6,70 @@
 // Followers see club-level things only: no rosters, attendance or names
 // (live scores show club names).
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../matches/v3_matches_models.dart';
 import '../sponsors/v3_sponsors.dart';
 import '../v3_crest_image.dart';
 import '../v3_theme.dart';
 import 'v3_follow_api.dart';
+
+// ── Results (get_club_home_results, Ken 2026-11-27) ─────────────────────
+
+class ClubResult {
+  ClubResult.fromJson(Map j)
+      : clubId = j['club_id'] is num ? (j['club_id'] as num).toInt() : null,
+        start = DateTime.tryParse('${j['start'] ?? ''}'),
+        age = '${j['age'] ?? ''}',
+        code = '${j['code'] ?? ''}',
+        competition = '${j['competition'] ?? ''}',
+        opposition = '${j['opposition'] ?? ''}',
+        outcome = '${j['outcome'] ?? ''}',
+        usScore = j['us_score'] == null ? '' : '${j['us_score']}',
+        oppScore = j['opp_score'] == null ? '' : '${j['opp_score']}';
+
+  final int? clubId;
+  final DateTime? start;
+  final String age, code, competition, opposition, outcome, usScore, oppScore;
+
+  /// "U16 Football v Naomh Barrog"
+  String get title =>
+      '${[age, code].where((x) => x.isNotEmpty).join(' ')} v $opposition'
+          .trim();
+
+  /// Empty for a big loss: the server leaves its score out.
+  String get score => usScore.isEmpty ? '' : '$usScore to $oppScore';
+}
+
+class ClubResultsData {
+  ClubResultsData.fromJson(Map j)
+      : results = [
+          if (j['results'] is List)
+            for (final r in (j['results'] as List).whereType<Map>())
+              ClubResult.fromJson(r)
+        ],
+        colours = {
+          if (j['colours'] is Map)
+            for (final e in (j['colours'] as Map).entries)
+              if (int.tryParse('${e.key}') != null)
+                int.parse('${e.key}'): '${e.value}'
+        };
+  static final empty = ClubResultsData.fromJson(const {});
+
+  final List<ClubResult> results;
+
+  /// club id -> primary colour '#rrggbb' (the diary icon band).
+  final Map<int, String> colours;
+
+  Color? colourOf(int? clubId) {
+    final m =
+        RegExp(r'^#?([0-9a-fA-F]{6})$').firstMatch(colours[clubId] ?? '');
+    if (m == null) return null;
+    final c = Color(0xFF000000 | int.parse(m.group(1)!, radix: 16));
+    final l = c.computeLuminance();
+    return l > 0.02 && l < 0.85 ? c : null;
+  }
+}
 
 class V3ClubHome extends StatelessWidget {
   const V3ClubHome({
@@ -27,7 +85,15 @@ class V3ClubHome extends StatelessWidget {
     required this.onOpenMatches,
     this.onJoinTeam,
     this.topCards = const [],
+    this.results,
+    this.showResults = false,
+    this.onShowResults,
   });
+
+  /// Recent results for the Fixtures / Results pill; null while loading.
+  final ClubResultsData? results;
+  final bool showResults;
+  final ValueChanged<bool>? onShowResults;
 
   /// Club news cards and fundraisers, built by Home as for everyone.
   final List<Widget> topCards;
@@ -109,9 +175,14 @@ class V3ClubHome extends StatelessWidget {
                   _section('Live now', 'All matches', onOpenMatches),
                   for (final m in live) _liveCard(m),
                 ],
-                _section('Coming up', upcoming.isEmpty ? null : 'See all',
+                _section(
+                    showResults ? 'Recent results' : 'Coming up',
+                    showResults || upcoming.isEmpty ? null : 'See all',
                     onOpenMatches),
-                if (upcoming.isEmpty)
+                if (onShowResults != null) _pill(),
+                if (showResults)
+                  ..._resultsList()
+                else if (upcoming.isEmpty)
                   _emptyCard('No club matches in the next two weeks.')
                 else
                   _upcomingCard(upcoming.take(upcomingOnHome).toList()),
@@ -338,11 +409,11 @@ class V3ClubHome extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         child: Row(children: [
-          SizedBox(
-            width: 54,
-            child: Text(clockTime(t),
-                style: V3.tight(17, weight: FontWeight.w700, color: V3.green)),
-          ),
+          _diary(t, results?.colourOf(m.clubId), today,
+              Text(clockTime(t),
+                  style:
+                      V3.tight(15, weight: FontWeight.w700, color: V3.green))),
+          const SizedBox(width: 14),
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -351,7 +422,8 @@ class V3ClubHome extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: V3.inter(15.5, weight: FontWeight.w600)),
               const SizedBox(height: 2),
-              Text(where.isEmpty ? day : '$day · $where',
+              // The date is in the diary icon, so just the place.
+              Text(where.isEmpty ? day : where,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: V3.inter(13.5, color: V3.muted)),
@@ -360,6 +432,183 @@ class V3ClubHome extends StatelessWidget {
           if (_multi) ...[const SizedBox(width: 10), _crestFor(m, 24)],
         ]),
       ),
+    );
+  }
+
+  // Fixtures / Results (Ken, 2026-11-27).
+  Widget _pill() {
+    Widget seg(String label, bool results) {
+      final on = showResults == results;
+      return Expanded(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: on ? null : () => onShowResults!(results),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+                color: on ? V3.green : Colors.transparent,
+                borderRadius: BorderRadius.circular(20)),
+            child: Text(label,
+                style: V3.inter(14,
+                    weight: FontWeight.w700, color: on ? V3.bg : V3.muted)),
+          ),
+        ),
+      );
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        width: 230,
+        height: 38,
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+            color: V3.card, borderRadius: BorderRadius.circular(22)),
+        child: Row(children: [seg('Fixtures', false), seg('Results', true)]),
+      ),
+    );
+  }
+
+  List<Widget> _resultsList() {
+    final r = results;
+    if (r == null) {
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 30),
+          child: Center(
+              child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.5, color: V3.green))),
+        )
+      ];
+    }
+    final rows = r.results
+        .where((x) => selectedClub == 0 || x.clubId == selectedClub)
+        .take(upcomingOnHome)
+        .toList();
+    if (rows.isEmpty) {
+      return [_emptyCard('No results in the last two weeks.')];
+    }
+    return [
+      Container(
+        decoration: BoxDecoration(
+            color: V3.card, borderRadius: BorderRadius.circular(16)),
+        child: Column(children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0)
+              const Divider(
+                  color: V3.line, height: 1, indent: 14, endIndent: 14),
+            _resultRow(rows[i]),
+          ],
+        ]),
+      ),
+    ];
+  }
+
+  Widget _resultRow(ClubResult x) {
+    final (label, bg, fg) = switch (x.outcome) {
+      'won' => ('WON', V3.green, V3.bg),
+      'drew' => ('DREW', V3.barGrey, V3.text),
+      _ => ('LOST', V3.line, V3.muted),
+    };
+    final line =
+        [x.score, x.competition].where((s) => s.isNotEmpty).join(' · ');
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Row(children: [
+        _diary(
+            x.start,
+            results?.colourOf(x.clubId),
+            false,
+            Container(
+              width: 52,
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                  color: bg, borderRadius: BorderRadius.circular(6)),
+              child: Text(label,
+                  style: V3.inter(10.5,
+                      weight: FontWeight.w800, color: fg, letterSpacing: 0.8)),
+            )),
+        const SizedBox(width: 14),
+        Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(x.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: V3.inter(15.5, weight: FontWeight.w600)),
+            const SizedBox(height: 2),
+            Text(line,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: V3.inter(13.5, color: V3.muted)),
+          ]),
+        ),
+        if (_multi) ...[
+          const SizedBox(width: 10),
+          V3CrestImage(_club(x.clubId)?.crest ?? '',
+              size: 24, fallback: const SizedBox(width: 24, height: 24)),
+        ],
+      ]),
+    );
+  }
+
+  /// Diary icon (Ken, 2026-11-27): the day on a band in the club colour
+  /// (green "TODAY" for today), the date and month under it, then [below]
+  /// (the time, or WON / LOST / DREW).
+  Widget _diary(DateTime? t, Color? band, bool today, Widget below) {
+    final d = t == null ? null : dublin(t);
+    final top = today ? 'TODAY' : (d == null ? '' : DateFormat('EEE').format(d));
+    final b = today ? V3.green : (band ?? V3.green);
+    final onBand = b.computeLuminance() > 0.5 ? V3.bg : Colors.white;
+    return SizedBox(
+      width: 52,
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 52,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+              color: const Color(0xFFF1F4F8),
+              borderRadius: BorderRadius.circular(10)),
+          child: Column(children: [
+            Container(
+              width: double.infinity,
+              color: b,
+              padding: const EdgeInsets.symmetric(vertical: 2.5),
+              alignment: Alignment.center,
+              child: Text(top.toUpperCase(),
+                  style: V3.inter(10,
+                      weight: FontWeight.w800,
+                      color: onBand,
+                      letterSpacing: 0.8)),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Text(d == null ? '–' : '${d.day}',
+                  style: V3.tight(21,
+                      weight: FontWeight.w800,
+                      color: V3.bg,
+                      height: 1.05)),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                  d == null ? '' : DateFormat('MMM').format(d).toUpperCase(),
+                  style: V3.inter(9.5,
+                      weight: FontWeight.w700,
+                      color: const Color(0xFF6B7280),
+                      letterSpacing: 0.8)),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 5),
+        below,
+      ]),
     );
   }
 
