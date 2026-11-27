@@ -34,10 +34,15 @@ class ClubSocialPost {
     final d = DateTime.now().difference(t);
     if (d.inMinutes < 60) return d.inMinutes <= 1 ? 'Just now' : '${d.inMinutes}m ago';
     if (d.inHours < 24) return '${d.inHours}h ago';
-    if (d.inDays < 2) return 'Yesterday';
+    // Calendar days, so 47 hours ago is not "Yesterday".
+    final now = DateTime.now();
+    final days0 = DateTime(now.year, now.month, now.day)
+        .difference(DateTime(t.year, t.month, t.day))
+        .inDays;
+    if (days0 <= 1) return 'Yesterday';
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    if (d.inDays < 7) return days[t.weekday - 1];
+    if (days0 < 7) return days[t.weekday - 1];
     return '${t.day} ${months[t.month - 1]}';
   }
 
@@ -147,8 +152,10 @@ class _V3ClubSocialNewsState extends State<V3ClubSocialNews> {
   }
 }
 
+// Posts are often posters with the headline at the top: crop from the top.
 Widget _photo(String url, {BoxFit fit = BoxFit.cover}) => Image.network(url,
     fit: fit,
+    alignment: Alignment.topCenter,
     width: double.infinity,
     errorBuilder: (_, __, ___) => const ColoredBox(color: V3.bg));
 
