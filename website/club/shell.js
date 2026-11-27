@@ -61,19 +61,24 @@
 .csh-top span{display:block;font-size:16px;color:#5d6573;margin-top:2px}
 .csh-out{margin-left:auto;font:600 16px DM,system-ui,sans-serif;color:#5d6573;background:none;border:0;cursor:pointer}
 .csh-out:hover{color:#16191f}
-.csh-nav{display:flex;gap:2px;margin:16px -13px 0;position:relative;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.csh-nav{display:flex;gap:0;margin:14px -10px 0;padding-bottom:10px;position:relative;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .csh-nav::-webkit-scrollbar{display:none}
-.csh-nav a{flex:none;font:600 16px DM,system-ui,sans-serif;color:#5d6573;text-decoration:none;padding:10px 13px 12px;border-bottom:3px solid transparent;white-space:nowrap}
-.csh-nav a:hover{color:#16191f}
-.csh-nav a.on{color:var(--csh);border-bottom-color:var(--csh)}
-.csh-nav a em{font-style:normal;display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;border-radius:10px;background:var(--csh);color:#fff;font-size:12px;margin-left:6px;padding:0 6px;vertical-align:1px}
+.csh-nav a{flex:none;display:flex;align-items:center;gap:7px;font:600 15.5px DM,system-ui,sans-serif;color:#5d6573;text-decoration:none;padding:8px 10px;border-radius:10px;white-space:nowrap}
+.csh-nav a svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.csh-nav a:hover{color:#16191f;background:#f2f3f6}
+.csh-nav a.on{color:var(--csh);background:color-mix(in srgb,var(--csh) 9%,#fff)}
+.csh-nav a em{font-style:normal;display:inline-block;margin-left:-2px!important;min-width:20px;height:20px;line-height:20px;text-align:center;border-radius:10px;background:var(--csh);color:#fff;font-size:12px;margin-left:6px;padding:0 6px;vertical-align:1px}
 .csh.nonav .csh-in{padding-bottom:22px}
 @media (max-width:760px){
  .csh-in{padding:16px 16px 0}.csh.nonav .csh-in{padding-bottom:16px}
  .csh-top{gap:12px}.csh-top img{width:46px;height:46px}.csh-top b{font-size:21px}.csh-top span{font-size:14.5px}.csh-out{font-size:15px}
- .csh-nav{margin:10px -16px 0;padding:0 8px}.csh-nav a{font-size:15px;padding:9px 10px 11px}
+ .csh-nav{margin:10px -16px 0;padding:0 10px 10px}.csh-nav a{font-size:15px;padding:8px 10px;gap:7px}.csh-nav a svg{width:19px;height:19px}
 }
 @media print{.csh{display:none}}
+/* Smooth switching between club tools: the header stays put, only the page below changes. */
+@view-transition{navigation:auto}
+.csh{view-transition-name:csh}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.18s}
 @media (max-width:760px){body.cs-shell .wrap{padding-left:14px!important;padding-right:14px!important}body.cs-shell .band{padding:18px 14px 8px!important}body.cs-shell .band h1{font-size:22px!important}body.cs-shell .band .sub{font-size:15px!important}}
 /* The page's own header becomes a plain title under the shell. */
 body.cs-shell .band{background:transparent!important;color:var(--text,#16191f)!important;--onband:var(--text,#16191f);box-shadow:none!important;position:static!important;border:0!important}
@@ -90,6 +95,17 @@ body.cs-shell .band .chip.on{background:var(--club,var(--csh))!important;border-
 `;
   document.head.appendChild(st);
 
+  const ICON = {
+    home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    dashboard: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/>',
+    pitches: '<rect x="2" y="5" width="20" height="14" rx="1.5"/><path d="M12 5v14"/><circle cx="12" cy="12" r="2.5"/>',
+    newsletter: '<path d="M4 4h13v16H6a2 2 0 0 1-2-2z"/><path d="M17 8h3v10a2 2 0 0 1-2 2"/><path d="M8 8h5M8 12h5M8 16h3"/>',
+    messages: '<path d="M3 11l15-6v14L3 13z"/><path d="M7 13v5a2 2 0 0 0 4 0v-3.5"/>',
+    sponsors: '<path d="M12 2l3 6.5 7 .8-5.2 4.8 1.4 7L12 17.6 5.8 21l1.4-7L2 9.3l7-.8z"/>',
+    officers: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14a5 5 0 0 1 5 5"/>',
+    spend: '<path d="M5 2h14v20l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 7h6M9 11h6"/>',
+    lotto: '<path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"/>'
+  };
   // ── Menu ──────────────────────────────────────────────────────────
   const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   function items() {
@@ -124,7 +140,7 @@ body.cs-shell .band .chip.on{background:var(--club,var(--csh))!important;border-
       <div><b>${esc(c.club_name || 'Club tools')}</b><span>${esc(c.club_name ? sub : '')}</span></div>
       ${H ? '<button class="csh-out" id="cshOut">Sign out</button>' : ''}</div>
       ${nav.length > 1 ? `<nav class="csh-nav">${nav.map(([k, l, h, n]) =>
-        `<a href="${esc(h)}" data-k="${k}" class="${k === cur ? 'on' : ''}">${esc(l)}${n && k !== cur ? `<em>${n > 99 ? '99+' : n}</em>` : ''}</a>`).join('')}</nav>` : ''}</div>`;
+        `<a href="${esc(h)}" data-k="${k}" class="${k === cur ? 'on' : ''}"><svg viewBox="0 0 24 24">${ICON[k] || ''}</svg>${esc(l)}${n && k !== cur ? `<em>${n > 99 ? '99+' : n}</em>` : ''}</a>`).join('')}</nav>` : ''}</div>`;
     const out = document.getElementById('cshOut');
     if (out) out.onclick = async () => {
       try { localStorage.removeItem(KEY); } catch (e) {}
@@ -160,7 +176,7 @@ body.cs-shell .band .chip.on{background:var(--club,var(--csh))!important;border-
       try { const { data } = client().auth.onAuthStateChange(ev => { if (ev === 'SIGNED_IN') { data.subscription.unsubscribe(); setTimeout(start, 0); } }); } catch (e) {}
       return;
     }
-    if (cached && cached.uid === session.user.id) { H = cached.h; paint(); return; }
+    if (cached && cached.uid === session.user.id) { H = cached.h; if (!document.getElementById('csh')) paint(); return; }
     try {
       const { data } = await client().rpc('club_home', { p_club: clubId });
       if (data && !data.error) {
@@ -169,5 +185,18 @@ body.cs-shell .band .chip.on{background:var(--club,var(--csh))!important;border-
       }
     } catch (e) {}
   }
+  // Paint straight away from the cache when this browser is signed in as the
+  // cached user, so the header is there on the first frame (no flash between tools).
+  function early() {
+    const c = read(KEY);
+    let uid = null;
+    try { uid = (read('sb-gyfporsbdftvtakdvukt-auth-token') || {}).user.id; } catch (e) {}
+    if (!clubId || !c || !uid || c.uid !== uid) return;
+    H = c.h;
+    if (document.body) return paint();
+    const mo = new MutationObserver(() => { if (document.body) { mo.disconnect(); paint(); } });
+    mo.observe(document.documentElement, { childList: true });
+  }
+  early();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
