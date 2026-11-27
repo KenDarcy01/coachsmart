@@ -6,6 +6,7 @@
 <title>Lotto admin</title>
 <meta name="robots" content="noindex">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/club/shell.js"></script>
 <style>
 @font-face { font-family: 'Bebas'; src: url(/web/fonts/bebas-neue-latin-400-normal.woff2) format('woff2'); font-display: swap; }
 @font-face { font-family: 'DM'; font-weight: 400; src: url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2'); font-display: swap; }
@@ -93,6 +94,28 @@ button { font: inherit; cursor: pointer; }
 .msg { font-size: 13px; color: var(--red); min-height: 18px; margin-top: 10px; }
 .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--wh); color: var(--bk); padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; text-align: center; }
 .toast.show { opacity: 1; }
+/* Club tools shell look (Ken 2026-11-27) */
+body.cs-shell .wrap { max-width: 860px; padding: 0 10px 48px; }
+body.cs-shell .abar { background: none; color: var(--wh); border: 0; padding: 26px 14px 14px; margin: 0; }
+body.cs-shell .abar img, body.cs-shell .abar .so, body.cs-shell .abar .club { display: none; }
+body.cs-shell .abar h1 { font: 700 26px 'DM', sans-serif; letter-spacing: 0; }
+body.cs-shell .tabs button { font-size: 16px; padding: 12px 0; border-radius: 12px; }
+body.cs-shell .tabs button.on { background: var(--g); color: #fff; }
+body.cs-shell .acard { border: 0; box-shadow: 0 1px 3px #0000000f; border-radius: 18px; padding: 20px 22px; }
+body.cs-shell .acard h3 { font-size: 14.5px; }
+body.cs-shell .kv { font-size: 16px; padding: 11px 0; }
+body.cs-shell .kv input, body.cs-shell .kv select { font-size: 15.5px; }
+body.cs-shell .stat .k { font-size: 13.5px; }
+body.cs-shell .stat .v { font-size: 30px; }
+body.cs-shell .note { font-size: 14px; }
+body.cs-shell .abtn { font-size: 16.5px; padding: 15px 0; }
+body.cs-shell .prow .r1 { font-size: 17px; }
+body.cs-shell .prow .r2, body.cs-shell .past, body.cs-shell .bar, body.cs-shell .pdet { font-size: 15px; }
+body.cs-shell .past .r1 { font-size: 16px; }
+body.cs-shell .pill { font-size: 12px; }
+body.cs-shell .seg button, body.cs-shell .tog { font-size: 14.5px; }
+body.cs-shell .testbar { font-size: 15px; }
+body.cs-shell .empty { font-size: 15px; }
 .loading { text-align: center; padding: 60px 0; color: var(--grey); }
 </style>
 </head>
@@ -247,8 +270,9 @@ document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
 // ── Club branding (remembered so the sign-in screen matches too) ──
 function brand(b) {
   if (!b) return;
-  if (b.primary) document.documentElement.style.setProperty('--g', b.primary);
-  if (b.accent) document.documentElement.style.setProperty('--acc', b.accent);
+  // Inside the club tools shell the page takes the club colour (Ken 2026-11-27).
+  if (b.primary && !window.csAccent) document.documentElement.style.setProperty('--g', b.primary);
+  if (b.accent && !window.csAccent) document.documentElement.style.setProperty('--acc', b.accent);
   for (const id of ['crest', 'lcrest']) if (b.crest) { $(id).src = b.crest; $(id).classList.remove('hide'); }
   if (b.club) { $('ltitle').textContent = b.club + ' Lotto admin'; }
 }
