@@ -33,6 +33,11 @@ body.cs-shell .side{top:0;height:100vh}
 body.cs-shell .layout{min-height:100vh}
 body.cs-shell .sk-band{background:none;color:var(--text)}body.cs-shell .sk-band img{display:none}body.cs-shell .sk-band .sub{color:var(--muted);opacity:1;font-size:16px}
 .band .right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.dbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:20px 28px 6px;--onband:#1a1d23}
+.dbar .chip{background:#fff;border:1px solid var(--line);color:var(--text);font-size:14.5px;padding:8px 15px}
+.dbar .chip.on{background:var(--band);border-color:var(--band);color:#fff}
+.dbar .wk{margin-top:0}.dbar .wk button{background:#fff;border:1px solid var(--line);color:var(--text)}.dbar .wk span{color:var(--text);font-size:15px}
+@media (max-width:700px){.dbar{padding:14px 14px 4px}}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
 .chip.on{background:var(--onband);color:var(--band)}
@@ -451,7 +456,7 @@ const SK_STEPS = ['Getting this season’s results', 'Counting attendance for ev
 function skeleton() {
   clearInterval(skT);
   const c = skClub || {};
-  $('app').innerHTML = `<div class="sk-band">${c.crest ? `<img src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name || 'Club dashboard')}</h1><div class="sub">Club dashboard</div></div></div>
+  $('app').innerHTML = `
     <div class="sk-wrap"><div class="sk-msg"><i></i><div style="flex:1"><b id="skStep">${SK_STEPS[0]}…</b><small>This can take a few seconds. Every team’s season is counted fresh.</small>
       <div class="sk-bar"><span id="skBar" style="width:8%"></span></div></div></div>
     <div class="sk-grid">${'<div class="sk-card"><div class="sk-line" style="width:55%"></div><div class="sk-ring"></div><div class="sk-line"></div><div class="sk-line" style="width:70%"></div></div>'.repeat(6)}</div></div>`;
@@ -1171,8 +1176,8 @@ function sidebar(sel) {
 // ── Shell ─────────────────────────────────────────────────────────
 function shell(sel, body) {
   const c = D.club;
-  return `<div class="band">${clubHomePill(clubId, c.crest)}<div><h1>Club dashboard</h1><div class="sub">${esc(c.club_name)} · ${period === 'week' ? (tab === 'fixtures' ? 'fixtures' : 'the week') : periodLabel()}</div>${period === 'week' ? weekStepper() : ''}</div>
-   <div class="right">${chips()}<div class="links">${newsOn ? newsLink() : ''}${spendOn ? spendLink() : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+  // Ken 2026-11-27: no dashboard header, only the ClubSmart one. Period chips and week stepper stay as a slim bar.
+  return `<div class="dbar">${period === 'week' ? weekStepper() : ''}${chips()}</div>
    <div class="layout"><nav class="side" id="side">${sidebar(sel)}</nav><main class="main"><button class="menu-btn" onclick="$('side').classList.toggle('open')">Teams and groups<span>▾</span></button>${body}</main></div>`;
 }
 
