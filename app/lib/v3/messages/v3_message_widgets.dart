@@ -527,35 +527,18 @@ class _V3NewsCardsState extends State<V3NewsCards> {
                         style: V3.tight(19, weight: FontWeight.w700)),
                   ),
                 ),
-                Material(
-                    color: news.first.clubColour ?? V3.green,
-                    borderRadius: BorderRadius.circular(20),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: widget.onTap,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(13, 6, 9, 6),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Text(
-                              'Read more',
-                              style: V3.inter(13.5,
-                                  weight: FontWeight.w700,
-                                  color: (news.first.clubColour ?? V3.green)
-                                              .computeLuminance() >
-                                          0.5
-                                      ? V3.bg
-                                      : Colors.white)),
-                          Icon(Icons.chevron_right,
-                              size: 18,
-                              color: (news.first.clubColour ?? V3.green)
-                                          .computeLuminance() >
-                                      0.5
-                                  ? V3.bg
-                                  : Colors.white),
-                        ]),
-                      ),
-                    ),
-                  ),
+                // Same "See all ›" as the other Home sections (Ken,
+                // 2026-11-27: not a coloured pill).
+                TextButton(
+                  onPressed: widget.onTap,
+                  style: TextButton.styleFrom(
+                      foregroundColor: V3.green,
+                      minimumSize: const Size(44, 36),
+                      padding: const EdgeInsets.symmetric(horizontal: 4)),
+                  child: Text('See all ›',
+                      style: V3.inter(14.5,
+                          weight: FontWeight.w600, color: V3.green)),
+                ),
               ],
             ),
           ),
