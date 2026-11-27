@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
 import { sportId, sportPrompt, type SportId } from "../_shared/sport.ts";
+import { aiFetch } from "../_shared/ai-usage.ts";
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -21,7 +22,7 @@ async function callGemini(apiKey: string, systemPrompt: string, parts: any[]): P
   });
   let res: Response | null = null, errText = "";
   for (let attempt = 1; attempt <= 3; attempt++) {
-    res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    res = await aiFetch("generate-session-plan", `${GEMINI_URL}?key=${apiKey}`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body,
     });
     if (res.ok) break;

@@ -3,6 +3,7 @@ import { FROM_TEXT_EXAMPLES } from "./examples.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SCENE_PROMPT, SCENE_SCHEMA, SPORT_NOTE, imageSize, sceneToXml, type DrillSport, type Scene } from "./scene.ts";
+import { aiFetch } from "../_shared/ai-usage.ts";
 
 // Requires ANTHROPIC_API_KEY set as a Supabase secret:
 //   supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
@@ -312,7 +313,7 @@ THE DRILL TO DRAW
 async function sceneConvert(apiKey: string, image_base64: string | null, media_type: string | null, revision?: Revision, notes?: string, drawing?: string, sport?: DrillSport): Promise<ConvertResult> {
   // Drawing from words has no picture to lean on, so it gets the most thinking (DIAGRAM_TEXT_EFFORT overrides).
   const effort = image_base64 ? (Deno.env.get("DIAGRAM_EFFORT") ?? "high") : (Deno.env.get("DIAGRAM_TEXT_EFFORT") ?? "high");
-  const claudeRes = await fetch(ANTHROPIC_URL, {
+  const claudeRes = await aiFetch("diagram-to-drawio", ANTHROPIC_URL, {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
@@ -391,7 +392,7 @@ Give the whole description again in the same format. If it is already right, giv
 
 // ── legacy: the model writes the draw.io XML itself ──────────────────────────
 async function legacyConvert(apiKey: string, image_base64: string, media_type: string): Promise<ConvertResult> {
-  const claudeRes = await fetch(ANTHROPIC_URL, {
+  const claudeRes = await aiFetch("diagram-to-drawio", ANTHROPIC_URL, {
     method: "POST",
     headers: {
       "x-api-key": apiKey,

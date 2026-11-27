@@ -229,6 +229,8 @@ const KPI_ROWS: [string, string, ((v: any) => string)?][] = [
   ["db_busy_pct", "Database busy %"],
   ["background_calls", "Background function calls"],
   ["db_connections_pct", "DB connections %"],
+  ["ai_cost_usd", "AI spend $", (v) => Number(v || 0).toFixed(2)],
+  ["ai_calls", "AI calls"],
   ["storage_mb", "File storage MB"],
   ["storage_growth_mb", "Storage growth MB"],
   ["storage_mb_days_to_cap", "Days until storage passes 100 GB"],
@@ -289,6 +291,27 @@ function buildEmail(runDate: string, findings: Finding[], kpis: Record<string, a
     </tr>`;
   }
 
+  // AI spend per model (estimates from token counts).
+  const models: any[] = Array.isArray(kpis.ai_models) ? kpis.ai_models : [];
+  const td = "padding:6px 4px;border-bottom:1px solid #eaecf0;font-size:14px";
+  const usd = (v: any) => `$${Number(v || 0).toFixed(2)}`;
+  const aiRows = models.map((m) => `<tr>
+      <td style="${td};color:#344054">${esc(m.model)}<div style="font-size:12px;color:#98a2b3">${esc(m.features || "no calls today")}</div></td>
+      <td style="${td};text-align:right;color:#667085">${esc(m.calls_24h)}</td>
+      <td style="${td};text-align:right;font-weight:600;color:#101828">${esc(usd(m.cost_24h))}</td>
+      <td style="${td};text-align:right;color:#667085">${esc(usd(m.cost_mtd))}</td>
+    </tr>`).join("");
+  const th = "font-size:12px;color:#667085;padding:4px";
+  const aiBox = `<div style="background:#fff;border-radius:12px;padding:12px 16px 16px;margin-top:12px">
+      <h2 style="font-size:16px;margin:4px 0 8px;color:#101828">AI spend by model</h2>
+      ${models.length ? `<table style="width:100%;border-collapse:collapse">
+        <tr><th style="text-align:left;${th}">Model</th><th style="text-align:right;${th}">Calls</th><th style="text-align:right;${th}">24h</th><th style="text-align:right;${th}">Month</th></tr>
+        ${aiRows}
+        <tr><td style="${td};font-weight:600">Total</td><td style="${td};text-align:right">${esc(kpis.ai_calls ?? 0)}</td><td style="${td};text-align:right;font-weight:700">${esc(usd(kpis.ai_cost_usd))}</td><td style="${td};text-align:right;font-weight:600">${esc(usd(kpis.ai_cost_mtd_usd))}</td></tr>
+      </table>` : `<p style="font-size:14px;color:#344054;margin:0">No AI calls logged yet.</p>`}
+      <div style="font-size:11px;color:#98a2b3;margin-top:6px">US dollars, estimated from token counts at list prices.</div>
+    </div>`;
+
   const html = `<!DOCTYPE html><html><body style="margin:0;background:#f2f4f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
   <div style="max-width:560px;margin:0 auto;padding:16px">
     <div style="background:#14181b;border-radius:12px;padding:16px 18px;color:#f1f4f8">
@@ -305,6 +328,7 @@ function buildEmail(runDate: string, findings: Finding[], kpis: Record<string, a
         ${rows}
       </table>
     </div>
+    ${aiBox}
     <p style="font-size:11px;color:#98a2b3;text-align:center;margin-top:12px">Sent by the health-check function at 4am Irish time.</p>
   </div></body></html>`;
   return { subject, html };
