@@ -17,6 +17,8 @@
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.csShellOwner = true; // this page paints the shared header itself</script>
+<script src="/club/shell.js"></script>
 <style>
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
@@ -234,12 +236,8 @@ function render(H) {
   const by = g => all.filter(r => r.g === g);
   const group = (label, rows) => rows.length ? `<div class="h2">${label}</div><div class="list">${rows.map(rowHtml).join('')}</div>` : '';
   const left = group('Run the club', by('run')) + group('Money', by('money')), right = group('Talk to members', by('talk'));
-  const sub = ['Club tools', me.first_name ? 'Hi ' + me.first_name : ''].filter(Boolean).join(' · ');
-  $('app').innerHTML = `<div class="band"><div class="top">
-      ${H.club.crest ? `<img class="crest" src="${esc(H.club.crest)}" alt="">` : ''}
-      <div><h1>${esc(H.club.club_name)}</h1><div class="sub">${esc(sub)}</div></div>
-      <button class="out" onclick="signOut()">Sign out</button></div></div>
-    <div class="wrap">
+  window.csShellSet(H); // shared header + tool menu (club/shell.js)
+  $('app').innerHTML = `<div class="wrap">
       ${!all.length ? `<div class="state">You don’t have access to any ${esc(H.club.club_name)} tools yet. Ask your chairperson or CoachSmart to add you.</div>` : ''}
       ${all.length ? `<div class="cols${left && right ? '' : ' one'}"><div>${left}</div>${right ? `<div>${right}</div>` : ''}</div>` : ''}
       ${all.length === 1 ? '<div class="cols one"><div class="hint">Need something else? Ask your chairperson to give you access.</div></div>' : ''}
