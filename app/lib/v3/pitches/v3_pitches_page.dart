@@ -315,55 +315,94 @@ class _V3PitchesPageState extends State<_PitchesBody> {
         ),
       );
     }
+    final dayActions = _officer && _tab == PitchTab.board && _c?.board != null;
     return Scaffold(
       backgroundColor: PT.bg,
-      appBar: AppBar(
-        backgroundColor: club.band,
-        foregroundColor: onAccent(club.band),
-        surfaceTintColor: Colors.transparent,
-        titleSpacing: 0,
-        title: Row(children: [
-          V3CrestImage(club.crest, size: 30),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(_officer ? 'Pitches' : '${club.name} pitches',
-                overflow: TextOverflow.ellipsis,
-                style: PT.tight(20, color: onAccent(club.band))),
-          ),
-        ]),
-        actions: [
-          if (_officer && _tab == PitchTab.board && _c?.board != null) ...[
-            IconButton(
-                tooltip: 'New booking',
-                onPressed: () => showPitchSheet(context,
-                    BookingSheet(c: _c!, at: atMinutes(_c!.day, 18 * 60))),
-                icon: Icon(Icons.add, color: onAccent(club.band))),
-            IconButton(
-                tooltip: 'Close a pitch',
-                onPressed: () =>
-                    showPitchSheet(context, ClosePitchSheet(c: _c!)),
-                icon: Icon(Icons.block, color: onAccent(club.band))),
-            IconButton(
-                tooltip: 'Publish week',
-                onPressed: _publish,
-                icon: Icon(Icons.campaign_outlined,
-                    color: _c!.board!.changedSincePublish
-                        ? PT.amber
-                        : onAccent(club.band))),
-          ],
-          // The club's own app has no other way out (Ken, 2026-11-18).
-          if (!PT.dark)
-            PopupMenuButton<String>(
-              icon: Icon(Icons.more_vert, color: onAccent(club.band)),
-              color: PT.card,
-              onSelected: (_) => _signOut(),
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                    value: 'out', child: Text('Sign out', style: PT.inter(15))),
+      // Inside the club tools page (frame=1) its header shows the crest and
+      // the tool name: no red bar here, just the Day tab's buttons in a
+      // plain row; the tabs stay at the bottom.
+      appBar: _inFrame
+          ? (dayActions
+              ? AppBar(
+                  backgroundColor: PT.card,
+                  surfaceTintColor: Colors.transparent,
+                  automaticallyImplyLeading: false,
+                  toolbarHeight: 46,
+                  actions: [
+                    IconButton(
+                        tooltip: 'New booking',
+                        onPressed: () => showPitchSheet(
+                            context,
+                            BookingSheet(
+                                c: _c!, at: atMinutes(_c!.day, 18 * 60))),
+                        icon: Icon(Icons.add, color: PT.text)),
+                    IconButton(
+                        tooltip: 'Close a pitch',
+                        onPressed: () =>
+                            showPitchSheet(context, ClosePitchSheet(c: _c!)),
+                        icon: Icon(Icons.block, color: PT.text)),
+                    IconButton(
+                        tooltip: 'Publish week',
+                        onPressed: _publish,
+                        icon: Icon(Icons.campaign_outlined,
+                            color: _c!.board!.changedSincePublish
+                                ? PT.amber
+                                : PT.text)),
+                  ],
+                )
+              : null)
+          : AppBar(
+              backgroundColor: club.band,
+              foregroundColor: onAccent(club.band),
+              surfaceTintColor: Colors.transparent,
+              titleSpacing: 0,
+              title: Row(children: [
+                V3CrestImage(club.crest, size: 30),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(_officer ? 'Pitches' : '${club.name} pitches',
+                      overflow: TextOverflow.ellipsis,
+                      style: PT.tight(20, color: onAccent(club.band))),
+                ),
+              ]),
+              actions: [
+                if (_officer &&
+                    _tab == PitchTab.board &&
+                    _c?.board != null) ...[
+                  IconButton(
+                      tooltip: 'New booking',
+                      onPressed: () => showPitchSheet(
+                          context,
+                          BookingSheet(
+                              c: _c!, at: atMinutes(_c!.day, 18 * 60))),
+                      icon: Icon(Icons.add, color: onAccent(club.band))),
+                  IconButton(
+                      tooltip: 'Close a pitch',
+                      onPressed: () =>
+                          showPitchSheet(context, ClosePitchSheet(c: _c!)),
+                      icon: Icon(Icons.block, color: onAccent(club.band))),
+                  IconButton(
+                      tooltip: 'Publish week',
+                      onPressed: _publish,
+                      icon: Icon(Icons.campaign_outlined,
+                          color: _c!.board!.changedSincePublish
+                              ? PT.amber
+                              : onAccent(club.band))),
+                ],
+                // The club's own app has no other way out (Ken, 2026-11-18).
+                if (!PT.dark)
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, color: onAccent(club.band)),
+                    color: PT.card,
+                    onSelected: (_) => _signOut(),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                          value: 'out',
+                          child: Text('Sign out', style: PT.inter(15))),
+                    ],
+                  ),
               ],
             ),
-        ],
-      ),
       body: content,
       // Phone: three tabs only (Ken, 2026-11-18); set-up stays on the
       // laptop version.
