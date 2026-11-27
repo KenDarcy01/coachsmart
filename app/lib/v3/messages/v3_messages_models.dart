@@ -166,7 +166,7 @@ class AppMessage {
   }
 
   /// News card stripe: half primary, half secondary (Ken, 2026-11-27),
-  /// or one colour when the secondary is white/black or too close to it.
+  /// or one colour when the secondary is near-black or too close to it.
   List<Color> get stripeColours {
     Color? parse(String h) {
       final m = RegExp(r'^#?([0-9a-fA-F]{6})$').firstMatch(h.trim());
@@ -182,7 +182,10 @@ class AppMessage {
     }
 
     final p = parse(primaryColour), s = parse(secondaryColour);
-    if (usable(p) && usable(s)) {
+    // White is fine as the second colour on the dark card (Clontarf is red
+    // and white, Ken 2026-11-27); only near-black would disappear.
+    final sOk = s != null && s.computeLuminance() > 0.02;
+    if (usable(p) && sOk) {
       int hex(String h) =>
           int.parse(h.trim().replaceFirst('#', ''), radix: 16);
       final hp = hex(primaryColour), hs = hex(secondaryColour);
