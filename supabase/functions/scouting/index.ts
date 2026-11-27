@@ -24,6 +24,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
 import { buildReport, type Comp, type Game, norm, type Report } from "./report.ts";
 import { buildScoutingPdf } from "./pdf.ts";
+import { aiFetch } from "../_shared/ai-usage.ts";
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -107,7 +108,7 @@ async function callGemini(apiKey: string, userText: string): Promise<string[]> {
   });
   let res: Response | null = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
-    res = await fetch(`${GEMINI_URL}?key=${apiKey}`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+    res = await aiFetch("scouting", `${GEMINI_URL}?key=${apiKey}`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
     if (res.ok) break;
     console.warn(`Gemini attempt ${attempt} failed (${res.status}):`, (await res.text()).slice(0, 200));
     if (!(res.status === 503 || res.status === 429) || attempt === 3) break;

@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
+import { aiFetch } from "../_shared/ai-usage.ts";
 
 // Requires GEMINI_API_KEY set as a Supabase secret:
 //   supabase secrets set GEMINI_API_KEY=AIza...
@@ -224,7 +225,7 @@ async function callGemini(
   let errText = "";
 
   for (let attempt = 1; attempt <= 3; attempt++) {
-    res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    res = await aiFetch("ai-process-game", `${GEMINI_URL}?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,

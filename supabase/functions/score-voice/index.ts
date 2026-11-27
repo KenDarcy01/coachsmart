@@ -20,6 +20,7 @@
 // Requires GEMINI_API_KEY; GEMINI_MODEL is optional (same secrets as ai-match-report).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
+import { aiFetch } from "../_shared/ai-usage.ts";
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -192,7 +193,7 @@ serve(async (req) => {
     ].filter(Boolean).join("\n");
 
     // Thinking off for speed; models that can't turn it off get asked without it.
-    const ask = (fast: boolean) => fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    const ask = (fast: boolean) => aiFetch("score-voice", `${GEMINI_URL}?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -15,6 +15,7 @@
 // Signed-in users with users.ai_features only (spends Anthropic credit).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { aiFetch } from "../_shared/ai-usage.ts";
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = Deno.env.get("IMPORT_MODEL") ?? "claude-fable-5-1";
@@ -135,7 +136,7 @@ serve(async (req) => {
     // (JSON.parse ignores the leading spaces). Errors after this point arrive as { error } with 200.
     const work = async (): Promise<Response> => {
       const started = Date.now();
-      const res = await fetch(ANTHROPIC_URL, {
+      const res = await aiFetch("import-games", ANTHROPIC_URL, {
         method: "POST",
         headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
         body: JSON.stringify({
