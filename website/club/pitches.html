@@ -34,7 +34,7 @@ const sb = window.supabase.createClient('https://gyfporsbdftvtakdvukt.supabase.c
   const { data: { session } } = await sb.auth.getSession();
   // Not signed in here: the club home has the sign-in form.
   if (!session) return location.replace('/club/?club=' + clubId);
-  location.replace(`https://coachsmart-v3.web.app/pitches?club=${clubId}&look=club#cs_rt=${encodeURIComponent(session.refresh_token)}`);
+  location.replace(`https://coachsmart-v3.web.app/pitches?club=${clubId}&look=club&shell=1#cs_rt=${encodeURIComponent(session.refresh_token)}`);
 })();
 </script>
 </body>
