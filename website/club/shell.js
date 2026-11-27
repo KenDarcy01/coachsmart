@@ -99,6 +99,18 @@ body.cs-shell:not(.cs-own) .band .links{flex-wrap:wrap;row-gap:6px}
 body.cs-shell:not(.cs-own) .band .links span{font-size:14px;color:var(--muted,#5d6573)}
 body.cs-shell:not(.cs-own) .band .chip{background:#fff!important;color:#3b4250!important;border:1.5px solid var(--line,#e4e6eb)!important;font-size:15px!important}
 body.cs-shell:not(.cs-own) .band .chip.on{background:var(--club,var(--csh))!important;border-color:var(--club,var(--csh))!important;color:#fff!important}
+/* One column for every tool (Ken 2026-11-27): the title row and the page line up with the header. */
+body.cs-shell:not(.cs-own) .band{max-width:1180px!important;margin:0 auto!important;padding:30px 48px 14px!important;display:flex!important;align-items:flex-start!important;gap:16px!important;flex-wrap:wrap}
+body.cs-shell:not(.cs-own) .band .top{display:flex;align-items:center;gap:12px;max-width:none!important;margin:0!important}
+body.cs-shell:not(.cs-own) .band .sub:empty{display:none}
+body.cs-shell:not(.cs-own) .band .right{margin-left:auto!important;align-items:flex-end!important;width:auto!important}
+body.cs-shell:not(.cs-own) .band .links span{display:none}
+body.cs-shell:not(.cs-own) .band .links button,body.cs-shell:not(.cs-own) .band .links a{background:#fff!important;border:1.5px solid var(--line,#e4e6eb)!important;border-radius:999px!important;padding:7px 14px!important;cursor:pointer}
+body.cs-shell:not(.cs-own) .band .wk button{background:#fff!important;border:1.5px solid var(--line,#e4e6eb)!important;color:var(--text,#16191f)!important}
+body.cs-shell:not(.cs-own) .band .wk span{color:var(--text,#16191f)!important;font-size:16px!important}
+body.cs-shell:not(.cs-own) .wrap{max-width:1180px!important;margin-left:auto!important;margin-right:auto!important;padding-left:48px!important;padding-right:48px!important}
+body.cs-shell .abar{margin:0!important;padding:30px 0 14px!important}
+@media (max-width:760px){body.cs-shell:not(.cs-own) .wrap{padding-left:14px!important;padding-right:14px!important}body.cs-shell:not(.cs-own) .band{padding:20px 14px 8px!important}body.cs-shell:not(.cs-own) .band .right{margin-left:0!important;align-items:flex-start!important}body.cs-shell .abar{padding:20px 0 8px!important}}
 `;
   document.head.appendChild(st);
 
@@ -150,12 +162,24 @@ body.cs-shell:not(.cs-own) .band .chip.on{background:var(--club,var(--csh))!impo
         `<a href="${esc(h)}" data-k="${k}" class="${k === cur ? 'on' : ''}"><svg viewBox="0 0 24 24">${ICON[k] || ''}</svg>${esc(l)}${n && k !== cur ? `<em>${n > 99 ? '99+' : n}</em>` : ''}</a>`).join('')}</nav>` : ''}</div>`;
     const out = document.getElementById('cshOut');
     if (out) out.onclick = async () => {
-      try { Object.keys(localStorage).filter(k => /^cs_(club_home|spend|sponsors)_/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+      try { Object.keys(localStorage).filter(k => /^cs_(club_home|spend|sponsors|msgs|officers|news|dash)_/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (e) {}
       try { if (client()) await client().auth.signOut(); } catch (e) {}
       location.reload();
     };
     const nv = el.querySelector('.csh-nav'), on = el.querySelector('.csh-nav a.on');
     if (nv && on && nv.scrollWidth > nv.clientWidth) nv.scrollLeft = on.offsetLeft - (nv.clientWidth - on.offsetWidth) / 2;
+    preload();
+  }
+  // Pages open instantly (Ken 2026-11-27, "one ClubSmart app"): when the
+  // pointer rests on a tab (or a finger goes down on it) the browser builds
+  // that tool in the background, data and all, and swaps it in on click
+  // while the header stays put. Chrome and Edge; other browsers just load it.
+  function preload() {
+    if (document.getElementById('csSpec') || !(HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules'))) return;
+    const s = document.createElement('script');
+    s.type = 'speculationrules'; s.id = 'csSpec';
+    s.textContent = JSON.stringify({ prerender: [{ where: { and: [{ selector_matches: '.csh-nav a' }, { not: { selector_matches: '.csh-nav a.on, .csh-nav a[data-k="pitches"]' } }] }, eagerness: 'moderate' }] });
+    document.head.appendChild(s);
   }
   // Called by the club home after it loads fresh data.
   window.csShellSet = h => { H = h; paint(); };

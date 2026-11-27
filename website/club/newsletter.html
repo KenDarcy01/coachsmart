@@ -29,7 +29,6 @@ body{color:var(--text);font-family:DM,system-ui,sans-serif;font-size:16px;-webki
 button,input,select,textarea{font:inherit;color:inherit}
 a{color:inherit}
 .band{background:var(--band);color:var(--onband);padding:14px max(18px, calc((100% - 688px) / 2));display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:4;box-shadow:0 2px 10px #0002}
-body.cs-shell .band{padding:26px max(24px, calc((100% - 812px) / 2)) 10px}
 .band .crest{width:46px;height:46px;object-fit:contain;background:#fff;border-radius:50%;padding:3px;flex:none}
 .band h1{font-size:21px;font-weight:700;line-height:1.1}
 .band .sub{font-size:13px;opacity:.85;margin-top:2px}
@@ -193,9 +192,15 @@ async function boot() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return showLogin();
   if (!clubId) return state('Open this page from your club’s link, for example coachsmart.app/club/newsletter.html?club=1.');
-  try { C = await api({ action: 'club' }); } catch (e) { return state(e.message); }
-  brand(C.club); document.title = C.settings.title + ' · ' + C.club.club_name;
   const iss = Number(P.get('issue'));
+  // Instant open from the last copy, then refresh (Ken 2026-11-27).
+  const ck = 'cs_news_' + clubId + '_' + session.user.id;
+  let shown = null;
+  if (!iss) try { const c = JSON.parse(localStorage.getItem(ck) || 'null'); if (c && c.club) { C = c; brand(C.club); render(); shown = $('app').innerHTML; } } catch (e) {}
+  try { C = await api({ action: 'club' }); } catch (e) { return shown === null ? state(e.message) : toast(e.message); }
+  try { localStorage.setItem(ck, JSON.stringify(C)); } catch (e) {}
+  brand(C.club); document.title = C.settings.title + ' · ' + C.club.club_name;
+  if (shown !== null && $('app').innerHTML !== shown) return;
   if (iss) { const d = await busy('Opening…', () => api({ action: 'get', issue_id: iss })); if (d) { I = d; view = 'issue'; } }
   render();
 }
@@ -256,7 +261,7 @@ function renderHome() {
   setIssueParam(null);
   const last = C.issues.find(i => i.week_start === C.last_week);
   const lastEnd = (() => { const d = new Date(C.last_week + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 6); return d.toISOString().slice(0, 10); })();
-  $('app').innerHTML = band(C.settings.title, C.club.club_name + ' · weekly newsletter') + `<div class="wrap">
+  $('app').innerHTML = band(C.settings.title, 'Weekly newsletter') + `<div class="wrap">
     <div class="card wk"><div><b>${last ? 'Issue ' + last.issue_no + ' · ' : ''}${esc(wk(C.last_week, lastEnd))}</b>
       <div class="m">${last ? (last.lead ? esc(last.lead) : 'Stories ready to pick') : 'Last week’s stories are ready to be suggested'}</div></div>
       ${last ? pill(last.status) : ''}</div>

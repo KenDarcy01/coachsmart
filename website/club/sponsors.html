@@ -30,7 +30,6 @@ a{color:inherit;text-decoration:none}
 .band .crest{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:50%;padding:4px;flex:none}
 .band h1{font-size:23px;font-weight:700;line-height:1.1}
 .band .sub{font-size:13.5px;opacity:.85;margin-top:2px}
-body.cs-shell .band{padding:26px max(48px, calc((100% - 1084px) / 2)) 14px}
 .band .right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
@@ -91,7 +90,7 @@ h2 small+.act{margin-left:10px}
 body.busy .ldpill{display:block}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1a1d23;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;display:none}
 @media (max-width:900px){
-  .band,body.cs-shell .band{padding:18px 14px 10px;flex-wrap:wrap}.band .right{margin-left:0;align-items:flex-start;width:100%}
+  .band{padding:18px 14px 10px;flex-wrap:wrap}.band .right{margin-left:0;align-items:flex-start;width:100%}
   .wrap{padding:4px 14px 40px}.tiles{grid-template-columns:1fr 1fr}.cols{grid-template-columns:1fr}
   .tr{grid-template-columns:110px 1fr 100px}.row{flex-wrap:wrap}.btns{width:100%;justify-content:flex-start}
   .irow{grid-template-columns:1fr 1fr}
@@ -240,7 +239,7 @@ function render() {
   const cur = S.find(s => R && s.sponsor_id === R.sponsor_id) || S[0];
   const months = []; for (let i = 5; i >= 0; i--) { const [y, mo] = D.current.split('-').map(Number); const d = new Date(Date.UTC(y, mo - 1 - i, 1)); months.push(d.toISOString().slice(0, 10)); }
   $('app').innerHTML = `
-  <div class="band">${clubHomePill(clubId, c.crest)}<div><h1>Club partners</h1><div class="sub">${esc(c.club_name)}${cur ? ' · ' + esc(cur.name) + ' · ' + mLong(D.month) : ''}</div></div>
+  <div class="band">${clubHomePill(clubId, c.crest)}<div><h1>Club partners</h1><div class="sub">${cur ? esc(cur.name) + ' · ' + mLong(D.month) : 'Sponsor slots in the app'}</div></div>
    <div class="right"><div class="chips">${months.map(m => `<button class="chip ${m === D.month ? 'on' : ''}" onclick="setMonth('${m}')">${mLabel(m)}</button>`).join('')}</div>
    <div class="links"><button onclick="editSheet()">Add a sponsor</button><button onclick="window.print()">Print report</button><button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
   <div class="wrap">

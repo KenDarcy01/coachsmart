@@ -27,17 +27,13 @@ a{color:inherit;text-decoration:none}
 .band .sub{font-size:13.5px;opacity:.85;margin-top:2px}
  /* Under the shared ClubSmart header (Ken 2026-11-27): the dashboard's own band
     becomes a plain title row; the sidebar sticks to the top of the window. */
-body.cs-shell .band{padding:24px 28px 14px}
-body.cs-shell .band .links a{display:none!important}
-body.cs-shell .side{top:0;height:100vh}
-body.cs-shell .layout{min-height:100vh}
-body.cs-shell .sk-band{background:none;color:var(--text)}body.cs-shell .sk-band img{display:none}body.cs-shell .sk-band .sub{color:var(--muted);opacity:1;font-size:16px}
+/* ClubSmart column (Ken 2026-11-27): same width and left edge as the header and every other tool. */
+body.cs-shell .layout{max-width:1180px;margin:0 auto;padding:0 48px;grid-template-columns:250px minmax(0,1fr);gap:24px;min-height:0}
+body.cs-shell .side{top:16px;height:calc(100vh - 32px);border:0;border-radius:18px;box-shadow:0 1px 3px #0000000f;padding:12px 10px 24px}
+body.cs-shell .main{padding:0 0 60px;max-width:none}
+body.cs-shell .sk-wrap{padding:22px 48px}
+@media (max-width:760px){body.cs-shell .layout{padding:0 14px}body.cs-shell .sk-wrap{padding:14px}}
 .band .right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.dbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:20px 28px 6px;--onband:#1a1d23}
-.dbar .chip{background:#fff;border:1px solid var(--line);color:var(--text);font-size:14.5px;padding:8px 15px}
-.dbar .chip.on{background:var(--band);border-color:var(--band);color:#fff}
-.dbar .wk{margin-top:0}.dbar .wk button{background:#fff;border:1px solid var(--line);color:var(--text)}.dbar .wk span{color:var(--text);font-size:15px}
-@media (max-width:700px){.dbar{padding:14px 14px 4px}}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
 .chip.on{background:var(--onband);color:var(--band)}
@@ -508,15 +504,25 @@ async function load0() {
   const sp = ensureStandings();
   if (period === 'week') { await sp; return loadWeek(); }
   const [from, to] = range();
+  // Instant open from the last copy of this period, then refresh (Ken 2026-11-27).
+  let uid = ''; try { uid = JSON.parse(localStorage.getItem('sb-gyfporsbdftvtakdvukt-auth-token')).user.id; } catch (e) {}
+  const ck = 'cs_dash_' + clubId + '_' + uid + '_' + period + '_' + from.toISOString().slice(0, 10);
+  let fromCache = false;
+  if (!D && uid) try {
+    const c = JSON.parse(localStorage.getItem(ck) || 'null');
+    if (c && c.club) { D = c; fromCache = true; brand(D.club); document.title = D.club.club_name + ' · Club dashboard'; model = build(D, period === 'last' ? seasonYear - 1 : seasonYear); await sp; route(); }
+  } catch (e) { D = null; }
   if (!D) skeleton();
   const { data, error } = await sb.rpc('get_club_dashboard', { p_club_id: clubId, p_from: from.toISOString(), p_to: to.toISOString() });
+  if (fromCache && (error || data.error)) return;
+  if (!error && !data.error && uid) { try { Object.keys(localStorage).filter(k => k.startsWith('cs_dash_' + clubId + '_')).forEach(k => localStorage.removeItem(k)); localStorage.setItem(ck, JSON.stringify(data)); } catch (e) {} }
   if (!error && !data.error && period === 'season') Dseason = data;
   if (error) return state('Something went wrong loading the dashboard. Please try again.');
   if (data.error === 'not_allowed') return state('You’re not an officer of this club.', true);
   if (data.error) return state('Club not found.');
   D = data; brand(D.club); document.title = D.club.club_name + ' · Club dashboard';
   model = build(D, period === 'last' ? seasonYear - 1 : seasonYear);
-  await sp; route();
+  await sp; if (fromCache) { const y = scrollY; render(); scrollTo(0, y); } else route();
 }
 
 // ── Model ─────────────────────────────────────────────────────────
@@ -1177,7 +1183,7 @@ function sidebar(sel) {
 function shell(sel, body) {
   const c = D.club;
   // Ken 2026-11-27: no dashboard header, only the ClubSmart one. Period chips and week stepper stay as a slim bar.
-  return `<div class="dbar">${period === 'week' ? weekStepper() : ''}${chips()}</div>
+  return `<div class="band"><div><h1>Club dashboard</h1><div class="sub">${period === 'week' ? (tab === 'fixtures' ? 'Fixtures' : 'The week') : periodLabel().replace(/^./, x => x.toUpperCase())}</div>${period === 'week' ? weekStepper() : ''}</div><div class="right">${chips()}</div></div>
    <div class="layout"><nav class="side" id="side">${sidebar(sel)}</nav><main class="main"><button class="menu-btn" onclick="$('side').classList.toggle('open')">Teams and groups<span>▾</span></button>${body}</main></div>`;
 }
 

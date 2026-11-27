@@ -29,7 +29,6 @@ button,input,select{font:inherit;color:inherit}
 a{color:inherit;text-decoration:none}
 .band{background:var(--band);color:var(--onband);padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));position:sticky;top:0;z-index:3}
 .top{display:flex;align-items:center;gap:12px;max-width:812px;margin:0 auto}
-body.cs-shell .band{padding:26px 24px 10px}
 .back{font-size:26px;line-height:1;padding:0 6px 2px 0;background:none;border:0;color:var(--onband);cursor:pointer;opacity:.9}
 .crest{width:44px;height:44px;background:#fff;border-radius:50%;padding:3px;object-fit:contain;flex:none}
 .band h1{font-size:19px;font-weight:700;line-height:1.15}.band .sub{font-size:13px;opacity:.88;margin-top:2px}
@@ -200,10 +199,16 @@ async function load() {
   if (!clubId) return state('Open this page from your club’s link, for example coachsmart.app/club/officers.html?club=1.');
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return showLogin();
+  // Instant open from the last copy, then refresh (Ken 2026-11-27).
+  const ck = 'cs_officers_' + clubId + '_' + session.user.id;
+  let shown = null;
+  try { const c = JSON.parse(localStorage.getItem(ck) || 'null'); if (c && c.club) { P = c; brand(P.club); render(); shown = $('app').innerHTML; } } catch (e) {}
   const { data, error } = await sb.rpc('club_officer_page', { p_club: clubId });
-  if (error) return state('Something went wrong loading the officers. Please try again.');
-  if (data.error) return state('Only club officers with the “Club officers” tick can open this page. Ask your chairperson or CoachSmart.');
-  P = data; brand(P.club); render();
+  if (error) return shown === null && state('Something went wrong loading the officers. Please try again.');
+  if (data.error) { try { localStorage.removeItem(ck); } catch (e) {} return state('Only club officers with the “Club officers” tick can open this page. Ask your chairperson or CoachSmart.'); }
+  P = data; brand(P.club);
+  try { localStorage.setItem(ck, JSON.stringify(P)); } catch (e) {}
+  if (shown === null || $('app').innerHTML === shown) render();
 }
 const tools = () => TOOLS.filter(t => t[0] !== 'can_lotto' || P.has_lotto);
 const isSuper = () => !!(P.me && P.me.is_super_user);
@@ -226,7 +231,7 @@ function render() {
   if (view === 'edit') return renderEdit();
   if (view === 'invite') return renderInvite();
   const off = P.officers || [], inv = P.invites || [], log = P.log || [];
-  $('app').innerHTML = band('Club officers', P.club.club_name) + `<div class="wrap">
+  $('app').innerHTML = band('Club officers', '') + `<div class="wrap">
     <p class="intro">Who can open which club tool. Tap a person to change what they can open.</p>
     <div class="h2">Officers</div>
     ${off.length ? off.map((o, i) => `<div class="card"><div class="person" onclick="openEdit(${i})">
@@ -302,7 +307,7 @@ function renderEdit() {
   window.scrollTo(0, 0);
 }
 function renderInvite() {
-  $('app').innerHTML = band('Invite an officer', P.club.club_name, true) + `<div class="wrap">
+  $('app').innerHTML = band('Invite an officer', 'They get an email with a link', true) + `<div class="wrap">
     <div class="card">
       <div class="two"><div class="field"><label>First name</label><input id="iFirst" autocomplete="off"></div>
       <div class="field"><label>Last name</label><input id="iLast" autocomplete="off"></div></div>

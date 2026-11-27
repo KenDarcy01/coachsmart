@@ -32,7 +32,6 @@ button,input,select{font:inherit;color:inherit}
 a{color:inherit;text-decoration:none}
 .band{background:var(--band);color:var(--onband);padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));position:sticky;top:0;z-index:3}
 .top{display:flex;align-items:center;gap:12px;max-width:812px;margin:0 auto}
-body.cs-shell .band{padding:26px 24px 10px}
 .back{font-size:26px;line-height:1;padding:0 6px 2px 0;background:none;border:0;color:var(--onband);cursor:pointer;opacity:.9}
 .crest{width:44px;height:44px;background:#fff;border-radius:50%;padding:3px;object-fit:contain;flex:none}
 .band h1{font-size:19px;font-weight:700;line-height:1.15}.band .sub{font-size:13px;opacity:.88;margin-top:2px}
@@ -244,13 +243,18 @@ async function load() {
   if (!clubId) return state('Open this page from your club home.');
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return showLogin();
+  // Instant open from the last copy, then refresh (Ken 2026-11-27).
+  const ck = 'cs_msgs_' + clubId + '_' + session.user.id;
+  let shown = null;
+  try { const c = JSON.parse(localStorage.getItem(ck) || 'null'); if (c && c.T) { T = c.T; M = c.M || []; brand(T); render(); shown = $('app').innerHTML; } } catch (e) {}
   const [t, s, b] = await Promise.all([sb.rpc('get_app_message_targets'), sb.rpc('get_sent_app_messages'), sb.rpc('club_brand', { p_club: clubId })]);
   if (b.data) brand(b.data);
   T = (t.data || []).find(c => Number(c.club_id) === clubId);
   if (t.error || !T) return state('Only club officers with the “Messages” tick can send club messages. Ask your chairperson or CoachSmart.');
   T = { ...(b.data || {}), ...T };
   M = (s.data || []).filter(m => Number(m.club_id) === clubId);
-  render();
+  try { localStorage.setItem(ck, JSON.stringify({ T, M })); } catch (e) {}
+  if (shown === null || $('app').innerHTML === shown) render();
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -290,7 +294,7 @@ function render() {
   const live = all.filter(([m]) => status(m) !== 'ended');
   const done = all.filter(([m]) => status(m) === 'ended').slice(0, 20);
   const chip = (v, l) => `<span class="${filt === v ? 'on' : ''}" onclick="filt='${v}';render()">${l}</span>`;
-  $('app').innerHTML = band('Messages', T.club_name) + `<div class="wrap">
+  $('app').innerHTML = band('Messages', '') + `<div class="wrap">
     <p class="intro">News, important pop-ups and fundraisers for ${esc(T.club_name)} on the app’s home screen.</p>
     <button class="btn" onclick="newMsg()">+ New message</button>
     <div class="filt">${chip('', 'All')}${chip('news', 'News')}${chip('important', 'Important')}${chip('fundraiser', 'Fundraisers')}</div>
@@ -343,7 +347,7 @@ function renderForm() {
   const d = draft;
   if (d.picking) return renderPicker();
   const n = d.reach;
-  $('app').innerHTML = band(d.id ? 'Edit message' : 'New message', T.club_name) + `<div class="wrap">
+  $('app').innerHTML = band(d.id ? 'Edit message' : 'New message', 'Shown on the app home screen') + `<div class="wrap">
   <button class="backlink" onclick="back()">‹ All messages</button>
   <div class="card">
     <div class="field"><label>Type</label>${seg('kind', [['important', 'Important'], ['news', 'News'], ['fundraiser', 'Fundraiser']], d.kind)}
@@ -402,7 +406,7 @@ function openPicker() { grab(); draft.picking = true; draft.q = ''; renderForm()
 function renderPicker() {
   const q = draft.q.toLowerCase();
   const list = T.teams.filter(t => !q || t.team_name.toLowerCase().includes(q));
-  $('app').innerHTML = band('Pick teams', T.club_name) + `<div class="wrap">
+  $('app').innerHTML = band('Pick teams', 'Who sees this message') + `<div class="wrap">
   <button class="backlink" onclick="pickDone()">‹ Back to the message</button>
   <div class="card">
     <div class="trow" onclick="draft.team_ids=[];renderPicker()"><span class="tick ${draft.team_ids.length ? '' : 'on'}"></span><b>All ${esc(T.club_name)} teams</b></div>
