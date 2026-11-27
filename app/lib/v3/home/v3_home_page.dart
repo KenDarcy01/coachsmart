@@ -983,7 +983,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   Widget _tabs(int role) {
     final items = <_Tab>[
       if (_hasClubTab)
-        _Tab('Home', Icons.shield_rounded, _openClubTab,
+        _Tab('Home', Icons.home_rounded, _openClubTab,
             active: _clubTab, badge: _clubTab ? 0 : _clubBadge),
       _Tab('Events', Icons.calendar_month_rounded, _openEventsTab,
           active: !_clubTab),
