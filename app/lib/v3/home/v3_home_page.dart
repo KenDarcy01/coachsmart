@@ -29,6 +29,7 @@ import '../lotto/v3_lotto_link.dart';
 import '/v3/tracking/v3_track.dart';
 import '../pitches/v3_pitch_api.dart';
 import '../clubs/v3_club_home.dart';
+import '../clubs/v3_club_social.dart';
 import '../clubs/v3_follow_api.dart';
 import '../clubs/v3_follow_club_page.dart';
 import '../matches/v3_matches_models.dart';
@@ -82,6 +83,9 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   bool _followerOnly = false;
   LiveMatchesData? _clubMatches;
   int _selectedClub = 0;
+
+  /// Club news from the club's social posts (get_club_social_posts).
+  List<ClubSocialPost> _social = const [];
 
   // Fixtures / Results pill on the club screen (Ken, 2026-11-27).
   ClubResultsData? _clubResults;
@@ -367,8 +371,19 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _loadClubSocial() async {
+    final ids = [
+      for (final c in (_followerOnly ? _followed : _myClubs)) c.clubId
+    ];
+    try {
+      final posts = await ClubSocialPost.load(ids);
+      if (mounted) setState(() => _social = posts);
+    } catch (_) {}
+  }
+
   Future<void> _loadClubMatches() async {
     unawaited(_loadClubResults());
+    unawaited(_loadClubSocial());
     try {
       final r = await SupaFlow.client
           .rpc('get_live_matches', params: {'p_upcoming_days': 14});
@@ -885,10 +900,18 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
                   onItem: _openNewsItem,
                   stacked: true),
             ),
+          // The club's own social posts (Ken, 2026-11-27): Club news.
+          if (_socialInScope.isNotEmpty)
+            V3ClubSocialNews(
+                key: ValueKey('social-$_selectedClub'), posts: _socialInScope),
           if (_msgs.fundraisers.isNotEmpty)
             V3FundraiserRow(items: _msgs.fundraisers, onTap: _openFundraiser),
         ],
       );
+
+  List<ClubSocialPost> get _socialInScope => _selectedClub == 0
+      ? _social
+      : _social.where((p) => p.clubId == _selectedClub).toList();
 
   // ---- timeline (design §5.3 to §6.8) -------------------------------------
 

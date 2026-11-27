@@ -523,7 +523,7 @@ class _V3NewsCardsState extends State<V3NewsCards> {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: widget.onTap,
-                    child: Text(club ? 'Club news' : 'News',
+                    child: Text(club ? 'Club notices' : 'Notices',
                         style: V3.tight(19, weight: FontWeight.w700)),
                   ),
                 ),
@@ -548,8 +548,13 @@ class _V3NewsCardsState extends State<V3NewsCards> {
           for (var i = 0; i < news.length && i < 2; i++)
             Padding(
               padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
-              child: SizedBox(
-                  height: 132, child: _NewsCard(news[i], onTap: _tap(news[i]))),
+              // A notice without a photo is one slim line; with a photo it
+              // keeps the tile (Ken, 2026-11-27).
+              child: news[i].imageUrl.isEmpty
+                  ? _NoticeLine(news[i], onTap: _tap(news[i]))
+                  : SizedBox(
+                      height: 132,
+                      child: _NewsCard(news[i], onTap: _tap(news[i]))),
             )
         else
           SizedBox(
@@ -589,6 +594,70 @@ class _V3NewsCardsState extends State<V3NewsCards> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// A notice with no photo on the club screen: one line, white edge,
+/// "NEW · TODAY" over the title, chevron (Ken, 2026-11-27).
+class _NoticeLine extends StatelessWidget {
+  const _NoticeLine(this.m, {required this.onTap});
+  final AppMessage m;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final when = _when(m.startsAt).toUpperCase();
+    final kicker = [if (!m.seen) 'NEW', if (when.isNotEmpty) when].join(' · ');
+    return Material(
+      color: V3.card,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: V3.line),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 4, color: Colors.white),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 9, 6, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (kicker.isNotEmpty)
+                          Text(kicker,
+                              maxLines: 1,
+                              style: V3.inter(10.5,
+                                  weight: FontWeight.w700,
+                                  color: m.seen ? V3.muted : V3.green,
+                                  letterSpacing: 1.0)),
+                        const SizedBox(height: 2),
+                        Text(m.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: V3.inter(15.5, weight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(right: 10),
+                  child: Icon(Icons.chevron_right_rounded,
+                      color: V3.muted, size: 22),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -901,7 +970,7 @@ Future<void> showNewsSheet(
             ),
           ),
           const SizedBox(height: 14),
-          Text('News', style: V3.tight(20, weight: FontWeight.w700)),
+          Text('Notices', style: V3.tight(20, weight: FontWeight.w700)),
           const SizedBox(height: 4),
           for (final n in news) _NewsRow(n),
         ],
