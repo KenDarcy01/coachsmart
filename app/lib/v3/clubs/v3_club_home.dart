@@ -37,8 +37,8 @@ class ClubResult {
       '${[age, code].where((x) => x.isNotEmpty).join(' ')} v $opposition'
           .trim();
 
-  /// Empty for a big loss: the server leaves its score out.
-  String get score => usScore.isEmpty ? '' : '$usScore to $oppScore';
+  /// "2-16 – 1-18", ours first.
+  String get score => usScore.isEmpty ? '' : '$usScore – $oppScore';
 }
 
 class ClubResultsData {
@@ -515,8 +515,7 @@ class V3ClubHome extends StatelessWidget {
       'drew' => ('DREW', V3.barGrey, V3.text),
       _ => ('LOST', V3.line, V3.muted),
     };
-    final line =
-        [x.score, x.competition].where((s) => s.isNotEmpty).join(' · ');
+    final line = x.competition;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Row(children: [
@@ -542,6 +541,13 @@ class V3ClubHome extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: V3.inter(15.5, weight: FontWeight.w600)),
+            // The score on its own line, big and white (Ken, 2026-11-27:
+            // hard to read in grey).
+            if (x.score.isNotEmpty) ...[
+              const SizedBox(height: 3),
+              Text(x.score,
+                  style: V3.tight(18, weight: FontWeight.w700, height: 1.2)),
+            ],
             const SizedBox(height: 2),
             Text(line,
                 maxLines: 2,
@@ -564,7 +570,8 @@ class V3ClubHome extends StatelessWidget {
   Widget _diary(DateTime? t, Color? band, bool today, Widget below) {
     final d = t == null ? null : dublin(t);
     final top = today ? 'TODAY' : (d == null ? '' : DateFormat('EEE').format(d));
-    final b = today ? V3.green : (band ?? V3.green);
+    // Same club-colour band on today's card too (Ken, 2026-11-27).
+    final b = band ?? V3.green;
     final onBand = b.computeLuminance() > 0.5 ? V3.bg : Colors.white;
     return SizedBox(
       width: 52,

@@ -373,6 +373,20 @@ class V3PinnedImportant extends StatelessWidget {
                               style: V3.inter(12.5, color: V3.muted)),
                         ),
                       ]),
+                      // The message's photo (Ken, 2026-11-27: it was missing).
+                      if (m.imageUrl.isNotEmpty) ...[
+                        const SizedBox(height: 9),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: Image.network(m.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    const ColoredBox(color: V3.bg)),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 7),
                       Text(m.title,
                           style: V3.tight(17,
@@ -508,13 +522,12 @@ class _V3NewsCardsState extends State<V3NewsCards> {
                 Expanded(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: widget.stacked ? null : widget.onTap,
+                    onTap: widget.onTap,
                     child: Text(club ? 'Club news' : 'News',
                         style: V3.tight(19, weight: FontWeight.w700)),
                   ),
                 ),
-                if (!widget.stacked)
-                  Material(
+                Material(
                     color: news.first.clubColour ?? V3.green,
                     borderRadius: BorderRadius.circular(20),
                     child: InkWell(
@@ -548,8 +561,10 @@ class _V3NewsCardsState extends State<V3NewsCards> {
               ],
             ),
           ),
+        // Club screen: the newest two, the rest under All news (Ken,
+        // 2026-11-27: "Where is the button to show all news?").
         if (widget.stacked)
-          for (var i = 0; i < news.length; i++)
+          for (var i = 0; i < news.length && i < 2; i++)
             Padding(
               padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
               child: SizedBox(
