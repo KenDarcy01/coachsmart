@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LGFA Section Review 2026 · CoachSmart</title>
+<meta name="description" content="Every LGFA club and competition in 2026: CCC2 and Adult results, club comparisons and leaders, filterable and live.">
+<link rel="icon" href="/logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* CoachSmart dark theme. Series colours validated for the dark surface: CCC2 green, Adult blue. */
+:root{
+  --g:#87c232;--bg:#0f1215;--app:#14181b;--card:#1e222b;--card2:#252a34;--line:#2e3440;--text:#f1f4f8;--muted:#a1a1a2;--soft:#c9ced6;
+  --ccc2:#76B02A;--adult:#5B8DEF;--pos:#8fd14f;--neg:#ff7b72;
+  --display:'Bebas Neue','Arial Narrow',sans-serif;--body:'DM Sans',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;line-height:1.45}
+a{color:var(--g)}
+h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:.03em;margin:0}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wrap{max-width:1160px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left))}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:40;background:rgba(15,18,21,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:12px;height:56px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:24px;letter-spacing:2px;color:var(--text);text-decoration:none}
+.logo img{height:24px}.logo span{color:var(--g)}
+.top .sp{flex:1}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:8px 13px;font:600 13px var(--body);cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--g)}
+.btn.primary{background:var(--g);color:#0f1215;border-color:var(--g)}
+
+/* hero */
+.hero{padding:34px 0 18px}
+.eyebrow{font-family:var(--display);letter-spacing:.3em;color:var(--soft);font-size:17px}
+.hero h1{font-size:clamp(44px,7vw,74px);line-height:.95;margin:6px 0 6px}
+.hero h1 i{font-style:normal;color:var(--g)}
+.hero p{margin:0;color:var(--muted);max-width:760px}
+
+/* filters */
+.filters{position:sticky;top:56px;z-index:30;background:rgba(20,24,27,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin:6px 0 20px}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f label{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+select,input[type=date],input[type=search]{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:7px 9px;font:500 13px var(--body);min-width:0}
+select:focus,input:focus{outline:2px solid var(--g);outline-offset:1px}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;color:var(--soft);font:600 13px var(--body);padding:6px 12px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--g);color:#0f1215}
+.f.reset{margin-left:auto}
+.linkbtn{background:none;border:0;color:var(--g);font:600 13px var(--body);cursor:pointer;padding:7px 2px}
+.active-note{font-size:12px;color:var(--muted);margin:-10px 0 16px}
+
+/* cards & grid */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi b{display:block;font-family:var(--display);font-weight:400;font-size:36px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi span{display:block;margin-top:5px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpi small{display:block;font-size:11.5px;color:var(--soft);margin-top:3px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.sec{margin:26px 0 10px;display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sec h2{font-size:30px;display:flex;align-items:center;gap:10px}
+.sec h2::before{content:"";width:14px;height:6px;background:var(--g);transform:skewX(-20deg)}
+.sec p{margin:0;color:var(--muted);font-size:12.5px}
+.ct{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.ct h3{font-size:22px}
+.ct p{margin:0;color:var(--muted);font-size:11.5px}
+.legend{display:flex;gap:12px;font-size:12px;color:var(--soft)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.lv{border-top:4px solid var(--ccc2)}.lv.adult{border-top-color:var(--adult)}
+.lv h3{font-size:28px}.lv.ccc2 h3{color:var(--ccc2)}.lv.adult h3{color:var(--adult)}
+.dl{display:grid;grid-template-columns:1fr 1fr;column-gap:18px;margin-top:6px}
+.dl div{display:flex;justify-content:space-between;border-bottom:1px dotted var(--line);padding:4px 0;gap:8px}
+.dl dt{color:var(--muted)}.dl dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* tables */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:7px 7px;border-bottom:2px solid var(--soft);white-space:nowrap}
+td{padding:6px 7px;border-bottom:1px solid var(--line);vertical-align:top}
+th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--text)}
+th.sorted{color:var(--g)}th.sorted::after{content:" ▾"}th.sorted.asc::after{content:" ▴"}
+tr.tot td{font-weight:600;background:var(--card2)}
+tr.me td{background:rgba(135,194,50,.14)}
+tr.me td:first-child{box-shadow:inset 3px 0 var(--g)}
+tr.dim td{color:var(--muted)}
+td.club{font-weight:600;white-space:nowrap}
+.club-link{background:none;border:0;color:inherit;font:inherit;cursor:pointer;padding:0;text-align:left}
+.club-link:hover{color:var(--g);text-decoration:underline}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.wbar{display:inline-block;width:44px;height:7px;background:#2e3440;border-radius:4px;margin-right:7px;vertical-align:0;overflow:hidden}
+.wbar i{display:block;height:100%;border-radius:4px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}
+.sub{font-size:11.5px;color:var(--muted)}
+.sc{font-weight:700;font-variant-numeric:tabular-nums}
+.search{margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search input{width:220px}
+
+/* profile */
+.profile{border:1px solid var(--g);background:linear-gradient(180deg,rgba(135,194,50,.08),transparent 60%),var(--card)}
+.profile h2{font-size:36px}
+.ranks{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.rk{background:var(--card2);border-radius:10px;padding:10px 12px}
+.rk b{font-family:var(--display);font-weight:400;font-size:28px;line-height:1}
+.rk .avg{font-size:11.5px;color:var(--muted)}
+.rk .lab{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px}
+.rk .place{font-size:12px;color:var(--soft);margin-top:2px}
+.chip{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--card2);color:var(--soft)}
+.chip.w{background:rgba(135,194,50,.2);color:var(--g)}
+
+/* charts */
+svg.chart{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:var(--body)}
+.t-ax{font-size:11px;fill:var(--muted)}.t-lbl{font-size:12px;fill:var(--text)}.t-val{font-size:11.5px;fill:var(--text);font-weight:600}
+.t-pt{font-size:11px;fill:var(--text);font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3px}
+.t-q{font-size:11px;fill:#6f7680;font-style:italic}
+.grid{stroke:#2a2f38}.mid{stroke:#4a515c;stroke-dasharray:3 3}.base{stroke:#6f7680}.lead{stroke:#6f7680;stroke-width:.8}
+[data-tip]{cursor:default}
+[data-tip]:hover{opacity:.82}
+#tip{position:fixed;z-index:99;pointer-events:none;background:#0b0d10;border:1px solid var(--line);color:var(--text);font-size:12.5px;padding:7px 10px;border-radius:8px;max-width:280px;box-shadow:0 6px 18px rgba(0,0,0,.4);display:none}
+.hb{display:grid;gap:7px}.hbr{display:grid;grid-template-columns:minmax(0,1.25fr) 1fr 44px;align-items:center;gap:8px;font-size:13px}.hbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hbt{height:12px;background:#2a2f38;border-radius:6px;overflow:hidden}.hbt i{display:block;height:100%;border-radius:6px}.hbr b{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.loading,.err{padding:60px 0;text-align:center;color:var(--muted)}
+.notes p{color:var(--soft);margin:0 0 8px;max-width:900px}
+.notes b{color:var(--text)}
+footer{color:var(--muted);font-size:12px;padding:30px 0 50px}
+@media (max-width:820px){.grid2,.grid3{grid-template-columns:1fr}.filters{position:static}.dl{grid-template-columns:1fr}.top .btn span{display:none}}
+@media print{.top,.filters{display:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="/"><img src="/logo.svg" alt="">COACH<span>SMART</span></a>
+  <div class="sp"></div>
+  <button class="btn" id="copy" type="button" title="Copy a link to this view">🔗 <span>Copy link</span></button>
+  <button class="btn primary" id="pdf" type="button">⤓ <span>PDF report</span></button>
+</div></header>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="eyebrow">COACHSMART · INSIGHTS</div>
+    <h1>LGFA Section <i>Review</i></h1>
+    <p id="sub">Every ladies Gaelic football club and competition in the CoachSmart results feed, CCC2 and Adult, live.</p>
+  </section>
+
+  <nav class="filters" aria-label="Filters">
+    <div class="f"><label>Level</label><div class="seg" id="f-level" role="group">
+      <button data-v="all" type="button">All</button><button data-v="ccc2" type="button">CCC2</button><button data-v="adult" type="button">Adult</button></div></div>
+    <div class="f"><label for="f-age">Grade</label><select id="f-age"></select></div>
+    <div class="f"><label for="f-kind">Competition</label><select id="f-kind">
+      <option value="all">All types</option><option>League</option><option>Championship</option><option>Cup</option><option value="Shield/Plate">Shield / Plate</option><option>Féile</option></select></div>
+    <div class="f"><label for="f-div">Division</label><select id="f-div">
+      <option value="all">All divisions</option><option value="1-3">Div 1–3</option><option value="4-6">Div 4–6</option><option value="7-9">Div 7–9</option><option value="10-99">Div 10+</option><option value="none">No division</option></select></div>
+    <div class="f"><label for="f-from">From</label><input type="date" id="f-from"></div>
+    <div class="f"><label for="f-to">To</label><input type="date" id="f-to"></div>
+    <div class="f"><label for="f-club">Club</label><select id="f-club"><option value="">All clubs</option></select></div>
+    <div class="f"><label for="f-min">Rank clubs with</label><select id="f-min"><option value="5">5+ games</option><option value="10">10+ games</option><option value="15">15+ games</option><option value="25">25+ games</option></select></div>
+    <div class="f reset"><button class="linkbtn" id="reset" type="button">Reset</button></div>
+  </nav>
+
+  <main id="app"><div class="loading">Loading every LGFA result…</div></main>
+
+  <footer>Data: CoachSmart results feed (Dublin LGFA fixtures and results), refreshed automatically. CCC1 (U12 and younger, non-competitive Go Games) is excluded. <a href="/">coachsmart.app</a></footer>
+</div>
+<div id="tip"></div>
+
+<script>
+const SUPABASE_URL = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const PDF_URL = 'CoachSmart-LGFA-Section-2026.pdf';
+const LEVELS = ['ccc2', 'adult'];
+const LV = { ccc2: 'CCC2', adult: 'Adult' };
+const COL = { ccc2: '#76B02A', adult: '#5B8DEF', all: '#87c232' };
+const AGES = { ccc2: ['U13', 'U14', 'U15', 'U16'], adult: ['U18', 'U21', 'Junior', 'Intermediate', 'Senior', 'Adult'] };
+const AGE_ORDER = [...AGES.ccc2, ...AGES.adult];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pct = (x, d = 0) => (x * 100).toFixed(d) + '%';
+const f1 = x => x.toFixed(1);
+const sg = x => { const r = Math.round(x * 10) / 10; return (r > 0 ? '+' : r < 0 ? '−' : '') + Math.abs(r).toFixed(1); };
+const n = x => x.toLocaleString('en-IE');
+const fmtD = d => `${+d.slice(8, 10)} ${MONTHS[+d.slice(5, 7) - 1]}`;
+const ord = k => k + (['th', 'st', 'nd', 'rd'][(k % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][k % 100] || 'th');
+
+// ── competition helpers (same rules as the PDF) ─────────────────────────────
+function divOf(name) { const m = /Div(?:ision)?\.? ?(\d+)/i.exec(name); return m ? +m[1] : null; }
+function kindOf(name) {
+  const s = name.toLowerCase();
+  if (/f[eé]ile/.test(s)) return 'Féile';
+  if (s.includes('league')) return 'League';
+  if (s.includes('championship') || /\b(platinum|gold|silver|bronze|diamond)\b/.test(s)) return 'Championship';
+  if (s.includes('cup')) return 'Cup';
+  if (s.includes('shield') || s.includes('plate')) return 'Shield/Plate';
+  return 'Other';
+}
+const goals = s => (s && s.includes('-')) ? +s.split('-')[0] || 0 : 0;
+
+// ── state ───────────────────────────────────────────────────────────────────
+const P = new URLSearchParams(location.search);
+const DEF = { level: 'all', age: 'all', kind: 'all', div: 'all', from: '', to: '', club: '', min: '15' };
+const S = Object.fromEntries(Object.keys(DEF).map(k => [k, P.get(k) ?? DEF[k]]));
+let G = [], COMPS = new Map(), NAMES = new Map(), RANGE = ['', ''];
+let SORT = { key: 'winp', asc: false }, QUERY = '';
+
+async function get(path) {
+  const out = [];
+  for (let off = 0; ; off += 1000) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, Range: `${off}-${off + 999}` } });
+    if (!r.ok) throw new Error(`Load failed (${r.status})`);
+    const rows = await r.json();
+    out.push(...rows);
+    if (rows.length < 1000) return out;
+  }
+}
+
+async function load() {
+  const comps = await get(`gaa_competitions?select=comp_id,name,age,level&code=eq.Ladies%20Football&level=in.(ccc2,adult)&order=comp_id`);
+  for (const c of comps) COMPS.set(String(c.comp_id), { id: String(c.comp_id), name: c.name, age: c.age, level: c.level, kind: kindOf(c.name), div: divOf(c.name) });
+  const ids = [...COMPS.keys()];
+  const sel = 'game_id,comp_id,start_at,status,home_club_id,away_club_id,home_team,away_team,home_score,away_score,home_pts,away_pts,note';
+  const rows = [];
+  for (let i = 0; i < ids.length; i += 150) rows.push(...await get(`gaa_games?select=${sel}&comp_id=in.(${ids.slice(i, i + 150).join(',')})&order=start_at.asc`));
+  for (const r of rows) {
+    const c = COMPS.get(String(r.comp_id)); if (!c) continue;
+    const note = r.note || '';
+    const x = /(not played|^abandoned|conce+ded)/i.test(note);
+    const fin = /final$/i.test(c.name) || (/final|1st and 2nd/i.test(note) && !/semi|quarter/i.test(note));
+    NAMES.set(r.home_club_id, r.home_team); NAMES.set(r.away_club_id, r.away_team);
+    G.push({ id: r.game_id, c, date: (r.start_at || '').slice(0, 10), status: r.status, hc: r.home_club_id, ac: r.away_club_id, ht: r.home_team, at: r.away_team,
+      hs: r.home_score, as: r.away_score, hp: r.home_pts, ap: r.away_pts, x, fin });
+  }
+  G.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  // a league "has a final" when a final is played inside it or a separate "… Final/Playoff" competition exists
+  const names = [...COMPS.values()];
+  for (const c of COMPS.values()) {
+    if (c.kind !== 'League' || /final|playoff/i.test(c.name)) continue;
+    c.hasFinal = G.some(g => g.c === c && g.fin) || names.some(o => o !== c && o.name.startsWith(c.name) && /final|playoff/i.test(o.name.slice(c.name.length)));
+  }
+  const played = G.filter(isPlayed);
+  RANGE = [played.reduce((a, g) => g.date < a ? g.date : a, '9999'), played.reduce((a, g) => g.date > a ? g.date : a, '0000')];
+}
+const isPlayed = g => g.status === 'result' && !g.x && g.hp != null && g.ap != null;
+
+// ── filtering & stats ───────────────────────────────────────────────────────
+function compOk(c) {
+  if (S.level !== 'all' && c.level !== S.level) return false;
+  if (S.age !== 'all' && c.age !== S.age) return false;
+  if (S.kind !== 'all' && c.kind !== S.kind) return false;
+  if (S.div !== 'all') {
+    if (S.div === 'none') { if (c.div != null) return false; }
+    else { const [lo, hi] = S.div.split('-').map(Number); if (c.div == null || c.div < lo || c.div > hi) return false; }
+  }
+  return true;
+}
+const dateOk = g => (!S.from || g.date >= S.from) && (!S.to || g.date <= S.to);
+
+function summ(gs) {
+  const k = gs.length; if (!k) return null;
+  let tot = 0, gl = 0, hw = 0, dr = 0, mar = 0, close = 0, blow = 0, hi = 0, fin = 0;
+  const clubs = new Set(), comps = new Set(), entries = new Set();
+  for (const g of gs) {
+    const t = g.hp + g.ap, m = Math.abs(g.hp - g.ap);
+    tot += t; gl += goals(g.hs) + goals(g.as); hw += g.hp > g.ap; dr += g.hp === g.ap; mar += m; close += m <= 3; blow += m >= 20; hi = Math.max(hi, g.hp, g.ap); fin += g.fin;
+    clubs.add(g.hc); clubs.add(g.ac); comps.add(g.c.id); entries.add(g.c.id + ':' + g.hc); entries.add(g.c.id + ':' + g.ac);
+  }
+  return { n: k, comps: comps.size, clubs: clubs.size, entries: entries.size, tot: tot / k, team: tot / k / 2, goals: gl / k, goalShare: 3 * gl / tot,
+    homew: hw / k, draws: dr / k, margin: mar / k, close: close / k, blow: blow / k, hi, finals: fin };
+}
+
+function h2hSort(rows, games) {
+  rows.sort((a, b) => b.pts - a.pts || b.diff - a.diff || b.pf - a.pf || a.team.localeCompare(b.team));
+  const out = [];
+  for (let i = 0; i < rows.length;) {
+    let j = i; while (j + 1 < rows.length && rows[j + 1].pts === rows[i].pts) j++;
+    let grp = rows.slice(i, j + 1);
+    if (grp.length === 2) {
+      const [a, b] = [grp[0].cid, grp[1].cid]; let pa = 0, pb = 0;
+      for (const g of games) {
+        if (!((g.hc === a && g.ac === b) || (g.hc === b && g.ac === a))) continue;
+        const [x, y] = g.hc === a ? [g.hp, g.ap] : [g.ap, g.hp];
+        if (x > y) pa += 2; else if (y > x) pb += 2; else { pa++; pb++; }
+      }
+      if (pb > pa) grp = [grp[1], grp[0]];
+    }
+    out.push(...grp); i = j + 1;
+  }
+  return out;
+}
+
+function leagueTables(compIds) {
+  const tables = new Map();
+  for (const id of compIds) {
+    const c = COMPS.get(id);
+    if (c.kind !== 'League' || /final|playoff/i.test(c.name)) continue;
+    const all = G.filter(g => g.c === c), res = all.filter(isPlayed);
+    if (res.length < 3) continue;
+    const done = !all.some(g => g.status === 'fixture' && !g.x);
+    const t = new Map();
+    for (const g of res) for (const [me, pf, pa] of [[g.hc, g.hp, g.ap], [g.ac, g.ap, g.hp]]) {
+      const r = t.get(me) || { cid: me, team: NAMES.get(me), p: 0, pts: 0, pf: 0, pa: 0, diff: 0 };
+      r.p++; r.pf += pf; r.pa += pa; r.pts += pf > pa ? 2 : pf === pa ? 1 : 0; r.diff = r.pf - r.pa; t.set(me, r);
+    }
+    const rows = h2hSort([...t.values()], res); rows.forEach((r, i) => r.pos = i + 1);
+    tables.set(id, { c, rows, done });
+  }
+  return tables;
+}
+
+function clubStats(gs, tables) {
+  const out = new Map();
+  for (const g of gs) for (const [me, pf, pa, mg, home] of [[g.hc, g.hp, g.ap, goals(g.hs), true], [g.ac, g.ap, g.hp, goals(g.as), false]]) {
+    let r = out.get(me);
+    if (!r) out.set(me, r = { cid: me, team: NAMES.get(me), p: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, gf: 0, cw: 0, cd: 0, cl: 0, fp: 0, fw: 0, hp: 0, hw: 0, comps: new Set(), levels: new Set(), finals: [] });
+    r.p++; r.pf += pf; r.pa += pa; r.gf += mg; r.comps.add(g.c.id); r.levels.add(g.c.level);
+    if (home) { r.hp++; r.hw += pf > pa; }
+    if (pf > pa) r.w++; else if (pf === pa) r.d++; else r.l++;
+    if (Math.abs(pf - pa) <= 3) { if (pf > pa) r.cw++; else if (pf < pa) r.cl++; else r.cd++; }
+    if (g.fin) { r.fp++; if (pf > pa) { r.fw++; r.finals.push(g); } }
+  }
+  for (const r of out.values()) {
+    const k = r.p;
+    r.winp = (r.w + r.d / 2) / k; r.pfg = r.pf / k; r.pag = r.pa / k; r.dg = (r.pf - r.pa) / k; r.gfg = r.gf / k;
+    r.closeN = r.cw + r.cd + r.cl; r.closep = r.closeN ? (r.cw + r.cd / 2) / r.closeN : null;
+    const lg = [...r.comps].map(id => tables.get(id)).filter(Boolean);
+    r.leagues = lg.length;
+    const divs = lg.map(t => t.c.div).filter(d => d != null);
+    r.avgdiv = divs.length ? divs.reduce((a, b) => a + b, 0) / divs.length : null;
+    r.lgRows = lg.map(t => ({ t, row: t.rows.find(x => x.cid === r.cid) }));
+    r.lgWon = r.lgRows.filter(x => x.t.done && x.row.pos === 1 && !x.t.c.hasFinal);
+    r.titles = r.fw + r.lgWon.length;
+    r.homep = r.hp ? r.hw / r.hp : null;
+  }
+  return out;
+}
+
+// ── charts ──────────────────────────────────────────────────────────────────
+function hbar(rows, color, fmt, maxv) {
+  maxv = maxv || Math.max(...rows.map(r => r[1]), 1);
+  return '<div class="hb">' + rows.map(([label, v, tip]) => `<div class="hbr" data-tip="${esc(tip)}"><span class="hbl">${esc(label)}</span><span class="hbt"><i style="width:${Math.max(1, 100 * v / maxv).toFixed(1)}%;background:${color}"></i></span><b>${fmt(v)}</b></div>`).join('') + '</div>';
+}
+
+function bars(cats, series, fmt, ymax, ticks = 4) {
+  const w = 520, h = 220, pl = 36, pb = 24, pt = 10, ph = h - pb - pt, cw = (w - pl) / cats.length;
+  const bw = Math.min(20, (cw - 10) / series.length);
+  let s = `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img">`;
+  for (let k = 0; k <= ticks; k++) { const y = pt + ph - ph * k / ticks; s += `<line x1="${pl}" x2="${w}" y1="${y}" y2="${y}" class="grid"/><text x="${pl - 6}" y="${y + 4}" text-anchor="end" class="t-ax">${fmt(ymax * k / ticks)}</text>`; }
+  cats.forEach((c, i) => {
+    const x0 = pl + i * cw + (cw - bw * series.length - 2 * (series.length - 1)) / 2;
+    series.forEach(([key, label, vals, tips], j) => {
+      const v = vals[i]; if (v == null) return;
+      const bh = Math.max(3, ph * Math.min(v, ymax) / ymax), x = x0 + j * (bw + 2);
+      s += `<path data-tip="${esc(label + ' · ' + c + ': ' + (tips ? tips[i] : fmt(v)))}" d="M${x},${pt + ph} v${-(bh - 4)} q0,-4 4,-4 h${bw - 8} q4,0 4,4 v${bh - 4} z" fill="${COL[key]}"/>`;
+    });
+    s += `<text x="${pl + i * cw + cw / 2}" y="${h - 6}" text-anchor="middle" class="t-ax">${esc(c)}</text>`;
+  });
+  return s + `<line x1="${pl}" x2="${w}" y1="${pt + ph}" y2="${pt + ph}" class="base"/></svg>`;
+}
+
+function scatter(rows, color, me) {
+  const w = 1000, h = 380, pl = 46, pr = 16, pt = 14, pb = 40, pw = w - pl - pr, ph = h - pt - pb;
+  const X = d => pl + pw * (Math.min(d, 13) - 1) / 12, Y = p => pt + ph * (1 - p);
+  let s = `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Average league division against win rate">`;
+  for (const p of [0, .25, .5, .75, 1]) s += `<line x1="${pl}" x2="${w - pr}" y1="${Y(p)}" y2="${Y(p)}" class="${p === .5 ? 'mid' : 'grid'}"/><text x="${pl - 8}" y="${Y(p) + 4}" text-anchor="end" class="t-ax">${p * 100}%</text>`;
+  for (let d = 1; d <= 13; d++) s += `<text x="${X(d)}" y="${h - 22}" text-anchor="middle" class="t-ax">${d === 13 ? '13+' : d}</text>`;
+  s += `<text x="${pl + pw / 2}" y="${h - 4}" text-anchor="middle" class="t-ax">Average league division (1 = top grade) →</text>`;
+  s += `<text x="${X(1.1)}" y="${Y(.97)}" class="t-q">Strong grade, winning</text><text x="${X(12.9)}" y="${Y(.03) - 2}" text-anchor="end" class="t-q">Lower grade, struggling</text>`;
+  const lab = new Set([...[...rows].sort((a, b) => b.winp - a.winp).slice(0, 3), ...[...rows].sort((a, b) => a.avgdiv - b.avgdiv).slice(0, 3), ...[...rows].sort((a, b) => a.winp - b.winp).slice(0, 2)].map(r => r.cid));
+  if (me) lab.add(me);
+  for (const r of [...rows].sort((a, b) => b.p - a.p)) {
+    const isMe = r.cid === me, rad = 4 + Math.min(r.leagues, 12) * .6;
+    s += `<circle data-tip="${esc(`${r.team}: ${r.leagues} league team(s), avg Div ${r.avgdiv.toFixed(1)}, win rate ${pct(r.winp)} (${r.w}-${r.d}-${r.l})`)}" cx="${X(r.avgdiv)}" cy="${Y(r.winp)}" r="${isMe ? rad + 2 : rad}" fill="${isMe ? '#fff' : color}" fill-opacity="${isMe ? 1 : .7}" stroke="${isMe ? color : '#1e222b'}" stroke-width="${isMe ? 3 : 1.5}"/>`;
+  }
+  const placed = [];
+  for (const r of rows) {
+    if (!lab.has(r.cid)) continue;
+    const x = X(r.avgdiv), y = Y(r.winp), right = x > pl + pw * .72, dx = right ? -10 : 10;
+    let ty = y + 4;
+    for (const off of [0, -13, 13, -24, 24, -36, 36]) { ty = y + 4 + off; if (!placed.some(([px, py]) => Math.abs(ty - py) < 13 && Math.abs(x - px) < 130)) break; }
+    placed.push([x, ty]);
+    if (ty !== y + 4) s += `<line x1="${x}" y1="${y}" x2="${x + dx * .8}" y2="${ty - 4}" class="lead"/>`;
+    s += `<text x="${x + dx}" y="${ty}" text-anchor="${right ? 'end' : 'start'}" class="t-pt">${esc(r.team)}</text>`;
+  }
+  return s + '</svg>';
+}
+
+// ── render ──────────────────────────────────────────────────────────────────
+function gameRow(g, total) {
+  const hw = g.hp > g.ap, aw = g.ap > g.hp;
+  return `<tr><td class="sub" style="white-space:nowrap">${fmtD(g.date)}</td><td>${hw ? '<b>' : ''}${esc(g.ht)}${hw ? '</b>' : ''} <span class="sc">${esc(g.hs)}</span> – <span class="sc">${esc(g.as)}</span> ${aw ? '<b>' : ''}${esc(g.at)}${aw ? '</b>' : ''}<div class="sub">${esc(g.c.name.replace('PTSB ', ''))}</div></td><td class="num">${total ? g.hp + g.ap : Math.abs(g.hp - g.ap)} pts</td></tr>`;
+}
+
+function render() {
+  syncUrl();
+  const gsAll = G.filter(g => compOk(g.c) && dateOk(g));
+  const gs = gsAll.filter(isPlayed);
+  const app = $('#app');
+  if (!gs.length) { app.innerHTML = '<div class="err">No results match these filters.</div>'; return; }
+  const compIds = new Set(gs.map(g => g.c.id));
+  const tables = leagueTables(compIds);
+  const clubs = clubStats(gs, tables);
+  const min = +S.min;
+  const T = summ(gs);
+  const levels = S.level === 'all' ? LEVELS.filter(l => gs.some(g => g.c.level === l)) : [S.level];
+  const color = S.level === 'all' ? COL.all : COL[S.level];
+  const ranked = [...clubs.values()].filter(r => r.p >= min).sort((a, b) => b.winp - a.winp || b.dg - a.dg);
+  const titles = [...clubs.values()].reduce((a, r) => a + r.titles, 0);
+  const me = S.club ? +S.club : null;
+  const pending = gsAll.filter(g => g.status === 'fixture' && !g.x).length;
+  let h = '';
+
+  const active = [S.level !== 'all' && LV[S.level], S.age !== 'all' && S.age, S.kind !== 'all' && S.kind, S.div !== 'all' && $('#f-div').selectedOptions[0].text, (S.from || S.to) && `${S.from ? fmtD(S.from) : 'start'} to ${S.to ? fmtD(S.to) : 'today'}`].filter(Boolean);
+  h += `<p class="active-note">${active.length ? 'Showing: ' + esc(active.join(' · ')) : 'Showing the whole section (CCC2 and Adult)'} · ${n(T.n)} results from ${fmtD(gs[0].date)} to ${fmtD(gs[gs.length - 1].date)}${pending ? ` · ${pending} fixtures still to play` : ''}</p>`;
+
+  h += `<div class="kpis">
+    <div class="kpi"><b>${n(T.n)}</b><span>Games</span></div>
+    <div class="kpi"><b>${T.clubs}</b><span>Clubs</span></div>
+    <div class="kpi"><b>${T.comps}</b><span>Competitions</span></div>
+    <div class="kpi"><b>${f1(T.team)}</b><span>Avg team score</span><small>${T.goals.toFixed(1)} goals a game</small></div>
+    <div class="kpi"><b>${pct(T.homew)}</b><span>Home wins</span><small>${pct(T.draws, 1)} draws</small></div>
+    <div class="kpi"><b>${f1(T.margin)}</b><span>Avg margin</span><small>${pct(T.close)} by 3 or less</small></div>
+    <div class="kpi"><b>${titles}</b><span>Titles decided</span><small>${T.finals} finals played</small></div></div>`;
+
+  if (me && clubs.get(me)) h += profile(clubs.get(me), ranked, clubs, T, gs);
+  else if (me) h += `<div class="card profile"><h2>${esc(NAMES.get(me) || 'Club')}</h2><p class="sub">No results for this club under these filters.</p></div>`;
+
+  if (levels.length > 1) {
+    h += `<div class="sec"><h2>CCC2 v Adult</h2><p>CCC2 is U13–U16 (incl. Féile); Adult is U18, U21 and the adult grades</p></div><div class="grid2">`;
+    for (const lv of levels) {
+      const s = summ(gs.filter(g => g.c.level === lv));
+      h += `<div class="card lv ${lv}"><div class="ct"><h3>${LV[lv]}</h3><p>${n(s.n)} games · ${s.clubs} clubs · ${s.comps} competitions</p></div><dl class="dl">
+        <div><dt>Avg team score</dt><dd>${f1(s.team)} pts</dd></div><div><dt>Goals per game</dt><dd>${s.goals.toFixed(2)}</dd></div>
+        <div><dt>Share of scores from goals</dt><dd>${pct(s.goalShare)}</dd></div><div><dt>Home win rate</dt><dd>${pct(s.homew)}</dd></div>
+        <div><dt>Avg winning margin</dt><dd>${f1(s.margin)} pts</dd></div><div><dt>Decided by 3 or less</dt><dd>${pct(s.close)}</dd></div>
+        <div><dt>Won by 20+</dt><dd>${pct(s.blow)}</dd></div><div><dt>Finals played</dt><dd>${s.finals}</dd></div></dl></div>`;
+    }
+    h += '</div>';
+  }
+
+  // shape
+  const bk = [[0, 0, 'Draw'], [1, 3, '1–3'], [4, 6, '4–6'], [7, 10, '7–10'], [11, 19, '11–19'], [20, 999, '20+']];
+  const legend = '<div class="legend">' + levels.map(l => `<span><i style="background:${COL[l]}"></i>${LV[l]}</span>`).join('') + '</div>';
+  const distS = levels.map(l => { const x = gs.filter(g => g.c.level === l); return [l, LV[l], bk.map(([lo, hi]) => x.filter(g => { const m = Math.abs(g.hp - g.ap); return m >= lo && m <= hi; }).length / x.length)]; });
+  const divs = [...Array(12)].map((_, i) => i + 1);
+  const divS = levels.map(l => {
+    const vals = divs.map(d => { const x = gs.filter(g => g.c.level === l && g.c.div != null && Math.min(g.c.div, 12) === d); return x.length ? summ(x) : null; });
+    return [l, LV[l], vals.map(v => v ? v.margin : null), vals.map(v => v ? `${f1(v.margin)} pts over ${v.n} games` : '')];
+  });
+  const dmax = Math.max(16, Math.ceil(Math.max(...divS.flatMap(s => s[2]).filter(v => v != null)) / 4) * 4);
+  h += `<div class="sec"><h2>Shape of the section</h2><p>Hover any bar for detail</p></div><div class="grid2">
+    <div class="card"><div class="ct"><h3>How close are games?</h3>${legend}</div><p class="sub" style="margin:-4px 0 6px">Share of games by winning margin (points)</p>${bars(bk.map(b => b[2]), distS, v => pct(v), .4)}</div>
+    <div class="card"><div class="ct"><h3>Margin by division</h3>${legend}</div><p class="sub" style="margin:-4px 0 6px">Average winning margin in numbered divisions (12+ grouped)</p>${bars(divs.map(d => d === 12 ? '12+' : String(d)), divS, v => v.toFixed(0), dmax)}</div></div>`;
+
+  // grade table
+  let rows = '';
+  for (const lv of levels) {
+    for (const a of AGES[lv]) {
+      const x = gs.filter(g => g.c.level === lv && g.c.age === a); if (!x.length) continue; const s = summ(x);
+      rows += `<tr><td><span class="dot" style="background:${COL[lv]}"></span>${LV[lv]}</td><td><b>${a}</b></td><td class="num">${n(s.n)}</td><td class="num">${s.comps}</td><td class="num">${s.clubs}</td><td class="num">${f1(s.team)}</td><td class="num">${s.goals.toFixed(1)}</td><td class="num">${pct(s.homew)}</td><td class="num">${f1(s.margin)}</td><td class="num">${pct(s.close)}</td><td class="num">${pct(s.blow)}</td></tr>`;
+    }
+  }
+  rows += `<tr class="tot"><td colspan="2">Total</td><td class="num">${n(T.n)}</td><td class="num">${T.comps}</td><td class="num">${T.clubs}</td><td class="num">${f1(T.team)}</td><td class="num">${T.goals.toFixed(1)}</td><td class="num">${pct(T.homew)}</td><td class="num">${f1(T.margin)}</td><td class="num">${pct(T.close)}</td><td class="num">${pct(T.blow)}</td></tr>`;
+  h += `<div class="card" style="margin-top:16px"><div class="ct"><h3>By grade</h3><p>Avg team score = points per team per game</p></div><div class="tw"><table><thead><tr><th>Level</th><th>Grade</th><th class="num">Games</th><th class="num">Comps</th><th class="num">Clubs</th><th class="num">Avg team score</th><th class="num">Goals / game</th><th class="num">Home wins</th><th class="num">Avg margin</th><th class="num">≤3 pts</th><th class="num">20+ pts</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+
+  // leaders
+  if (ranked.length) {
+    const top = (arr, k) => arr.slice(0, k);
+    const tip = r => `${r.team}: ${r.w}-${r.d}-${r.l} in ${r.p} games`;
+    const tit = [...clubs.values()].filter(r => r.titles).sort((a, b) => b.titles - a.titles || b.winp - a.winp).slice(0, 8);
+    const tight = ranked.filter(r => r.closeN >= 5).sort((a, b) => b.closep - a.closep || b.closeN - a.closeN).slice(0, 8);
+    h += `<div class="sec"><h2>Club leaders</h2><p>Clubs with ${min}+ games under these filters · draws count as half a win</p></div><div class="grid3">
+      <div class="card"><div class="ct"><h3>Best win rate</h3></div>${hbar(top(ranked, 8).map(r => [r.team, r.winp, tip(r)]), color, v => pct(v), 1)}</div>
+      <div class="card"><div class="ct"><h3>Best attack</h3><p>Points scored per game</p></div>${hbar(top([...ranked].sort((a, b) => b.pfg - a.pfg), 8).map(r => [r.team, r.pfg, `${r.team}: ${r.pf} pts in ${r.p} games`]), color, f1)}</div>
+      <div class="card"><div class="ct"><h3>Meanest defence</h3><p>Points conceded per game</p></div>${hbar(top([...ranked].sort((a, b) => a.pag - b.pag), 8).map(r => [r.team, r.pag, `${r.team}: conceded ${r.pa} pts in ${r.p} games`]), color, f1)}</div>
+      <div class="card"><div class="ct"><h3>Most titles</h3><p>Finals won + leagues topped (no final)</p></div><div class="tw"><table><thead><tr><th>Club</th><th class="num">Titles</th><th class="num">Finals W/P</th></tr></thead><tbody>${tit.map(r => `<tr><td>${clubBtn(r)}</td><td class="num"><b>${r.titles}</b></td><td class="num">${r.fw}/${r.fp}</td></tr>`).join('') || '<tr><td colspan="3" class="sub">No titles decided in this view.</td></tr>'}</tbody></table></div></div>
+      <div class="card"><div class="ct"><h3>Highest grade</h3><p>Lowest average league division</p></div><div class="tw"><table><thead><tr><th>Club</th><th class="num">Lg teams</th><th class="num">Avg div</th><th class="num">Win</th></tr></thead><tbody>${ranked.filter(r => r.avgdiv).sort((a, b) => a.avgdiv - b.avgdiv || b.leagues - a.leagues).slice(0, 8).map(r => `<tr><td>${clubBtn(r)}</td><td class="num">${r.leagues}</td><td class="num">${r.avgdiv.toFixed(1)}</td><td class="num">${pct(r.winp)}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="card"><div class="ct"><h3>Best in tight games</h3><p>Decided by 3 pts or less (5+ such games)</p></div><div class="tw"><table><thead><tr><th>Club</th><th class="num">W-D-L</th><th class="num">Rate</th></tr></thead><tbody>${tight.map(r => `<tr><td>${clubBtn(r)}</td><td class="num">${r.cw}-${r.cd}-${r.cl}</td><td class="num">${pct(r.closep)}</td></tr>`).join('') || '<tr><td colspan="3" class="sub">Not enough close games.</td></tr>'}</tbody></table></div></div></div>`;
+  }
+
+  // scatter
+  const sc = ranked.filter(r => r.avgdiv != null);
+  if (sc.length >= 3) h += `<div class="sec"><h2>Grade v results</h2><p>Each dot is a ranked club; size = league teams. Clubs high and to the right may be graded below their level.</p></div><div class="card">${scatter(sc, color, me)}</div>`;
+
+  // club table
+  h += `<div class="sec"><h2>Every club compared</h2><p>Click a column to sort; click a club to open its profile</p></div><div class="card"><div class="search"><input type="search" id="q" placeholder="Find a club…" value="${esc(QUERY)}"><span class="sub">${ranked.length} clubs ranked, ${clubs.size - ranked.length} with fewer than ${min} games listed below</span></div><div class="tw" id="ctab">${clubTable(clubs, ranked, min, me)}</div></div>`;
+
+  // results
+  const big = [...gs].sort((a, b) => Math.abs(b.hp - b.ap) - Math.abs(a.hp - a.ap)).slice(0, 6);
+  const high = [...gs].sort((a, b) => (b.hp + b.ap) - (a.hp + a.ap)).slice(0, 6);
+  h += `<div class="sec"><h2>Standout results</h2></div><div class="grid2"><div class="card"><div class="ct"><h3>Biggest winning margins</h3></div><div class="tw"><table><tbody>${big.map(g => gameRow(g)).join('')}</tbody></table></div></div><div class="card"><div class="ct"><h3>Highest-scoring games</h3></div><div class="tw"><table><tbody>${high.map(g => gameRow(g, true)).join('')}</tbody></table></div></div></div>`;
+
+  h += `<div class="sec"><h2>Notes</h2></div><div class="card notes">
+    <p><b>Levels</b> are the tags on each competition in CoachSmart: CCC2 is U13 to U16 (including the U15 Féile), Adult is U18, U21 and the adult grades. CCC1 (U12 and younger) is non-competitive and has no scores, so it is not shown.</p>
+    <p><b>Games counted</b> are results with a score. Results marked not played, abandoned or conceded are left out, as are fixtures still to play.</p>
+    <p><b>Win rate</b> counts a draw as half a win. <b>Avg team score</b> is points per team per game (a goal is 3). <b>League teams</b> counts a club's league entries; <b>Avg div</b> is their average division (Div 1 is the top grade).</p>
+    <p><b>Titles</b> are finals won plus completed leagues finished top where the league has no final. League positions use points, then head-to-head when exactly two teams are level, then score difference when head-to-head is drawn or more than two teams are tied, then scores for.</p>
+    <p>Some results with one side on 0-0 may be walkovers entered as scores; they are counted as recorded. The LGFA Adult League Div 1 Final and Cup Div 1A Final on 16 Oct are recorded with the same score and the teams swapped, so one is likely a duplicate.</p></div>`;
+  app.innerHTML = h;
+  const q = $('#q'); if (q) q.addEventListener('input', e => { QUERY = e.target.value; $('#ctab').innerHTML = clubTable(clubs, ranked, min, me); });
+  $('#ctab')?.addEventListener('click', e => { const th = e.target.closest('th[data-k]'); if (!th) return; const k = th.dataset.k; SORT = { key: k, asc: SORT.key === k ? !SORT.asc : ['team', 'pag', 'avgdiv'].includes(k) }; $('#ctab').innerHTML = clubTable(clubs, ranked, min, me); });
+}
+
+function clubBtn(r) { return `<button class="club-link" data-club="${r.cid}" type="button">${esc(r.team)}</button>`; }
+
+function clubTable(clubs, ranked, min, me) {
+  const rankOf = new Map(ranked.map((r, i) => [r.cid, i + 1]));
+  const q = QUERY.trim().toLowerCase();
+  const key = SORT.key, dir = SORT.asc ? 1 : -1;
+  const val = r => key === 'rank' ? -(rankOf.get(r.cid) || 999) : r[key];
+  const cmp = (a, b) => { const x = val(a), y = val(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir; };
+  const show = r => !q || r.team.toLowerCase().includes(q);
+  const main = ranked.filter(show).sort(cmp), small = [...clubs.values()].filter(r => r.p < min && show(r)).sort(cmp);
+  const cols = [['rank', '#'], ['team', 'Club'], ['leagues', 'Lg teams'], ['avgdiv', 'Avg div'], ['p', 'P'], [null, 'W-D-L'], ['winp', 'Win rate'], ['pfg', 'For / g'], ['pag', 'Agst / g'], ['dg', 'Diff / g'], ['gfg', 'Goals / g'], ['closep', 'Close W-D-L'], ['homep', 'Home win'], ['titles', 'Titles']];
+  const head = '<thead><tr>' + cols.map(([k, l]) => `<th class="${k ? 'sort' : ''} ${k === key ? 'sorted' + (SORT.asc ? ' asc' : '') : ''} ${k === 'team' ? '' : 'num'}" ${k ? `data-k="${k}"` : ''}>${l}</th>`).join('') + '</tr></thead>';
+  const row = (r, dim) => `<tr class="${r.cid === me ? 'me' : ''} ${dim ? 'dim' : ''}"><td class="num sub">${rankOf.get(r.cid) || ''}</td><td class="club">${clubBtn(r)}</td><td class="num">${r.leagues || '–'}</td><td class="num">${r.avgdiv ? r.avgdiv.toFixed(1) : '–'}</td><td class="num">${r.p}</td><td class="num">${r.w}-${r.d}-${r.l}</td>`
+    + `<td class="num"><span class="wbar"><i style="width:${(r.winp * 100).toFixed(0)}%;background:${S.level === 'all' ? COL.all : COL[S.level]}"></i></span>${pct(r.winp)}</td><td class="num">${f1(r.pfg)}</td><td class="num">${f1(r.pag)}</td><td class="num ${r.dg > 0 ? 'pos' : r.dg < 0 ? 'neg' : ''}">${sg(r.dg)}</td><td class="num">${r.gfg.toFixed(1)}</td><td class="num">${r.cw}-${r.cd}-${r.cl}</td><td class="num">${r.homep == null ? '–' : pct(r.homep)}</td><td class="num">${r.titles || ''}</td></tr>`;
+  return `<table>${head}<tbody>${main.map(r => row(r)).join('')}${small.length ? `<tr><td colspan="14" class="sub" style="background:var(--card2);text-transform:uppercase;letter-spacing:.08em;font-size:10.5px">Fewer than ${min} games: not ranked</td></tr>` + small.map(r => row(r, true)).join('') : ''}</tbody></table>`;
+}
+
+function profile(r, ranked, clubs, T, gs) {
+  const pos = (arr, better) => arr.some(x => x.cid === r.cid) ? 1 + arr.filter(x => better(x, r) < 0).length : null;
+  const N = ranked.length, inRank = r.p >= +S.min;
+  const avg = k => ranked.reduce((a, x) => a + x[k], 0) / (N || 1);
+  const cell = (lab, val, avgv, place) => `<div class="rk"><div class="lab">${lab}</div><b>${val}</b><div class="avg">Section ${avgv}</div>${place && inRank ? `<div class="place">${ord(place)} of ${N}</div>` : ''}</div>`;
+  const teams = r.lgRows.sort((a, b) => (a.t.c.level > b.t.c.level ? 1 : -1) || AGE_ORDER.indexOf(a.t.c.age) - AGE_ORDER.indexOf(b.t.c.age) || (a.t.c.div || 99) - (b.t.c.div || 99))
+    .map(({ t, row }) => `<tr><td><span class="dot" style="background:${COL[t.c.level]}"></span>${esc(t.c.name.replace('PTSB ', ''))}</td><td class="num">${ord(row.pos)} of ${t.rows.length}${t.done ? '' : ' <span class="chip">in progress</span>'}${t.done && row.pos === 1 ? ' <span class="chip w">top</span>' : ''}</td><td class="num">${row.p}</td><td class="num">${row.pts}</td><td class="num ${row.diff > 0 ? 'pos' : row.diff < 0 ? 'neg' : ''}">${row.diff > 0 ? '+' : ''}${row.diff}</td></tr>`).join('');
+  const fins = r.finals.map(g => `<li>${fmtD(g.date)} · ${esc(g.c.name.replace('PTSB ', ''))} <span class="sub">(${esc(g.hs)} – ${esc(g.as)} v ${esc(g.hc === r.cid ? g.at : g.ht)})</span></li>`).join('');
+  return `<div class="card profile"><div class="ct"><h2>${esc(r.team)}</h2><p>${r.p} games · ${r.w}-${r.d}-${r.l} · ${r.leagues} league team(s)${inRank ? '' : ` · fewer than ${S.min} games, so not ranked`}</p></div>
+    <div class="ranks">
+      ${cell('Win rate', pct(r.winp), pct(avg('winp')), pos(ranked, (a, b) => b.winp - a.winp))}
+      ${cell('Scored per game', f1(r.pfg), f1(avg('pfg')), pos(ranked, (a, b) => b.pfg - a.pfg))}
+      ${cell('Conceded per game', f1(r.pag), f1(avg('pag')), pos(ranked, (a, b) => a.pag - b.pag))}
+      ${cell('Score diff per game', sg(r.dg), sg(avg('dg')), pos(ranked, (a, b) => b.dg - a.dg))}
+      ${cell('Goals per game', r.gfg.toFixed(1), (T.goals / 2).toFixed(1), pos(ranked, (a, b) => b.gfg - a.gfg))}
+      ${cell('Avg league division', r.avgdiv ? r.avgdiv.toFixed(1) : '–', (ranked.filter(x => x.avgdiv).reduce((a, x) => a + x.avgdiv, 0) / (ranked.filter(x => x.avgdiv).length || 1)).toFixed(1), r.avgdiv ? pos(ranked.filter(x => x.avgdiv), (a, b) => a.avgdiv - b.avgdiv) : null)}
+      ${cell('Close games (≤3)', `${r.cw}-${r.cd}-${r.cl}`, pct(T.close) + ' of games', null)}
+      ${cell('Titles', r.titles, (ranked.reduce((a, x) => a + x.titles, 0) / (N || 1)).toFixed(1), pos([...clubs.values()].filter(x => x.p >= +S.min), (a, b) => b.titles - a.titles))}
+    </div>
+    ${teams ? `<div class="tw"><table><thead><tr><th>League</th><th class="num">Position</th><th class="num">P</th><th class="num">Pts</th><th class="num">Diff</th></tr></thead><tbody>${teams}</tbody></table></div>` : ''}
+    ${fins ? `<p class="sub" style="margin:12px 0 4px">Finals won</p><ul style="margin:0;padding-left:18px">${fins}</ul>` : ''}
+    <p style="margin:10px 0 0"><button class="linkbtn" data-club="" type="button">Clear club</button></p></div>`;
+}
+
+// ── controls ────────────────────────────────────────────────────────────────
+function fillAges() {
+  const ages = S.level === 'all' ? AGE_ORDER : AGES[S.level];
+  if (S.age !== 'all' && !ages.includes(S.age)) S.age = 'all';
+  $('#f-age').innerHTML = '<option value="all">All grades</option>' + ages.map(a => `<option>${a}</option>`).join('');
+}
+function syncControls() {
+  document.querySelectorAll('#f-level button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === S.level));
+  fillAges();
+  $('#f-age').value = S.age; $('#f-kind').value = S.kind; $('#f-div').value = S.div; $('#f-min').value = S.min;
+  $('#f-from').value = S.from || RANGE[0]; $('#f-to').value = S.to || RANGE[1];
+  $('#f-from').min = $('#f-to').min = RANGE[0]; $('#f-from').max = $('#f-to').max = RANGE[1];
+  $('#f-club').value = S.club;
+}
+function syncUrl() {
+  const q = new URLSearchParams();
+  for (const k of Object.keys(DEF)) if (S[k] && S[k] !== DEF[k]) q.set(k, S[k]);
+  history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : ''));
+}
+function set(k, v) { S[k] = v; syncControls(); render(); }
+
+$('#f-level').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set('level', b.dataset.v); });
+$('#f-age').addEventListener('change', e => set('age', e.target.value));
+$('#f-kind').addEventListener('change', e => set('kind', e.target.value));
+$('#f-div').addEventListener('change', e => set('div', e.target.value));
+$('#f-min').addEventListener('change', e => set('min', e.target.value));
+$('#f-from').addEventListener('change', e => set('from', e.target.value === RANGE[0] ? '' : e.target.value));
+$('#f-to').addEventListener('change', e => set('to', e.target.value === RANGE[1] ? '' : e.target.value));
+$('#f-club').addEventListener('change', e => set('club', e.target.value));
+$('#reset').addEventListener('click', () => { Object.assign(S, DEF); QUERY = ''; syncControls(); render(); });
+document.addEventListener('click', e => { const b = e.target.closest('[data-club]'); if (!b) return; set('club', b.dataset.club); if (b.dataset.club) window.scrollTo({ top: $('#app').offsetTop - 120, behavior: 'smooth' }); });
+$('#copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(location.href); $('#copy').lastElementChild.textContent = 'Copied'; setTimeout(() => $('#copy').lastElementChild.textContent = 'Copy link', 1800); } catch { prompt('Copy this link', location.href); } });
+$('#pdf').addEventListener('click', async () => {
+  try {
+    if (navigator.canShare) {
+      const b = await (await fetch(PDF_URL)).blob(); const f = new File([b], PDF_URL, { type: 'application/pdf' });
+      if (navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: 'LGFA Section Review 2026' }); return; }
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = PDF_URL; a.download = PDF_URL; document.body.appendChild(a); a.click(); a.remove();
+});
+// tooltip
+const tip = $('#tip');
+document.addEventListener('mouseover', e => { const t = e.target.closest('[data-tip]'); if (!t) { tip.style.display = 'none'; return; } tip.textContent = t.dataset.tip; tip.style.display = 'block'; });
+document.addEventListener('mousemove', e => { if (tip.style.display === 'block') { tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = (e.clientY + 14) + 'px'; } });
+
+(async () => {
+  try {
+    await load();
+    const opts = [...NAMES.entries()].filter(([id]) => G.some(g => isPlayed(g) && (g.hc === id || g.ac === id))).sort((a, b) => a[1].localeCompare(b[1]));
+    $('#f-club').innerHTML += opts.map(([id, nm]) => `<option value="${id}">${esc(nm)}</option>`).join('');
+    if (S.club && !NAMES.has(+S.club)) S.club = '';
+    $('#sub').textContent = `Every ladies Gaelic football club and competition in the CoachSmart results feed, CCC2 and Adult, ${fmtD(RANGE[0])} to ${fmtD(RANGE[1])} ${RANGE[1].slice(0, 4)}. Live: new results appear as they are synced.`;
+    syncControls(); render();
+  } catch (e) { $('#app').innerHTML = `<div class="err">Couldn't load results (${esc(e.message)}). Please refresh.</div>`; }
+})();
+</script>
+</body>
+</html>
