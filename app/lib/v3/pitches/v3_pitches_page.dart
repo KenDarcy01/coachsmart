@@ -27,6 +27,11 @@ import 'v3_pitch_weekend.dart';
 import 'v3_pitch_sheets.dart';
 import 'v3_pitch_club_header.dart';
 
+/// Opened from the ClubSmart menu (coachsmart.app/club/pitches.html sends
+/// shell=1): show the ClubSmart header. A plain link opens the planner on
+/// its own, full screen, with its own club box (Ken 2026-11-27).
+bool get _withShell => Uri.base.queryParameters['shell'] == '1';
+
 // Fixtures first: the planner opens on it (Ken, 2026-11-16).
 enum PitchTab {
   fixtures,
@@ -230,7 +235,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
   /// header of the club tools and scrolls as one page: the header scrolls
   /// away with the planner (Ken 2026-11-27). Inside the app: unchanged.
   Widget _shell(PitchClub club, Widget body) {
-    if (PT.dark) return body;
+    if (PT.dark || !_withShell) return body;
     return NestedScrollView(
       headerSliverBuilder: (_, __) => [
         SliverToBoxAdapter(
@@ -359,7 +364,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
       // In the club look the ClubSmart header shows the crest and the
       // tool name: no red bar; the Day buttons sit in a plain row above the
       // day and the tabs stay at the bottom.
-      appBar: !PT.dark
+      appBar: !PT.dark && _withShell
           ? null
           : AppBar(
               backgroundColor: club.band,
@@ -415,7 +420,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
             ),
       body: _shell(
           club,
-          !PT.dark && dayActions
+          !PT.dark && _withShell && dayActions
               ? Column(children: [
                   Container(
                     color: PT.card,
@@ -724,7 +729,7 @@ class _Side extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         // In the club look the ClubSmart header above shows the club and
         // the way back, so no back arrow or club box here.
-        if (PT.dark) ...[
+        if (PT.dark || !_withShell) ...[
           Row(children: [
             IconButton(
                 tooltip: 'Back',
