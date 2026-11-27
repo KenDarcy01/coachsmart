@@ -61,7 +61,7 @@
   st.textContent = `
 :root{--csh:#1a1d23}
 .csh{background:#fff;border-bottom:5px solid var(--csh);font-family:DM,system-ui,sans-serif;color:#16191f;padding-top:env(safe-area-inset-top)}
-.csh-in{max-width:1180px;margin:0 auto;padding:22px 48px 0}
+.csh-in{max-width:none;margin:0 auto;padding:22px 48px 0}
 .csh-top{display:flex;align-items:center;gap:16px}
 .csh-top img{width:56px;height:56px;object-fit:contain;flex:none}
 .csh-top b{display:block;font-size:26px;font-weight:700;line-height:1.15}
@@ -100,7 +100,7 @@ body.cs-shell:not(.cs-own) .band .links span{font-size:14px;color:var(--muted,#5
 body.cs-shell:not(.cs-own) .band .chip{background:#fff!important;color:#3b4250!important;border:1.5px solid var(--line,#e4e6eb)!important;font-size:15px!important}
 body.cs-shell:not(.cs-own) .band .chip.on{background:var(--club,var(--csh))!important;border-color:var(--club,var(--csh))!important;color:#fff!important}
 /* One column for every tool (Ken 2026-11-27): the title row and the page line up with the header. */
-body.cs-shell:not(.cs-own) .band{max-width:1180px!important;margin:0 auto!important;padding:30px 48px 14px!important;display:flex!important;align-items:flex-start!important;gap:16px!important;flex-wrap:wrap}
+body.cs-shell:not(.cs-own) .band{max-width:none!important;margin:0 auto!important;padding:30px 48px 14px!important;display:flex!important;align-items:flex-start!important;gap:16px!important;flex-wrap:wrap}
 body.cs-shell:not(.cs-own) .band .top{display:flex;align-items:center;gap:12px;max-width:none!important;margin:0!important}
 body.cs-shell:not(.cs-own) .band .sub:empty{display:none}
 body.cs-shell:not(.cs-own) .band .right{margin-left:auto!important;align-items:flex-end!important;width:auto!important}
@@ -108,7 +108,7 @@ body.cs-shell:not(.cs-own) .band .links span{display:none}
 body.cs-shell:not(.cs-own) .band .links button,body.cs-shell:not(.cs-own) .band .links a{background:#fff!important;border:1.5px solid var(--line,#e4e6eb)!important;border-radius:999px!important;padding:7px 14px!important;cursor:pointer}
 body.cs-shell:not(.cs-own) .band .wk button{background:#fff!important;border:1.5px solid var(--line,#e4e6eb)!important;color:var(--text,#16191f)!important}
 body.cs-shell:not(.cs-own) .band .wk span{color:var(--text,#16191f)!important;font-size:16px!important}
-body.cs-shell:not(.cs-own) .wrap{max-width:1180px!important;margin-left:auto!important;margin-right:auto!important;padding-left:48px!important;padding-right:48px!important}
+body.cs-shell:not(.cs-own) .wrap{max-width:none!important;margin-left:auto!important;margin-right:auto!important;padding-left:48px!important;padding-right:48px!important}
 body.cs-shell .abar{margin:0!important;padding:30px 0 14px!important}
 @media (max-width:760px){body.cs-shell:not(.cs-own) .wrap{padding-left:14px!important;padding-right:14px!important}body.cs-shell:not(.cs-own) .band{padding:20px 14px 8px!important}body.cs-shell:not(.cs-own) .band .right{margin-left:0!important;align-items:flex-start!important}body.cs-shell .abar{padding:20px 0 8px!important}}
 `;

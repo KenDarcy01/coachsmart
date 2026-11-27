@@ -28,7 +28,7 @@ a{color:inherit;text-decoration:none}
  /* Under the shared ClubSmart header (Ken 2026-11-27): the dashboard's own band
     becomes a plain title row; the sidebar sticks to the top of the window. */
 /* ClubSmart column (Ken 2026-11-27): same width and left edge as the header and every other tool. */
-body.cs-shell .layout{max-width:1180px;margin:0 auto;padding:0 48px;grid-template-columns:250px minmax(0,1fr);gap:24px;min-height:0}
+body.cs-shell .layout{max-width:none;margin:0 auto;padding:0 48px;grid-template-columns:250px minmax(0,1fr);gap:24px;min-height:0}
 body.cs-shell .side{top:16px;height:calc(100vh - 32px);border:0;border-radius:18px;box-shadow:0 1px 3px #0000000f;padding:12px 10px 24px}
 body.cs-shell .main{padding:0 0 60px;max-width:none}
 body.cs-shell .sk-wrap{padding:22px 48px}
@@ -59,7 +59,7 @@ body.cs-shell .sk-wrap{padding:22px 48px}
 .sk-band{background:var(--band);color:var(--onband);padding:14px 28px;display:flex;align-items:center;gap:16px}
 .sk-band img{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:50%;padding:4px}
 .sk-band h1{font-size:23px;font-weight:700}.sk-band .sub{font-size:13.5px;opacity:.85;margin-top:2px}
-.sk-wrap{max-width:1180px;margin:0 auto;padding:22px 28px}
+.sk-wrap{max-width:none;margin:0 auto;padding:22px 28px}
 .sk-msg{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:16px 18px;box-shadow:0 1px 2px #0000000f;margin-bottom:18px}
 .sk-msg i{width:22px;height:22px;border:3px solid var(--tint);border-top-color:var(--club);border-radius:50%;animation:spin .8s linear infinite;flex:none}
 .sk-msg b{display:block;font-size:15px}.sk-msg small{color:var(--muted);font-size:13px}
