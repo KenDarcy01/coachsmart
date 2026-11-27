@@ -425,11 +425,25 @@ class V3ClubHome extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: V3.inter(15.5, weight: FontWeight.w600)),
               const SizedBox(height: 2),
-              // The date is in the diary icon, so just the place.
-              Text(where.isEmpty ? day : where,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: V3.inter(13.5, color: V3.muted)),
+              // The date is in the diary icon, so just the place, with a
+              // pin (Ken, 2026-11-27).
+              if (where.isEmpty)
+                Text(day,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: V3.inter(13.5, color: V3.muted))
+              else
+                Row(children: [
+                  const Icon(Icons.location_on_outlined,
+                      size: 15, color: V3.muted),
+                  const SizedBox(width: 3),
+                  Flexible(
+                    child: Text(where,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: V3.inter(13.5, color: V3.muted)),
+                  ),
+                ]),
             ]),
           ),
           if (_multi) ...[const SizedBox(width: 10), _crestFor(m, 24)],
