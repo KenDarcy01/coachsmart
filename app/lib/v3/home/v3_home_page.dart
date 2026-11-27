@@ -251,6 +251,24 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     if (mounted) setState(() {});
   }
 
+  // One card: straight to its link, or that story on its own when it has
+  // no link (Ken, 2026-11-27: no extra step through the tray).
+  Future<void> _openNewsItem(AppMessage m) async {
+    if (m.linkUrl.isEmpty) {
+      V3Track.event('news_opened');
+      await showNewsSheet(context, [m], _messagesApi);
+      if (mounted) setState(() {});
+      return;
+    }
+    V3Track.event('news_link');
+    if (!m.seen) {
+      m.seen = true;
+      unawaited(_messagesApi.markSeen([m.id]).catchError((_) {}));
+      setState(() {});
+    }
+    await V3LottoLink.open(m.linkUrl);
+  }
+
   Future<void> _registerDevice() async {
     try {
       // Push switched off on the profile page: keep the token cleared.
@@ -834,7 +852,10 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
             Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 2),
               child: V3NewsCards(
-                  news: _msgs.news, onTap: _openNews, stacked: true),
+                  news: _msgs.news,
+                  onTap: _openNews,
+                  onItem: _openNewsItem,
+                  stacked: true),
             ),
           if (_msgs.fundraisers.isNotEmpty)
             V3FundraiserRow(items: _msgs.fundraisers, onTap: _openFundraiser),
@@ -854,7 +875,8 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       if (_msgs.news.isNotEmpty) {
         children.add(Padding(
           padding: const EdgeInsets.only(bottom: 2),
-          child: V3NewsCards(news: _msgs.news, onTap: _openNews),
+          child: V3NewsCards(
+              news: _msgs.news, onTap: _openNews, onItem: _openNewsItem),
         ));
       }
       if (_msgs.fundraisers.isNotEmpty) {

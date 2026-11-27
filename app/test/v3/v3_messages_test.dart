@@ -161,7 +161,9 @@ void main() {
     // CoachSmart-wide items: the heading says News, not Club news.
     expect(find.text('News'), findsOneWidget);
     expect(find.text('Jerseys are in'), findsOneWidget);
-    expect(find.text('See all ${news.length}'), findsOneWidget);
+    expect(
+        find.text(news.length > 1 ? 'All news · ${news.length}' : 'All news'),
+        findsOneWidget);
     await t.tap(find.text('Jerseys are in'));
     await t.pumpAndSettle();
     expect(find.text('News'), findsNWidgets(2));
@@ -169,6 +171,20 @@ void main() {
     await t.pumpAndSettle();
     expect(api.calls, ['seen [3]']);
     expect(news.every((n) => n.seen), isTrue);
+  });
+
+  testWidgets('a card tap goes to onItem with that story', (t) async {
+    final news = MyMessages.fromJson(sample()).news;
+    AppMessage? got;
+    var tray = 0;
+    await t.pumpWidget(wrap(Scaffold(
+        body: V3NewsCards(
+            news: news, onTap: () => tray++, onItem: (m) => got = m))));
+    await t.tap(find.text('Jerseys are in'));
+    expect(got?.title, 'Jerseys are in');
+    expect(tray, 0);
+    await t.tap(find.textContaining('All news'));
+    expect(tray, 1);
   });
 
   testWidgets('fundraiser row shows price and button, tap passes the item',

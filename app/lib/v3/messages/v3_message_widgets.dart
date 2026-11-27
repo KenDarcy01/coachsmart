@@ -415,10 +415,17 @@ class V3NewsCards extends StatefulWidget {
       {super.key,
       required this.news,
       required this.onTap,
+      this.onItem,
       this.heading = true,
       this.stacked = false});
   final List<AppMessage> news;
+
+  /// Opens the News tray (all stories).
   final VoidCallback onTap;
+
+  /// A tap on one card (Ken, 2026-11-27: straight to its link, or that
+  /// story on its own); falls back to [onTap].
+  final void Function(AppMessage)? onItem;
 
   /// One card under another, no carousel: the club screen (Ken,
   /// 2026-11-26: news has its own screen now, so no need to swipe).
@@ -469,6 +476,10 @@ class _V3NewsCardsState extends State<V3NewsCards> {
         duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
   }
 
+  VoidCallback _tap(AppMessage m) => widget.onItem == null
+      ? widget.onTap
+      : () => widget.onItem!(m);
+
   void _pause() =>
       _pausedUntil = DateTime.now().add(const Duration(seconds: 10));
 
@@ -492,20 +503,46 @@ class _V3NewsCardsState extends State<V3NewsCards> {
             padding: const EdgeInsets.fromLTRB(10, 10, 6, 8),
             child: Row(
               children: [
+                // The heading and a clear "All news" button both open the
+                // tray (Ken, 2026-11-27: the small "See all" was missed).
                 Expanded(
-                  child: Text(club ? 'Club news' : 'News',
-                      style: V3.tight(19, weight: FontWeight.w700)),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: widget.stacked ? null : widget.onTap,
+                    child: Text(club ? 'Club news' : 'News',
+                        style: V3.tight(19, weight: FontWeight.w700)),
+                  ),
                 ),
-                if (news.length > 1 && !widget.stacked)
-                  InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: widget.onTap,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 2),
-                      child: Text('See all ${news.length}',
-                          style: V3.inter(14,
-                              weight: FontWeight.w600, color: V3.green)),
+                if (!widget.stacked)
+                  Material(
+                    color: news.first.clubColour ?? V3.green,
+                    borderRadius: BorderRadius.circular(20),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: widget.onTap,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(13, 6, 9, 6),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Text(
+                              news.length > 1
+                                  ? 'All news · ${news.length}'
+                                  : 'All news',
+                              style: V3.inter(13.5,
+                                  weight: FontWeight.w700,
+                                  color: (news.first.clubColour ?? V3.green)
+                                              .computeLuminance() >
+                                          0.5
+                                      ? V3.bg
+                                      : Colors.white)),
+                          Icon(Icons.chevron_right,
+                              size: 18,
+                              color: (news.first.clubColour ?? V3.green)
+                                          .computeLuminance() >
+                                      0.5
+                                  ? V3.bg
+                                  : Colors.white),
+                        ]),
+                      ),
                     ),
                   ),
               ],
@@ -516,7 +553,7 @@ class _V3NewsCardsState extends State<V3NewsCards> {
             Padding(
               padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
               child: SizedBox(
-                  height: 132, child: _NewsCard(news[i], onTap: widget.onTap)),
+                  height: 132, child: _NewsCard(news[i], onTap: _tap(news[i]))),
             )
         else
           SizedBox(
@@ -530,7 +567,7 @@ class _V3NewsCardsState extends State<V3NewsCards> {
                 onPageChanged: (i) => setState(() => _page = i),
                 itemBuilder: (_, i) => Padding(
                   padding: EdgeInsets.only(right: news.length > 1 ? 10 : 0),
-                  child: _NewsCard(news[i], onTap: widget.onTap),
+                  child: _NewsCard(news[i], onTap: _tap(news[i])),
                 ),
               ),
             ),
@@ -587,9 +624,15 @@ class _NewsCard extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // Stripe in the primary colour of the club that sent it
-              // (Ken, 2026-11-26); CoachSmart green for CoachSmart news.
-              Container(height: 5, color: m.clubColour ?? V3.green),
+              // Stripe half primary, half secondary of the club that sent
+              // it (Ken, 2026-11-27); CoachSmart green for CoachSmart news.
+              SizedBox(
+                height: 5,
+                child: Row(children: [
+                  for (final c in m.stripeColours)
+                    Expanded(child: ColoredBox(color: c)),
+                ]),
+              ),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
