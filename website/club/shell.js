@@ -46,6 +46,13 @@
     window.csAccent = a;
     r.setProperty('--csh', a);
     if (onLotto) { r.setProperty('--g', a); r.setProperty('--acc', a); }
+    // Club crest as the tab icon from the first moment, so it never flips
+    // back to the CoachSmart icon while the page loads (Ken 2026-11-27).
+    if (H.club.crest) ['icon', 'apple-touch-icon'].forEach(rel => {
+      let l = document.querySelector(`link[rel="${rel}"]`);
+      if (!l) { l = document.createElement('link'); l.rel = rel; document.head.appendChild(l); }
+      if (l.getAttribute('href') !== H.club.crest) l.href = H.club.crest;
+    });
   }
   paintColours();
 
@@ -111,7 +118,7 @@ body.cs-shell .band .chip.on{background:var(--club,var(--csh))!important;border-
   function items() {
     const t = (H && H.tiles) || {}, q = '?club=' + clubId, out = [['home', 'Home', '/club/' + q, 0]];
     if (t.dashboard) out.push(['dashboard', 'Dashboard', '/club/dashboard.html' + q + '&period=season', 0]);
-    if (t.pitches) out.push(['pitches', 'Pitches', '#cs-pitches', t.pitches.unread || 0]);
+    if (t.pitches) out.push(['pitches', 'Pitches', '/club/pitches.html' + q, t.pitches.unread || 0]);
     if (t.newsletter) out.push(['newsletter', t.newsletter.title || 'Newsletter', '/club/newsletter.html' + q, t.newsletter.status === 'built' ? 1 : 0]);
     if (t.messages) out.push(['messages', 'Messages', '/club/messages.html' + q, 0]);
     if (t.sponsors) out.push(['sponsors', 'Partners', '/club/sponsors.html' + q, 0]);
@@ -147,20 +154,8 @@ body.cs-shell .band .chip.on{background:var(--club,var(--csh))!important;border-
       try { if (client()) await client().auth.signOut(); } catch (e) {}
       location.reload();
     };
-    const pt = el.querySelector('[data-k="pitches"]');
-    if (pt) pt.onclick = openPlanner;
     const nv = el.querySelector('.csh-nav'), on = el.querySelector('.csh-nav a.on');
     if (nv && on && nv.scrollWidth > nv.clientWidth) nv.scrollLeft = on.offsetLeft - (nv.clientWidth - on.offsetWidth) / 2;
-  }
-  // The planner is another website with its own login store: hand this login
-  // over in the link's #fragment (never sent to a server; the planner wipes it).
-  async function openPlanner(e) {
-    e.preventDefault();
-    const url = `https://coachsmart-v3.web.app/pitches?club=${clubId}&look=club`;
-    try {
-      const { data: { session } } = await client().auth.getSession();
-      location.href = session ? url + '#cs_rt=' + encodeURIComponent(session.refresh_token) : url;
-    } catch (err) { location.href = url; }
   }
   // Called by the club home after it loads fresh data.
   window.csShellSet = h => { H = h; paint(); };

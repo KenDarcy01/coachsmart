@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Pitch planner</title>
+<!-- Pitch planner inside the club tools header (Ken 2026-11-27: treat the
+     planner like the other club tools and keep the heading bar). The planner
+     itself is the v3 web app (coachsmart-v3.web.app/pitches); it is shown in a
+     frame under the shared header, signed in by handing over this login in
+     the frame link's #fragment (never sent to a server; the planner wipes it).
+     The frame fills the rest of the screen so the planner keeps its own
+     scrolling. coachsmart.app/club/pitches.html?club=ID -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/club/shell.js"></script>
+<style>
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2');font-weight:700;font-display:swap}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#f3f4f7}
+body{display:flex;flex-direction:column;font-family:DM,system-ui,sans-serif;color:#1a1d23;overflow:hidden}
+#csh{flex:none}
+#frame{flex:1;width:100%;border:0;display:block;background:#f3f4f7}
+.state{flex:1;display:flex;align-items:center;justify-content:center;color:#667080;font-size:17px;padding:40px;text-align:center}
+</style>
+</head>
+<body>
+<div class="state" id="st">Opening the pitch planner…</div>
+<script>
+const sb = window.supabase.createClient('https://gyfporsbdftvtakdvukt.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4');
+(async () => {
+  const clubId = Number(new URLSearchParams(location.search).get('club')) || null;
+  if (!clubId) { document.getElementById('st').textContent = 'Open this page from your club home.'; return; }
+  const { data: { session } } = await sb.auth.getSession();
+  // Not signed in here: the club home has the sign-in form.
+  if (!session) return location.replace('/club/?club=' + clubId);
+  const f = document.createElement('iframe');
+  f.id = 'frame'; f.title = 'Pitch planner'; f.allow = 'clipboard-write';
+  f.src = `https://coachsmart-v3.web.app/pitches?club=${clubId}&look=club&frame=1#cs_rt=${encodeURIComponent(session.refresh_token)}`;
+  document.getElementById('st').replaceWith(f);
+})();
+</script>
+</body>
+</html>
