@@ -364,7 +364,7 @@ async function inviteSetup(tok) {
   // sends them to the club's pitch planner instead of this dashboard.
   // Officer ticks (Ken 2026-11-25): only the pitch planner -> planner; anything else -> club home.
   const pitchesOnly = r.pitches_only ?? (r.can_dashboard === false);
-  const what = pitchesOnly ? 'pitch planner' : 'club tools';
+  const what = pitchesOnly ? 'pitch planner' : 'ClubSmart';
   const go = pitchesOnly ? 'Set up and open the pitch planner' : 'Set up my account';
   brand(r.club); document.title = r.club.club_name + (pitchesOnly ? ' · Pitch planner' : ' · Club dashboard');
   $('inviteForm').innerHTML = `${r.club.crest ? `<img class="icrest" src="${esc(r.club.crest)}" alt="">` : ''}

@@ -139,12 +139,12 @@ body.cs-shell .band .chip.on{background:var(--club,var(--csh))!important;border-
     document.body.classList.add('cs-shell');
     paintColours();
     const c = (H && H.club) || {}, me = (H && H.me) || {}, cur = current();
-    const sub = ['Club tools', me.first_name ? 'Hi ' + me.first_name : ''].filter(Boolean).join(' · ');
+    const sub = ['ClubSmart', me.first_name ? 'Hi ' + me.first_name : ''].filter(Boolean).join(' · ');
     const nav = H ? items() : [];
     el.className = 'csh' + (nav.length > 1 ? '' : ' nonav');
     el.innerHTML = `<div class="csh-in"><div class="csh-top">
       ${c.crest ? `<img src="${esc(c.crest)}" alt="">` : ''}
-      <div><b>${esc(c.club_name || 'Club tools')}</b><span>${esc(c.club_name ? sub : '')}</span></div>
+      <div><b>${esc(c.club_name || 'ClubSmart')}</b><span>${esc(c.club_name ? sub : '')}</span></div>
       ${H ? '<button class="csh-out" id="cshOut">Sign out</button>' : ''}</div>
       ${nav.length > 1 ? `<nav class="csh-nav">${nav.map(([k, l, h, n]) =>
         `<a href="${esc(h)}" data-k="${k}" class="${k === cur ? 'on' : ''}"><svg viewBox="0 0 24 24">${ICON[k] || ''}</svg>${esc(l)}${n && k !== cur ? `<em>${n > 99 ? '99+' : n}</em>` : ''}</a>`).join('')}</nav>` : ''}</div>`;

@@ -46,7 +46,7 @@ const ticksOf = (r: any) => Object.fromEntries(TICKS.map((k) => [k, !!r?.[k]]));
 const pitchesOnly = (t: any) => !!t.can_pitches && TICKS.every((k) => k === "can_pitches" || !t[k]);
 function toolList(t: any) {
   const l = TICKS.filter((k) => t[k]).map((k) => TOOL[k]);
-  return l.length > 1 ? l.slice(0, -1).join(", ") + " and " + l[l.length - 1] : l[0] || "club tools";
+  return l.length > 1 ? l.slice(0, -1).join(", ") + " and " + l[l.length - 1] : l[0] || "ClubSmart";
 }
 const esc = (s: unknown) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -93,13 +93,13 @@ function emailHtml(o: {
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:28px 12px"><tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;padding:28px">
 <tr><td style="text-align:center">${crest}<div style="font-size:20px;font-weight:700;margin-bottom:4px">${esc(o.club.club_name)}</div>
-<div style="color:#6b7280;font-size:14px;margin-bottom:22px">Club tools</div></td></tr>
+<div style="color:#6b7280;font-size:14px;margin-bottom:22px">ClubSmart</div></td></tr>
 <tr><td style="font-size:16px;line-height:1.5">
 <p style="margin:0 0 12px">Hi${o.first ? " " + esc(o.first) : ""},</p>
 <p style="margin:0 0 12px">${intro}</p>
 <p style="margin:0 0 12px">${what}</p>
 <p style="margin:0 0 22px">${next}</p>
-<p style="margin:0 0 22px;text-align:center"><a href="${esc(o.link)}" style="display:inline-block;background:${btn};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">${o.isNew ? "Set up your account" : "Open club tools"}</a></p>
+<p style="margin:0 0 22px;text-align:center"><a href="${esc(o.link)}" style="display:inline-block;background:${btn};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">${o.isNew ? "Set up your account" : "Open ClubSmart"}</a></p>
 <p style="margin:0;color:#6b7280;font-size:13px">If the button doesn't work, copy this link into your browser:<br><a href="${esc(o.link)}" style="color:#6b7280;word-break:break-all">${esc(o.link)}</a></p>
 </td></tr></table>
 <div style="color:#9ca3af;font-size:12px;margin-top:14px">Powered by CoachSmart</div>
@@ -284,7 +284,7 @@ serve(async (req) => {
     const { error: me2 } = await resend.emails.send({
       from: "CoachSmart <no-reply@coachsmart.app>",
       to: email,
-      subject: onTool ? `${club.club_name} pitch planner` : canDashboard ? `${club.club_name} club dashboard` : `${club.club_name} club tools`,
+      subject: onTool ? `${club.club_name} pitch planner` : canDashboard ? `${club.club_name} club dashboard` : `${club.club_name} ClubSmart`,
       html: emailHtml({ club, first: firstName, inviter, title, link, isNew, pitchesOnly: onTool, ticks }),
     });
     if (me2) {

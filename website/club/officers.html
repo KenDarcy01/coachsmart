@@ -276,7 +276,7 @@ function rowHtml([k, name, desc]) {
 }
 function ticksHtml() {
   const g = grp => tools().filter(t => t[3] === grp);
-  return `<div class="h2">Club tools</div><div class="card">${g('club').map(rowHtml).join('')}
+  return `<div class="h2">ClubSmart tools</div><div class="card">${g('club').map(rowHtml).join('')}
 </div>
     <div class="h2">Admin</div><div class="card">${g('admin').map(rowHtml).join('')}</div>
     <div class="h2">Money</div><div class="moneybox">
