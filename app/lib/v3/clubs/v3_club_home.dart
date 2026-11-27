@@ -32,6 +32,9 @@ class ClubResult {
   final DateTime? start;
   final String age, code, competition, opposition, outcome, usScore, oppScore;
 
+  /// "U16 Football" (the scoreboard under it names both sides).
+  String get team => [age, code].where((x) => x.isNotEmpty).join(' ');
+
   /// "U16 Football v Naomh Barrog"
   String get title =>
       '${[age, code].where((x) => x.isNotEmpty).join(' ')} v $opposition'
@@ -537,16 +540,19 @@ class V3ClubHome extends StatelessWidget {
         Expanded(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(x.title,
+            Text(x.usScore.isEmpty ? x.title : x.team,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: V3.inter(15.5, weight: FontWeight.w600)),
-            // The score on its own line, big and white (Ken, 2026-11-27:
-            // hard to read in grey).
-            if (x.score.isNotEmpty) ...[
+            // Scoreboard: each side's name with its own score, the winner
+            // in white (Ken, 2026-11-27: not clear which score was whose).
+            if (x.usScore.isNotEmpty) ...[
+              const SizedBox(height: 5),
+              _scoreLine(_short(_club(x.clubId)?.name ?? 'Us'), x.usScore,
+                  x.outcome != 'lost'),
+              const SizedBox(height: 2),
+              _scoreLine(x.opposition, x.oppScore, x.outcome != 'won'),
               const SizedBox(height: 3),
-              Text(x.score,
-                  style: V3.tight(18, weight: FontWeight.w700, height: 1.2)),
             ],
             const SizedBox(height: 2),
             Text(line,
@@ -563,6 +569,23 @@ class V3ClubHome extends StatelessWidget {
       ]),
     );
   }
+
+  Widget _scoreLine(String name, String score, bool strong) => Row(children: [
+        Expanded(
+          child: Text(name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: V3.inter(14.5,
+                  weight: strong ? FontWeight.w600 : FontWeight.w500,
+                  color: strong ? V3.text : V3.muted)),
+        ),
+        const SizedBox(width: 10),
+        Text(score,
+            style: V3.tight(17,
+                weight: FontWeight.w700,
+                color: strong ? V3.text : V3.muted,
+                height: 1.2)),
+      ]);
 
   /// Diary icon (Ken, 2026-11-27): the day on a band in the club colour
   /// (green "TODAY" for today), the date and month under it, then [below]

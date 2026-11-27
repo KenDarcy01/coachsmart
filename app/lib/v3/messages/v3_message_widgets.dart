@@ -537,9 +537,7 @@ class _V3NewsCardsState extends State<V3NewsCards> {
                         padding: const EdgeInsets.fromLTRB(13, 6, 9, 6),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           Text(
-                              news.length > 1
-                                  ? 'All news · ${news.length}'
-                                  : 'All news',
+                              'Read more',
                               style: V3.inter(13.5,
                                   weight: FontWeight.w700,
                                   color: (news.first.clubColour ?? V3.green)
@@ -643,7 +641,10 @@ class _NewsCard extends StatelessWidget {
               // it (Ken, 2026-11-27); CoachSmart green for CoachSmart news.
               SizedBox(
                 height: 5,
-                child: Row(children: [
+                // stretch: a ColoredBox with no child is otherwise 0 high.
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                   for (final c in m.stripeColours)
                     Expanded(child: ColoredBox(color: c)),
                 ]),

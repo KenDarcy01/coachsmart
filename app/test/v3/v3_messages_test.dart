@@ -162,7 +162,7 @@ void main() {
     expect(find.text('News'), findsOneWidget);
     expect(find.text('Jerseys are in'), findsOneWidget);
     expect(
-        find.text(news.length > 1 ? 'All news · ${news.length}' : 'All news'),
+        find.text('Read more'),
         findsOneWidget);
     await t.tap(find.text('Jerseys are in'));
     await t.pumpAndSettle();
@@ -183,7 +183,7 @@ void main() {
     await t.tap(find.text('Jerseys are in'));
     expect(got?.title, 'Jerseys are in');
     expect(tray, 0);
-    await t.tap(find.textContaining('All news'));
+    await t.tap(find.text('Read more'));
     expect(tray, 1);
   });
 
