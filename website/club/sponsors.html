@@ -192,9 +192,14 @@ async function boot() {
   if (!clubId) return state('Open this page from your club’s link, for example coachsmart.app/club/sponsors.html?club=1.');
   await load();
 }
+// Paint the last copy straight away, then refresh (Ken 2026-11-27: the
+// edge function can take a few seconds to wake up).
+const cacheKey = () => 'cs_sponsors_' + clubId + '_' + (sponsorId || '') + '_' + (month || '');
 async function load() {
+  if (!D) { try { const c = JSON.parse(localStorage.getItem(cacheKey()) || 'null'); if (c) { D = c; brand(D.club); render(); } } catch (e) {} }
   try { D = await api({ action: 'club', club_id: clubId, sponsor_id: sponsorId, month }); }
-  catch (e) { return state(e.message); }
+  catch (e) { return D ? toast(e.message) : state(e.message); }
+  try { localStorage.setItem(cacheKey(), JSON.stringify(D)); } catch (e) {}
   brand(D.club); document.title = D.club.club_name + ' · Club partners';
   render();
 }

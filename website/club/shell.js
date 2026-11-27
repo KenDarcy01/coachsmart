@@ -150,7 +150,7 @@ body.cs-shell:not(.cs-own) .band .chip.on{background:var(--club,var(--csh))!impo
         `<a href="${esc(h)}" data-k="${k}" class="${k === cur ? 'on' : ''}"><svg viewBox="0 0 24 24">${ICON[k] || ''}</svg>${esc(l)}${n && k !== cur ? `<em>${n > 99 ? '99+' : n}</em>` : ''}</a>`).join('')}</nav>` : ''}</div>`;
     const out = document.getElementById('cshOut');
     if (out) out.onclick = async () => {
-      try { localStorage.removeItem(KEY); } catch (e) {}
+      try { Object.keys(localStorage).filter(k => /^cs_(club_home|spend|sponsors)_/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (e) {}
       try { if (client()) await client().auth.signOut(); } catch (e) {}
       location.reload();
     };
