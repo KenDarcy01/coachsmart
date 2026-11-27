@@ -26,6 +26,9 @@ import 'v3_pitch_insights.dart';
 import 'v3_pitch_weekend.dart';
 import 'v3_pitch_sheets.dart';
 
+/// Shown in a frame on the club tools page (coachsmart.app/club/pitches.html).
+bool get _inFrame => Uri.base.queryParameters['frame'] == '1';
+
 // Fixtures first: the planner opens on it (Ken, 2026-11-16).
 enum PitchTab {
   fixtures,
@@ -638,45 +641,50 @@ class _Side extends StatelessWidget {
       decoration: BoxDecoration(
           color: PT.card, border: Border(right: BorderSide(color: PT.line))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          IconButton(
-              tooltip: 'Back',
-              // In the club look the planner is a club admin tool: back
-              // goes to the club's admin landing page, not into the app
-              // (Ken 2026-11-27). Inside the app it just goes back.
-              onPressed: () => PT.dark
-                  ? Navigator.of(context).maybePop()
-                  : launchUrl(
-                      Uri.parse(
-                          'https://coachsmart.app/club/?club=${club.clubId}'),
-                      webOnlyWindowName: '_self'),
-              icon: Icon(Icons.arrow_back, color: PT.muted, size: 20)),
-        ]),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-              color: club.band, borderRadius: BorderRadius.circular(12)),
-          child: Row(children: [
-            V3CrestImage(club.crest, size: 42),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(club.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: PT.inter(15,
-                            weight: FontWeight.w700,
-                            color: onAccent(club.band))),
-                    Text(officer ? 'Pitch planner' : 'Pitches',
-                        style: PT.inter(12.5,
-                            color: onAccent(club.band).withValues(alpha: 0.8))),
-                  ]),
-            ),
+        // Inside the club tools page (frame=1) its header already shows the
+        // club and the way back, so no back arrow or club box here.
+        if (!_inFrame) ...[
+          Row(children: [
+            IconButton(
+                tooltip: 'Back',
+                // In the club look the planner is a club admin tool: back
+                // goes to the club's admin landing page, not into the app
+                // (Ken 2026-11-27). Inside the app it just goes back.
+                onPressed: () => PT.dark
+                    ? Navigator.of(context).maybePop()
+                    : launchUrl(
+                        Uri.parse(
+                            'https://coachsmart.app/club/?club=${club.clubId}'),
+                        webOnlyWindowName: '_self'),
+                icon: Icon(Icons.arrow_back, color: PT.muted, size: 20)),
           ]),
-        ),
-        const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+                color: club.band, borderRadius: BorderRadius.circular(12)),
+            child: Row(children: [
+              V3CrestImage(club.crest, size: 42),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(club.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: PT.inter(15,
+                              weight: FontWeight.w700,
+                              color: onAccent(club.band))),
+                      Text(officer ? 'Pitch planner' : 'Pitches',
+                          style: PT.inter(12.5,
+                              color:
+                                  onAccent(club.band).withValues(alpha: 0.8))),
+                    ]),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 16),
+        ],
         if (officer) ...[
           nav(PitchTab.fixtures, Icons.sports_outlined, 'Fixtures',
               badge: changes),
