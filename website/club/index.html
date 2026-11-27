@@ -182,12 +182,12 @@ const ICONS = {
 function rowsFor(H) {
   const t = H.tiles || {}, q = '?club=' + clubId, out = [];
   const add = (k, g, title, desc, pill, href) => out.push({ k, g, title, desc, pill, href });
-  if (t.dashboard) add('dashboard', 'run', 'Club dashboard', 'Results, tables, turnout, health check', null, '/club/dashboard.html' + q + '&period=season');
-  if (t.week) {
-    const w = t.week, bits = [];
+  // Ken 2026-11-27: no separate This week card; the dashboard opens on This week.
+  if (t.dashboard) {
+    const w = t.week || {}, bits = [];
     if (w.games) bits.push(plural(w.games, 'fixture', 'fixtures'));
     if (w.events) bits.push(plural(w.events, 'team event', 'team events'));
-    add('week', 'run', 'This week', bits.join(' · ') || 'Results and fixtures', null, '/club/dashboard.html' + q + '&period=week');
+    add('dashboard', 'run', 'Club dashboard', bits.length ? 'This week: ' + bits.join(' · ') : 'This week, results, tables, turnout', null, '/club/dashboard.html' + q);
   }
   if (t.pitches) {
     const n = t.pitches.unread || 0;

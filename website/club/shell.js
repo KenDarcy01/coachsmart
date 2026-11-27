@@ -129,7 +129,7 @@ body.cs-shell .abar{margin:0!important;padding:30px 0 14px!important}
   const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   function items() {
     const t = (H && H.tiles) || {}, q = '?club=' + clubId, out = [['home', 'Home', '/club/' + q, 0]];
-    if (t.dashboard) out.push(['dashboard', 'Dashboard', '/club/dashboard.html' + q + '&period=season', 0]);
+    if (t.dashboard) out.push(['dashboard', 'Dashboard', '/club/dashboard.html' + q, 0]);
     if (t.pitches) out.push(['pitches', 'Pitches', '/club/pitches.html' + q, t.pitches.unread || 0]);
     if (t.newsletter) out.push(['newsletter', t.newsletter.title || 'Newsletter', '/club/newsletter.html' + q, t.newsletter.status === 'built' ? 1 : 0]);
     if (t.messages) out.push(['messages', 'Messages', '/club/messages.html' + q, 0]);
