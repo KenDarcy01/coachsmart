@@ -113,6 +113,16 @@ class V3Sponsors {
     return null;
   }
 
+  /// Only the team's own sponsor, never the club's (event details, Ken
+  /// 2026-11-28).
+  static V3Sponsor? teamOnly(int? teamId, V3SponsorPlace place) {
+    if (teamId == null) return null;
+    for (final s in _sponsors) {
+      if (s.teamId == teamId && s.showsOn(place)) return s;
+    }
+    return null;
+  }
+
   /// A team's own sponsor when it has one (Ken, 2026-11-25), else its club's.
   static V3Sponsor? forTeam(int? teamId, V3SponsorPlace place) {
     if (teamId == null) return null;

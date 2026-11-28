@@ -837,7 +837,8 @@ class _V3EventPageState extends State<V3EventPage> {
     final e = _ev;
     // Shown whatever the event's status, cancelled too (Ken 2026-11-28).
     if (e == null) return const [];
-    final s = V3Sponsors.forTeam(e.teamId, V3SponsorPlace.event);
+    // Team sponsor only; no club partner here (Ken 2026-11-28).
+    final s = V3Sponsors.teamOnly(e.teamId, V3SponsorPlace.event);
     if (s == null) return const [];
     return [
       V3SponsorCard(
