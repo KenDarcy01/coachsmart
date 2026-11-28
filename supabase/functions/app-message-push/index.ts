@@ -89,9 +89,10 @@ Deno.serve(async (req) => {
       const { data: c } = await sb.from("clubs").select("club_name").eq("club_id", m.club_id).maybeSingle();
       if (c?.club_name) from = c.club_name;
     }
-    const title = short(String(m.title || "").trim(), 80);
+    // Ken 2026-11-28: club name in the push title, e.g. "Clontarf GAA: Pitches closed Saturday".
+    const title = short(`${from}: ${String(m.title || "").trim()}`, 110);
     const text = String(m.body || "").replace(/\s+/g, " ").trim();
-    const body = short(text ? `${from}: ${text}` : from, 170);
+    const body = short(text || "Important message. Open CoachSmart to read it.", 170);
 
     const { data: targets, error } = await sb.rpc("app_message_push_targets", { p_id: id });
     if (error) { console.error("targets", id, error.message); out.push({ id, error: error.message }); continue; }
