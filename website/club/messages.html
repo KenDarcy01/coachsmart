@@ -154,6 +154,16 @@ a{color:inherit;text-decoration:none}
 .tick.on{background:var(--club);border-color:var(--club)}
 .tick.on::after{content:'';position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
 .wrap>.btn{margin-top:4px}
+/* Push confirm sheet (2026-11-28) */
+.pcov{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
+.pcd{background:#fff;border-radius:16px;width:100%;max-width:440px;padding:22px;box-shadow:0 10px 40px #0004}
+.pcd h3{margin:0 0 6px;font-size:21px}.pcd p{margin:0 0 14px;color:var(--muted);font-size:15.5px;line-height:1.4}
+.pct{display:flex;gap:10px;margin-bottom:14px}.pct div{flex:1;border-radius:12px;background:var(--bg);padding:12px}
+.pct b{display:block;font-size:28px}.pct small{color:var(--muted);font-size:13.5px}.pct .hi{background:var(--tint)}.pct .hi b{color:var(--club)}
+.pcr div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:15px}.pcr span{color:var(--muted)}.pcr b{text-align:right}
+.pcn{font-size:14px;color:var(--muted);margin:12px 0 16px;line-height:1.4}
+.pcd .btn:focus{outline:none}
+.pcd .btn.no{background:#fff;color:var(--text);border:1.5px solid var(--line);margin-top:8px}
 </style>
 </head>
 <body>
@@ -316,7 +326,7 @@ function fromMsg(m, copy) {
   Object.assign(d, { id: copy ? null : m.id, kind: m.kind, title: m.title, body: m.body || '', link_url: m.link_url || '', link_label: m.link_label || '', image_url: m.image_url || '', price_label: m.price_label || '',
     audience: m.audience || 'all', team_ids: (m.team_ids || []).map(Number) });
   if (!copy) {
-    d.push = !!m.push; d.pushSent = m.push_sent_at || null; d.pushCount = m.push_count;
+    d.push = d.pushWas = !!m.push; d.pushSent = m.push_sent_at || null; d.pushCount = m.push_count;
     d.later = d.wasLater = new Date(m.starts_at) > now(); if (d.later) d.starts = localInput(new Date(m.starts_at));
     d.ends = localDate(new Date(m.ends_at));
   }
@@ -431,6 +441,37 @@ function recount() {
     const e2 = $('reach'); if (e2) e2.textContent = error ? 'Couldn’t count who it reaches.' : `Reaches about ${data} ${data === 1 ? 'person' : 'people'} at ${T.club_name}`;
   }, 250);
 }
+// Push confirm (Ken 2026-11-28): fresh count of phones before anything is
+// saved; the message and push go only after "Send push to N phones".
+async function confirmPush(d, starts) {
+  const b = $('sendBtn'); b.disabled = true; const bt = b.textContent; b.textContent = 'Counting phones…';
+  const { data: c, error } = await sb.rpc('count_app_message_push_detail', { p_club_id: clubId, p_team_ids: d.team_ids, p_audience: d.audience });
+  b.disabled = false; b.textContent = bt;
+  if (error || !c) { $('fMsg').textContent = 'Couldn’t count the phones. Please try again.'; return false; }
+  const n = c.phones, ph = n === 1 ? 'phone' : 'phones', other = Math.max(0, c.people - n);
+  const when = starts ? `when it starts showing, ${dShort(starts.toISOString())} ${hm(starts.toISOString())}` : 'right away';
+  const ov = document.createElement('div'); ov.className = 'pcov';
+  ov.innerHTML = `<div class="pcd" role="dialog" aria-modal="true">
+    <h3>${n ? `Send a push to ${n} ${ph}?` : 'No phones to push to'}</h3>
+    <p>${n ? `“${esc(d.title.trim())}” buzzes these phones ${when}. It can’t be unsent.` : 'Nobody in this audience has push turned on. The message still pops up when they open the app.'}</p>
+    <div class="pct"><div class="hi"><b>${n}</b><small>${ph} get a push</small></div><div><b>${c.people}</b><small>${c.people === 1 ? 'person' : 'people'} reached</small></div></div>
+    <div class="pcr"><div><span>iPhone</span><b>${c.ios}</b></div><div><span>Android</span><b>${c.android}</b></div>${n - c.ios - c.android > 0 ? `<div><span>Other</span><b>${n - c.ios - c.android}</b></div>` : ''}
+      <div><span>No push (notifications off or web)</span><b>${other}</b></div>
+      <div><span>Who · Teams</span><b>${esc(AUD[d.audience] || 'Everyone')} · ${esc(teamsText())}</b></div></div>
+    <div class="pcn">One push per phone, however many children they have. Push only, no email.</div>
+    <button class="btn" id="pcGo">${n ? `Send push to ${n} ${ph}` : (starts ? 'Schedule without a push' : 'Send without a push')}</button>
+    <button class="btn no" id="pcNo">Cancel</button></div>`;
+  document.body.appendChild(ov);
+  return new Promise(ok => {
+    const done = v => { ov.remove(); document.removeEventListener('keydown', key); ok(v); };
+    const key = e => { if (e.key === 'Escape') done(false); };
+    document.addEventListener('keydown', key);
+    ov.onclick = e => { if (e.target === ov) done(false); };
+    $('pcNo').onclick = () => done(false);
+    $('pcGo').onclick = () => { if (!n) d.push = false; done(true); };
+    $('pcGo').focus();
+  });
+}
 async function send() {
   grab(); const d = draft;
   const err = t => ($('fMsg').textContent = t);
@@ -445,6 +486,7 @@ async function send() {
   const ends = new Date(d.ends + 'T23:59:00');
   const starts = d.later && d.starts ? new Date(d.starts) : null;
   if (ends <= (starts || new Date())) return err('Stop showing has to be after it starts.');
+  if (d.kind === 'important' && d.push && !d.pushSent && !d.pushWas && !(await confirmPush(d, starts))) return;
   const b = $('sendBtn'); b.disabled = true; b.textContent = d.id ? 'Saving…' : 'Sending…'; err('');
   const { data: savedId, error } = await sb.rpc('save_app_message', {
     p_id: d.id, p_kind: d.kind, p_title: d.title.trim(), p_body: d.body.trim(), p_link_url: d.link_url, p_link_label: d.link_label,
