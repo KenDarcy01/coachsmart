@@ -78,79 +78,62 @@ List<Widget> _words(AppMessage m, {double title = 21}) => [
       ],
     ];
 
-/// One notice: photo in full, writing under it.
-Future<void> showNotice(
-    BuildContext context, AppMessage m, MessagesApi api) async {
-  _markSeen([m], api);
-  await showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: V3.card,
-    shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-    builder: (ctx) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: m.imageUrl.isEmpty ? 0.5 : 0.85,
-      maxChildSize: 0.95,
-      minChildSize: 0.3,
-      builder: (ctx, scroll) => ListView(
-        controller: scroll,
-        padding: const EdgeInsets.fromLTRB(0, 10, 0, 28),
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                  color: V3.barGrey, borderRadius: BorderRadius.circular(3)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-            child: _byline(m, crest: 26),
-          ),
-          if (m.imageUrl.isNotEmpty) _photo(m.imageUrl),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: _words(m)),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 /// "See all": every notice, newest first, in full.
 Future<void> showAllNotices(
-    BuildContext context, List<AppMessage> news, MessagesApi api) async {
+    BuildContext context, List<AppMessage> news, MessagesApi api,
+    {AppMessage? start}) async {
   _markSeen(news, api);
-  await Navigator.of(context)
-      .push(MaterialPageRoute(builder: (_) => V3NoticesPage(news: news)));
+  await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => V3NoticesPage(news: news, startId: start?.id)));
 }
 
-class V3NoticesPage extends StatelessWidget {
-  const V3NoticesPage({super.key, required this.news});
+/// Tapping one notice opens this page at that notice (Ken 2026-11-28).
+class V3NoticesPage extends StatefulWidget {
+  const V3NoticesPage({super.key, required this.news, this.startId});
   final List<AppMessage> news;
+  final int? startId;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  State<V3NoticesPage> createState() => _V3NoticesPageState();
+}
+
+class _V3NoticesPageState extends State<V3NoticesPage> {
+  final _start = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    final id = widget.startId;
+    if (id == null || widget.news.isEmpty || widget.news.first.id == id) return;
+    // Photos above it change height as they load: line it up again a few
+    // times while they arrive.
+    for (final ms in const [0, 300, 800, 1500]) {
+      Future.delayed(Duration(milliseconds: ms), () {
+        final c = _start.currentContext;
+        if (mounted && c != null) Scrollable.ensureVisible(c);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final news = widget.news;
+    return Scaffold(
+      backgroundColor: V3.bg,
+      appBar: AppBar(
         backgroundColor: V3.bg,
-        appBar: AppBar(
-          backgroundColor: V3.bg,
-          surfaceTintColor: Colors.transparent,
-          foregroundColor: V3.green,
-          title: Text('Club notices',
-              style: V3.tight(20, weight: FontWeight.w700)),
-          centerTitle: false,
-        ),
-        body: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 32),
-          itemCount: news.length,
-          itemBuilder: (_, i) {
-            final m = news[i];
-            return Container(
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: V3.green,
+        title:
+            Text('Club notices', style: V3.tight(20, weight: FontWeight.w700)),
+        centerTitle: false,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 32),
+        child: Column(children: [
+          for (final m in news)
+            Container(
+              key: m.id == widget.startId ? _start : null,
               margin: const EdgeInsets.only(bottom: 14),
               decoration: BoxDecoration(
                   color: V3.card, borderRadius: BorderRadius.circular(16)),
@@ -171,8 +154,9 @@ class V3NoticesPage extends StatelessWidget {
                   ),
                 ],
               ),
-            );
-          },
-        ),
-      );
+            ),
+        ]),
+      ),
+    );
+  }
 }

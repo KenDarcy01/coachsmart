@@ -210,15 +210,16 @@ class V3ClubHome extends StatelessWidget {
   Widget _header() {
     if (clubs.isNotEmpty) {
       final c = _club(_sel) ?? clubs.first;
+      // Centred (Ken 2026-11-28).
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-        child: Row(children: [
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           V3CrestImage(c.crest,
               size: 48,
               fallback:
                   const Icon(Icons.shield_outlined, color: V3.green, size: 40)),
           const SizedBox(width: 12),
-          Expanded(
+          Flexible(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(c.name,

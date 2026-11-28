@@ -267,7 +267,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
 
   Future<void> _openNewsItem(AppMessage m) async {
     V3Track.event('news_opened');
-    await showNotice(context, m, _messagesApi);
+    await showAllNotices(context, _noticesOnScreen, _messagesApi, start: m);
     if (mounted) setState(() {});
   }
 
