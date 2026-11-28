@@ -319,6 +319,25 @@ class MessagesApi {
     return _int(r);
   }
 
+  /// Phones a push would reach, split by platform, plus people reached
+  /// (for the confirm sheet before an Important push).
+  Future<PushReach> countPushDetail(
+      int? clubId, List<int> teamIds, MessageAudience a) async {
+    final r = await SupaFlow.client
+        .rpc('count_app_message_push_detail', params: {
+      'p_club_id': clubId,
+      'p_team_ids': teamIds,
+      'p_audience': a.name,
+    });
+    final j = (r as Map).cast<String, dynamic>();
+    return PushReach(
+      people: _int(j['people']),
+      phones: _int(j['phones']),
+      ios: _int(j['ios']),
+      android: _int(j['android']),
+    );
+  }
+
   /// Push on or off for a saved Important message (sent when it starts).
   Future<void> setPush(int id, bool on) => SupaFlow.client
       .rpc('set_app_message_push', params: {'p_id': id, 'p_push': on});
@@ -361,4 +380,20 @@ String normaliseLink(String url) {
   final u = url.trim();
   if (u.isEmpty) return '';
   return u.contains('://') ? u : 'https://$u';
+}
+
+/// Who an Important push reaches: phones with push on (iPhone / Android)
+/// and everyone the message reaches.
+class PushReach {
+  const PushReach(
+      {required this.people,
+      required this.phones,
+      required this.ios,
+      required this.android});
+  final int people;
+  final int phones;
+  final int ios;
+  final int android;
+  int get other => (phones - ios - android).clamp(0, phones);
+  int get noPush => (people - phones).clamp(0, people);
 }
