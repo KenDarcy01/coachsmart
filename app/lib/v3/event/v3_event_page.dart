@@ -835,7 +835,8 @@ class _V3EventPageState extends State<V3EventPage> {
   // The club's sponsor under Details (2026-11-25), when the club has one.
   List<Widget> _sponsor() {
     final e = _ev;
-    if (e == null || _cancelled) return const [];
+    // Shown whatever the event's status, cancelled too (Ken 2026-11-28).
+    if (e == null) return const [];
     final s = V3Sponsors.forTeam(e.teamId, V3SponsorPlace.event);
     if (s == null) return const [];
     return [
