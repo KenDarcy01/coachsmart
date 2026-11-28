@@ -71,6 +71,13 @@ h2 span{text-transform:none;letter-spacing:0;font-weight:500}
 .fld{width:100%;background:#fff;border:1px solid #d6d9df;border-radius:11px;padding:11px 12px;font-size:16px;line-height:1.45}
 textarea.fld{min-height:180px;resize:vertical}
 .fld.big{font-weight:700}
+.hero{padding:0;overflow:hidden}.hero>img{width:100%;height:170px;object-fit:cover;display:block}.hero .in{padding:14px 16px 16px}
+.hero .no{font-size:12px;font-weight:700;color:var(--club);letter-spacing:.05em;text-transform:uppercase}.hero .hl{font-size:20px;font-weight:700;margin:4px 0 2px;line-height:1.2}
+.hero .steps{display:flex;gap:6px;margin:14px 0 2px}.hero .steps div{flex:1;text-align:center;font-size:11.5px;color:#9aa1ab;font-weight:600}
+.hero .steps i{display:block;height:6px;border-radius:9px;background:#e5e7eb;margin-bottom:6px}.hero .steps .d i{background:#2f9e44}.hero .steps .d{color:#2f9e44}.hero .steps .c i{background:#f59f00}.hero .steps .c{color:#b26b00}
+.hero .wide{width:100%;margin-top:12px}.hero .two{display:flex;gap:10px;margin-top:12px}.hero .two .btn{flex:1}
+.pi{justify-content:flex-start;gap:12px}.pi .tx{flex:1;min-width:0}.pi .thumb.ph{display:block;background:#eef0f3}
+.lk2{border:0;background:#f1f3f6;border-radius:9px;padding:7px 10px;font-weight:700;font-size:12.5px;cursor:pointer;flex:none}
 .sws{display:flex;gap:10px;flex-wrap:wrap}.sws button{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;padding:0;width:58px}
 .sws i{display:block;width:44px;height:44px;border-radius:10px;border:2px solid #d3d8df}.sws .on i{outline:3px solid var(--good);outline-offset:2px}.sws .on{color:var(--text)}
 .seg{display:flex;background:#e9ecf0;border-radius:10px;padding:3px}.seg button{flex:1;border:0;background:none;padding:9px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}.seg .on{background:#fff;color:var(--text)}
@@ -209,7 +216,7 @@ async function boot() {
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const wk = (a, b) => window.paperWeekLabel(a, b);
 const nice = iso => { const d = new Date(iso); return d.toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('en-IE', { hour: 'numeric', minute: '2-digit' }); };
-const STATUS = { draft: 'Draft', built: 'Built, not approved', approved: 'Approved' };
+const STATUS = { draft: 'Draft', built: 'Draft', approved: 'Published' };
 const pill = s => `<span class="pill s-${s}">${STATUS[s] || s}</span>`;
 const shareUrl = i => location.origin + '/club/news.html?i=' + i.share_token;
 function setIssueParam(id) { const u = new URL(location); if (id) u.searchParams.set('issue', id); else u.searchParams.delete('issue'); history.replaceState(null, '', u); }
@@ -255,20 +262,37 @@ function render() {
   if (view === 'story' && I) return renderStory();
   if (view === 'preview' && I) return renderPreview();
   if (view === 'std') return renderStd();
+  if (view === 'settings') return renderSettings();
   view = 'home'; renderHome();
 }
 function renderHome() {
   setIssueParam(null);
-  const last = C.issues.find(i => i.week_start === C.last_week);
+  const cur = C.issues.find(i => i.week_start === C.last_week);
   const lastEnd = (() => { const d = new Date(C.last_week + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 6); return d.toISOString().slice(0, 10); })();
+  const past = C.issues.filter(i => i !== cur);
+  const step = !cur ? 0 : cur.status === 'approved' ? 3 : 2;
+  const steps = ['Suggested', step === 3 ? 'Stories picked' : 'Picking stories', 'Published'].map((l, i) => `<div class="${i + 1 < step || step === 3 ? 'd' : i + 1 === step ? 'c' : ''}"><i></i>${l}</div>`).join('');
   $('app').innerHTML = band(C.settings.title, 'Weekly newsletter') + `<div class="wrap">
-    <div class="card wk"><div><b>${last ? 'Issue ' + last.issue_no + ' · ' : ''}${esc(wk(C.last_week, lastEnd))}</b>
-      <div class="m">${last ? (last.lead ? esc(last.lead) : 'Stories ready to pick') : 'Last week’s stories are ready to be suggested'}</div></div>
-      ${last ? pill(last.status) : ''}</div>
-    <div class="row2" style="margin-top:10px"><span>${last ? 'Open this week’s issue' : 'Suggest this week’s stories'}</span><button class="btn pri" style="flex:none;padding:10px 16px" data-a="openweek" data-w="${C.last_week}">${last ? 'Open' : 'Start'}</button></div>
-    <h2>All issues</h2>
-    <div class="card hist">${C.issues.length ? C.issues.map(i => `<div class="hi" data-a="openissue" data-id="${i.issue_id}"><div><b>Issue ${i.issue_no}</b> · ${esc(wk(i.week_start, i.week_end))}<div class="m">${esc(i.lead || '')}</div></div>${pill(i.status)}</div>`).join('') : '<div class="m" style="padding:6px 0">No issues yet.</div>'}</div>
-    <h2>Settings</h2>
+    <h2 style="margin-top:4px">This week’s issue</h2>
+    <div class="card hero">
+      ${cur && cur.photo_url ? `<img src="${esc(cur.photo_url)}" alt="">` : ''}
+      <div class="in">
+        <div class="no">${cur ? 'Issue ' + cur.issue_no + ' · ' : ''}${esc(wk(C.last_week, lastEnd))}</div>
+        <div class="hl">${cur ? esc(cur.lead || 'Stories ready to pick') : 'Last week’s stories are ready to be suggested'}</div>
+        ${cur ? `<div class="m">${cur.stories_in} ${cur.stories_in === 1 ? 'story' : 'stories'} in${cur.stories_out ? ' · ' + cur.stories_out + ' suggested, not in' : ''}</div>` : ''}
+        <div class="steps">${steps}</div>
+        ${!cur ? `<button class="btn pri wide" data-a="openweek" data-w="${C.last_week}">Suggest this week’s stories</button>`
+          : cur.status === 'approved' ? `<div class="two"><button class="btn" data-a="openissue" data-id="${cur.issue_id}">View</button><button class="btn pri" data-a="sharei" data-id="${cur.issue_id}">Copy share link</button></div>`
+          : `<button class="btn pri wide" data-a="openissue" data-id="${cur.issue_id}">Carry on with Issue ${cur.issue_no}</button>`}
+      </div>
+    </div>
+    <h2>Past issues</h2>
+    <div class="card hist">${past.length ? past.map(i => `<div class="hi pi" data-a="openissue" data-id="${i.issue_id}">${i.photo_url ? `<img class="thumb" src="${esc(i.photo_url)}" alt="">` : '<span class="thumb ph"></span>'}<div class="tx"><b>Issue ${i.issue_no}</b><div class="m">${esc(wk(i.week_start, i.week_end))}${i.lead ? ' · ' + esc(i.lead) : ''}</div></div>${pill(i.status)}${i.status === 'approved' ? `<button class="lk2" data-a="sharei" data-id="${i.issue_id}">Share</button>` : ''}</div>`).join('') : '<div class="m" style="padding:6px 0">No past issues yet.</div>'}</div>
+    <button class="add" data-a="settings">⚙ Settings and every-issue items</button>
+  </div>`;
+}
+function renderSettings() {
+  $('app').innerHTML = band('Newsletter settings', C.settings.title, 'home') + `<div class="wrap">
     <div class="card">
       <div class="lbl" style="margin-top:0">Newsletter name</div><input class="fld" id="sTitle" value="${esc(C.settings.title)}" maxlength="60">
       <div class="lbl">Line under the name</div><input class="fld" id="sStrap" value="${esc(C.settings.strap || '')}" maxlength="120">
@@ -318,7 +342,7 @@ const stdUrl = p => p ? SUPABASE_URL + '/storage/v1/object/public/newsletter/' +
 let stdIdx = -1, stdDraft = null;
 function renderStd() {
   const x = stdDraft;
-  $('app').innerHTML = band('In every issue', x.kicker || x.headline || 'New item', 'home') + `<div class="wrap">
+  $('app').innerHTML = band('In every issue', x.kicker || x.headline || 'New item', 'settings') + `<div class="wrap">
     <div class="row2" style="margin-top:0"><b>Add to each new issue</b><button class="sw${x.active ? ' on' : ''}" id="xOn" aria-label="On"></button></div>
     <div class="lbl">Place in the issue</div>
     <div class="seg" id="xPlace">${[['short', 'Short box'], ['story', 'Story']].map(([k, l]) => `<button data-p="${k}" class="${x.placement === k ? 'on' : ''}">${l}</button>`).join('')}</div>
@@ -331,7 +355,7 @@ function renderStd() {
     <div class="note">Each new issue gets this ticked, near the end. You can change the text for one week (this week’s jackpot, say) in that issue without changing it here.</div>
     ${stdIdx >= 0 ? '<button class="add" style="margin-top:16px;color:#d9363e" data-a="stddelete">Delete this item</button>' : ''}
   </div>
-  <div class="bar"><div class="in"><button class="btn" data-a="home">Cancel</button><button class="btn pri" data-a="stdsave">Save</button></div></div>`;
+  <div class="bar"><div class="in"><button class="btn" data-a="settings">Cancel</button><button class="btn pri" data-a="stdsave">Save</button></div></div>`;
   const seg = $('xPlace');
   seg.addEventListener('click', e => { const b = e.target.closest('button[data-p]'); if (!b) return; seg.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); });
   $('xOn').addEventListener('click', e => e.currentTarget.classList.toggle('on'));
@@ -350,7 +374,7 @@ function readStd() {
 }
 async function saveStd(list) {
   const d = await busy('Saving…', () => api({ action: 'settings', settings: { title: C.settings.title, strap: C.settings.strap, website_url: C.settings.website_url, standing: list } }));
-  if (d) { C = d; view = 'home'; render(); toast('Saved. Any draft issue has it too.'); }
+  if (d) { C = d; view = 'settings'; render(); toast('Saved. Any draft issue has it too.'); }
 }
 function renderStory() {
   const s = story(storyId); if (!s) { view = 'issue'; return render(); }
@@ -495,6 +519,11 @@ document.addEventListener('click', async e => {
     if (!el.dataset.sure) { el.dataset.sure = '1'; el.textContent = 'Tap again to delete Issue ' + I.issue.issue_no + ' and its stories'; return; }
     const d = await busy('Deleting…', () => api({ action: 'delete_issue', issue_id: I.issue.issue_id }));
     if (d) { C = d; I = null; view = 'home'; render(); toast('Draft deleted'); } return;
+  }
+  if (a === 'settings') { view = 'settings'; return render(); }
+  if (a === 'sharei') {
+    e.stopPropagation(); const i = C.issues.find(x => x.issue_id === id); if (!i) return;
+    const u = shareUrl(i); try { await navigator.clipboard.writeText(u); toast('Share link copied'); } catch (_) { toast(u); } return;
   }
   if (a === 'addstd') { stdIdx = -1; stdDraft = { active: true, placement: 'short', kicker: '', headline: '', body: '', photo_path: null }; view = 'std'; return render(); }
   if (a === 'editstd') { stdIdx = id - 1; stdDraft = { ...std()[stdIdx] }; view = 'std'; return render(); }

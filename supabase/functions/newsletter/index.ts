@@ -229,14 +229,18 @@ async function clubData(sb: any, clubId: number) {
     .select("issue_id, week_start, week_end, issue_no, status, title, pdf_path, share_token, built_at, approved_at")
     .eq("club_id", clubId).order("week_start", { ascending: false }).limit(60);
   const ids = (issues || []).map((i: any) => i.issue_id);
-  const leads: Record<number, string> = {};
+  const leads: Record<number, string> = {}, pics: Record<number, string> = {}, ins: Record<number, number> = {}, outs: Record<number, number> = {};
   if (ids.length) {
-    const { data: ls } = await sb.from("newsletter_stories").select("issue_id, headline").in("issue_id", ids).eq("placement", "lead").eq("included", true);
-    for (const l of ls || []) leads[l.issue_id] = l.headline;
+    const { data: ls } = await sb.from("newsletter_stories").select("issue_id, headline, placement, included, photo_path, position, data").in("issue_id", ids).order("position");
+    for (const l of ls || []) {
+      if (l.included) ins[l.issue_id] = (ins[l.issue_id] || 0) + 1; else outs[l.issue_id] = (outs[l.issue_id] || 0) + 1;
+      if (l.included && l.placement === "lead") leads[l.issue_id] = l.headline;
+      if (l.included && l.photo_path && !l.data?.hide_photo && (!pics[l.issue_id] || l.placement === "lead")) pics[l.issue_id] = PUBLIC + l.photo_path;
+    }
   }
   return {
     club, settings, last_week: lastWeekStart(),
-    issues: (issues || []).map((i: any) => ({ ...i, lead: leads[i.issue_id] || "", pdf_url: i.pdf_path ? PUBLIC + i.pdf_path : "" })),
+    issues: (issues || []).map((i: any) => ({ ...i, lead: leads[i.issue_id] || "", photo_url: pics[i.issue_id] || "", stories_in: ins[i.issue_id] || 0, stories_out: outs[i.issue_id] || 0, pdf_url: i.pdf_path ? PUBLIC + i.pdf_path : "" })),
   };
 }
 
