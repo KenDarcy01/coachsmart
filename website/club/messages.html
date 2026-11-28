@@ -101,8 +101,8 @@ a{color:inherit;text-decoration:none}
 .filt span.on{border-color:var(--club);color:var(--club);background:var(--tint)}
 .ptile{display:flex;align-items:center;gap:12px;cursor:pointer}.ptile b{display:block;font-size:18px}.ptile small{color:var(--muted);font-size:15.5px}.ptile .pchev{margin-left:auto}
 .btnrow{display:flex;gap:6px;flex-wrap:wrap}
-.frow{display:flex;align-items:center;gap:12px;background:#1e222b;border:1px solid #5a4716;border-radius:14px;padding:10px 12px}
-.frow .th{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:none;background:#14181b}
+.frow{display:flex;align-items:center;gap:12px;background:#1e222b;border:1px solid #5a4716;border-radius:14px;padding:12px}
+.frow .th{width:96px;height:48px;border-radius:9px;object-fit:cover;flex:none;background:#14181b}
 .frow div{flex:1;min-width:0}.frow b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.frow small{display:block;color:#f5c04a;font-size:12.5px;font-weight:600}
 .frow .buy{flex:none;background:#87c232;color:#14181b;font-weight:600;font-size:14px;padding:8px 12px;border-radius:10px}
 .mt{font-weight:700;font-size:18px}.ms{color:var(--muted);font-size:15.5px;margin-top:2px;line-height:1.4;white-space:pre-line}
@@ -360,7 +360,7 @@ function renderForm() {
     <div class="field"><label>Button opens</label><input id="fLink" type="url" value="${esc(d.link_url)}" placeholder="https://your-club-shop.ie/christmas-draw" oninput="draft.link_url=this.value"><div class="hint">Your club’s own page: shop, raffle or lotto. CoachSmart takes no payment.</div></div>` : ''}
     <div class="field"><label>Photo <span class="opt">optional</span></label>
       ${d.image_url ? `<div class="photo"><img src="${esc(d.image_url)}" alt=""><button class="sm red" onclick="setD('image_url','')">Remove</button></div>`
-        : `<div class="pick up" onclick="$('fImg').click()"><span id="upTxt">Add a photo</span><span class="mut">Choose ›</span></div>`}
+        : `<div class="pick up" onclick="$('fImg').click()"><span id="upTxt">Add a photo (wide, 2:1, e.g. 1200 × 600)</span><span class="mut">Choose ›</span></div>`}
       <input id="fImg" type="file" accept="image/*" hidden onchange="upload(this.files[0])"></div>
     <div class="field"><label>Who gets it</label>${seg('audience', [['all', 'Everyone'], ['players', 'Players &amp; parents'], ['staff', 'Coaches']], d.audience)}</div>
     <div class="field"><label>Teams</label><div class="pick" onclick="openPicker()"><span>${esc(teamsText())}</span><span class="mut">Change ›</span></div></div>

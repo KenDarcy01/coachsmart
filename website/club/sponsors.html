@@ -292,7 +292,7 @@ function editSheet(id) {
    <label class="fl">Line under the name</label><input id="f_tag" maxlength="60" value="${esc(s.tagline || '')}" placeholder="Proud partner of ${esc(D.club.club_name)}">
    <label class="fl">Link when tapped (their website)</label><input id="f_link" maxlength="300" value="${esc(s.link_url || '')}" placeholder="https://">
    <label class="fl">Logo</label><input id="f_logo" type="file" accept="image/png,image/jpeg,image/webp" onchange="checkLogo(this)">
-   <small style="color:var(--muted);display:block"><b style="color:var(--text)">Use a landscape (wide) logo</b>, on a white or clear background, PNG, JPG or WebP under 2 MB. Square or tall logos show very small in the app.${s.logo_url ? ' Leave empty to keep the current logo.' : ''}</small>
+   <small style="color:var(--muted);display:block"><b style="color:var(--text)">Use a landscape (wide) logo, 2:1, e.g. 1200 × 600</b>, on a white or clear background, PNG, JPG or WebP under 2 MB. Square or tall logos show very small in the app.${s.logo_url ? ' Leave empty to keep the current logo.' : ''}</small>
    <small id="f_logo_warn" style="display:none;color:#a15c00;margin-top:4px">This logo is square or tall, so it will look small. A wide version of the logo is better.</small>
    <label class="fl" style="margin-top:10px">Card colour</label>
    <div class="ck"><label><input type="radio" name="f_col" value="" ${!s.card_colour ? 'checked' : ''}>CoachSmart dark</label><label><input type="radio" name="f_col" value="pick" ${s.card_colour ? 'checked' : ''}>Sponsor colour <input id="f_colour" type="color" value="${esc(s.card_colour || '#15302a')}" style="width:44px;height:28px;padding:0;margin:0 0 0 6px;vertical-align:middle"></label></div>

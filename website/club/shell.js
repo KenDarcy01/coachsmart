@@ -110,6 +110,7 @@ body.cs-shell:not(.cs-own) .band .wk button{background:#fff!important;border:1.5
 body.cs-shell:not(.cs-own) .band .wk span{color:var(--text,#16191f)!important;font-size:16px!important}
 body.cs-shell:not(.cs-own) .wrap{max-width:none!important;margin-left:auto!important;margin-right:auto!important;padding-left:48px!important;padding-right:48px!important}
 body.cs-shell .abar{margin:0!important;padding:30px 0 14px!important}
+@media (min-width:761px){html body.cs-shell.cs-narrow .band,html body.cs-shell.cs-narrow .wrap{max-width:960px!important;margin-left:auto!important;margin-right:auto!important;padding-left:24px!important;padding-right:24px!important}}
 @media (max-width:760px){body.cs-shell:not(.cs-own) .wrap{padding-left:14px!important;padding-right:14px!important}body.cs-shell:not(.cs-own) .band{padding:20px 14px 8px!important}body.cs-shell:not(.cs-own) .band .right{margin-left:0!important;align-items:flex-start!important}body.cs-shell .abar{padding:20px 0 8px!important}}
 `;
   document.head.appendChild(st);
@@ -149,6 +150,9 @@ body.cs-shell .abar{margin:0!important;padding:30px 0 14px!important}
     let el = document.getElementById('csh');
     if (!el) { el = document.createElement('header'); el.id = 'csh'; document.body.prepend(el); }
     document.body.classList.add('cs-shell');
+    // Reading pages keep a comfortable width on big screens; the header
+    // stays full width (Ken 2026-11-28).
+    if (['messages', 'newsletter', 'lotto'].includes(current())) document.body.classList.add('cs-narrow');
     paintColours();
     const c = (H && H.club) || {}, me = (H && H.me) || {}, cur = current();
     const sub = ['ClubSmart', me.first_name ? 'Hi ' + me.first_name : ''].filter(Boolean).join(' · ');
