@@ -427,6 +427,119 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
         backgroundColor: bad ? V3.amber : V3.green,
       ));
 
+  Widget _pushTile(String n, String label, {bool hi = false}) => Expanded(
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+              color: hi ? V3.greenTint : V3.bg,
+              borderRadius: BorderRadius.circular(12)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(n,
+                style: V3.tight(28,
+                    weight: FontWeight.w700, color: hi ? V3.green : V3.text)),
+            const SizedBox(height: 2),
+            Text(label, style: V3.inter(13, color: V3.muted)),
+          ]),
+        ),
+      );
+
+  Widget _pushLine(String label, String value) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: const BoxDecoration(
+            border: Border(top: BorderSide(color: V3.line))),
+        child: Row(children: [
+          Expanded(child: Text(label, style: V3.inter(15, color: V3.muted))),
+          Text(value, style: V3.inter(15, weight: FontWeight.w700)),
+        ]),
+      );
+
+  /// Push confirm sheet: true = send (with the push, or without one when no
+  /// phone has push on), false/null = back to the message.
+  Future<bool?> _confirmPush(DateTime start) async {
+    setState(() => _busy = true);
+    PushReach? c;
+    try {
+      c = await widget.api.countPushDetail(_clubId, _teamIds, _audience);
+    } catch (_) {}
+    if (!mounted) return false;
+    setState(() => _busy = false);
+    if (c == null) {
+      _snack('Could not count the phones. Please try again.', bad: true);
+      return false;
+    }
+    final r = c;
+    final n = r.phones;
+    final ph = n == 1 ? 'phone' : 'phones';
+    final when = _startNow
+        ? 'right away'
+        : 'when it starts showing, ${DateFormat('EEE d MMM, HH:mm').format(start)}';
+    final yes = n > 0
+        ? 'Send push to $n $ph'
+        : (_startNow ? 'Send without a push' : 'Schedule without a push');
+    final go = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: V3.card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(n > 0 ? 'Send a push to $n $ph?' : 'No phones to push to',
+                  style: V3.tight(20)),
+              const SizedBox(height: 8),
+              Text(
+                  n > 0
+                      ? '"${_title.text.trim()}" buzzes these phones $when. It can\'t be unsent.'
+                      : 'Nobody in this audience has push turned on. The message still pops up when they open the app.',
+                  style: V3.inter(15, color: V3.muted, height: 1.4)),
+              const SizedBox(height: 14),
+              Row(children: [
+                _pushTile('$n', '$ph get a push', hi: true),
+                const SizedBox(width: 10),
+                _pushTile('${r.people}',
+                    r.people == 1 ? 'person reached' : 'people reached'),
+              ]),
+              const SizedBox(height: 14),
+              _pushLine('iPhone', '${r.ios}'),
+              _pushLine('Android', '${r.android}'),
+              if (r.other > 0) _pushLine('Other', '${r.other}'),
+              _pushLine('No push', '${r.noPush}'),
+              const SizedBox(height: 10),
+              Text('Push only, no email. One per phone.',
+                  style: V3.inter(13.5, color: V3.muted)),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 50,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: FilledButton.styleFrom(
+                      backgroundColor: V3.green,
+                      foregroundColor: V3.bg,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14))),
+                  child: Text(yes,
+                      style:
+                          V3.inter(16, weight: FontWeight.w700, color: V3.bg)),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Cancel', style: V3.inter(15, color: V3.muted)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (go == true && n == 0 && mounted) setState(() => _push = false);
+    return go;
+  }
+
   Future<bool> _confirm(String title, String body, String yes) async {
     final r = await showModalBottomSheet<bool>(
       context: context,
@@ -479,7 +592,19 @@ class _V3MessageFormPageState extends State<V3MessageFormPage> {
     }
     final n = _count;
     final who = n == null ? 'everyone picked' : '$n people';
+    // Push confirm (Ken 2026-11-28): a fresh phone count, and nothing is
+    // saved or pushed until "Send push to N phones".
+    final m0 = _m;
+    final pushAsk = _kind == MessageKind.important &&
+        _push &&
+        m0?.pushSentAt == null &&
+        !(m0?.push ?? false);
+    if (pushAsk) {
+      final go = await _confirmPush(start);
+      if (go != true || !mounted) return;
+    }
     final ok = _m != null ||
+        pushAsk ||
         await _confirm(
             _kind == MessageKind.important
                 ? 'Pop this up for $who?'
