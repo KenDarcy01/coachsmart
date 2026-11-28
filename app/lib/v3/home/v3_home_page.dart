@@ -24,6 +24,7 @@ import 'v3_timeline_row.dart';
 import '../sponsors/v3_sponsors.dart';
 import '../messages/v3_message_widgets.dart';
 import '../messages/v3_messages_models.dart';
+import '../messages/v3_notice_views.dart';
 import '../messages/v3_messages_page.dart';
 import '../lotto/v3_lotto_link.dart';
 import '/v3/tracking/v3_track.dart';
@@ -253,28 +254,21 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
     V3LottoLink.open(m.linkUrl);
   }
 
+  // Notices open like Club news posts (Ken 2026-11-28): one notice slides
+  // up with its whole photo; See all lists every notice in full.
+  List<AppMessage> get _noticesOnScreen =>
+      _hasClubTab ? _msgs.news.where(_mine).toList() : _msgs.news;
+
   Future<void> _openNews() async {
     V3Track.event('news_opened');
-    await showNewsSheet(context, _msgs.news, _messagesApi);
+    await showAllNotices(context, _noticesOnScreen, _messagesApi);
     if (mounted) setState(() {});
   }
 
-  // One card: straight to its link, or that story on its own when it has
-  // no link (Ken, 2026-11-27: no extra step through the tray).
   Future<void> _openNewsItem(AppMessage m) async {
-    if (m.linkUrl.isEmpty) {
-      V3Track.event('news_opened');
-      await showNewsSheet(context, [m], _messagesApi);
-      if (mounted) setState(() {});
-      return;
-    }
-    V3Track.event('news_link');
-    if (!m.seen) {
-      m.seen = true;
-      unawaited(_messagesApi.markSeen([m.id]).catchError((_) {}));
-      setState(() {});
-    }
-    await V3LottoLink.open(m.linkUrl);
+    V3Track.event('news_opened');
+    await showNotice(context, m, _messagesApi);
+    if (mounted) setState(() {});
   }
 
   Future<void> _registerDevice() async {

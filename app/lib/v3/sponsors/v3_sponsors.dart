@@ -65,10 +65,11 @@ class V3Sponsors {
   static Future<void>? _loading;
   static DateTime? _loadedAt;
 
-  /// Fetches again when [force] or when the last load is over 30 minutes old.
+  /// Fetches again when [force] or when the last load is over 5 minutes old
+  /// (Ken 2026-11-28: a new team partner should show without a restart).
   static Future<void> load({bool force = false}) {
     final fresh = _loadedAt != null &&
-        DateTime.now().difference(_loadedAt!) < const Duration(minutes: 30);
+        DateTime.now().difference(_loadedAt!) < const Duration(minutes: 5);
     if (!force && fresh) return Future.value();
     return _loading ??= _fetch().whenComplete(() => _loading = null);
   }
