@@ -236,7 +236,7 @@ function tagsOf(s) {
   if (s.kind === 'go_games') t.push('<span class="tag">Go Games</span>');
   if (s.kind === 'fixtures') t.push('<span class="tag">Fixtures</span>');
   if (s.kind === 'custom') t.push('<span class="tag">Your story</span>');
-  if (s.kind === 'standing') t.push('<span class="tag">Every issue</span>');
+  if (s.kind === 'standing') t.push('<span class="tag">Every edition</span>');
   t.push(`<span class="tag">${{ results: 'Results', website: 'Club website', instagram: 'Instagram', you: 'Written by you', standing: 'Settings' }[s.source] || esc(s.source)}</span>`);
   return t.join('');
 }
@@ -273,22 +273,22 @@ function renderHome() {
   const step = !cur ? 0 : cur.status === 'approved' ? 3 : 2;
   const steps = ['Suggested', step === 3 ? 'Stories picked' : 'Picking stories', 'Published'].map((l, i) => `<div class="${i + 1 < step || step === 3 ? 'd' : i + 1 === step ? 'c' : ''}"><i></i>${l}</div>`).join('');
   $('app').innerHTML = band(C.settings.title, 'Weekly newsletter') + `<div class="wrap">
-    <h2 style="margin-top:4px">This week’s issue</h2>
+    <h2 style="margin-top:4px">This week’s newsletter</h2>
     <div class="card hero">
       ${cur && cur.photo_url ? `<img src="${esc(cur.photo_url)}" alt="">` : ''}
       <div class="in">
-        <div class="no">${cur ? 'Issue ' + cur.issue_no + ' · ' : ''}${esc(wk(C.last_week, lastEnd))}</div>
+        <div class="no">${cur ? 'Edition ' + cur.issue_no + ' · ' : ''}${esc(wk(C.last_week, lastEnd))}</div>
         <div class="hl">${cur ? esc(cur.lead || 'Stories ready to pick') : 'Last week’s stories are ready to be suggested'}</div>
         ${cur ? `<div class="m">${cur.stories_in} ${cur.stories_in === 1 ? 'story' : 'stories'} in${cur.stories_out ? ' · ' + cur.stories_out + ' suggested, not in' : ''}</div>` : ''}
         <div class="steps">${steps}</div>
         ${!cur ? `<button class="btn pri wide" data-a="openweek" data-w="${C.last_week}">Suggest this week’s stories</button>`
           : cur.status === 'approved' ? `<div class="two"><button class="btn" data-a="openissue" data-id="${cur.issue_id}">View</button><button class="btn pri" data-a="sharei" data-id="${cur.issue_id}">Copy share link</button></div>`
-          : `<button class="btn pri wide" data-a="openissue" data-id="${cur.issue_id}">Carry on with Issue ${cur.issue_no}</button>`}
+          : `<button class="btn pri wide" data-a="openissue" data-id="${cur.issue_id}">Edit this week’s newsletter</button>`}
       </div>
     </div>
-    <h2>Past issues</h2>
-    <div class="card hist">${past.length ? past.map(i => `<div class="hi pi" data-a="openissue" data-id="${i.issue_id}">${i.photo_url ? `<img class="thumb" src="${esc(i.photo_url)}" alt="">` : '<span class="thumb ph"></span>'}<div class="tx"><b>Issue ${i.issue_no}</b><div class="m">${esc(wk(i.week_start, i.week_end))}${i.lead ? ' · ' + esc(i.lead) : ''}</div></div>${pill(i.status)}${i.status === 'approved' ? `<button class="lk2" data-a="sharei" data-id="${i.issue_id}">Share</button>` : ''}</div>`).join('') : '<div class="m" style="padding:6px 0">No past issues yet.</div>'}</div>
-    <button class="add" data-a="settings">⚙ Settings and every-issue items</button>
+    <h2>Past newsletters</h2>
+    <div class="card hist">${past.length ? past.map(i => `<div class="hi pi" data-a="openissue" data-id="${i.issue_id}">${i.photo_url ? `<img class="thumb" src="${esc(i.photo_url)}" alt="">` : '<span class="thumb ph"></span>'}<div class="tx"><b>Edition ${i.issue_no}</b><div class="m">${esc(wk(i.week_start, i.week_end))}${i.lead ? ' · ' + esc(i.lead) : ''}</div></div>${pill(i.status)}${i.status === 'approved' ? `<button class="lk2" data-a="sharei" data-id="${i.issue_id}">Share</button>` : ''}</div>`).join('') : '<div class="m" style="padding:6px 0">No past newsletters yet.</div>'}</div>
+    <button class="add" data-a="settings">⚙ Settings and regular items</button>
   </div>`;
 }
 function renderSettings() {
@@ -299,21 +299,21 @@ function renderSettings() {
       <div class="lbl">Club website (for club news)</div><input class="fld" id="sSite" value="${esc(C.settings.website_url || '')}" placeholder="https://" maxlength="200">
       <button class="btn pri" style="width:100%;margin-top:12px" data-a="savesettings">Save settings</button>
     </div>
-    <h2>In every issue <span>Added to each new issue, ticked</span></h2>
+    <h2>In every edition <span>Added to each new edition, ticked</span></h2>
     <div class="card hist">${std().length ? std().map((x, i) => `<div class="hi" data-a="editstd" data-id="${i + 1}" style="justify-content:flex-start;gap:12px">${x.photo_path ? `<img class="thumb" src="${esc(stdUrl(x.photo_path))}" alt="" style="flex:none">` : ''}<div style="flex:1"><b>${esc(x.kicker || x.headline || '(no name)')}</b><div class="m">${x.kicker && x.headline ? esc(x.headline) + ' · ' : ''}${x.placement === 'story' ? 'Story' : 'Short box'}${x.photo_path ? ' · photo' : ''}${x.active ? '' : ' · turned off'}</div></div><span class="m">Edit ›</span></div>`).join('') : '<div class="m" style="padding:6px 0">Nothing yet. Add things like the lotto, membership or the club shop.</div>'}</div>
-    <button class="add" data-a="addstd">+ Add an every-issue item</button>
-    <div class="note">Stories are suggested from this club’s results and its website. Wins are shown with scores; semi-final and final losses are shown kindly; other losses, the lotto, payments and car pooling are never suggested (add your own lotto item under In every issue).</div>
+    <button class="add" data-a="addstd">+ Add a regular item</button>
+    <div class="note">Stories are suggested from this club’s results and its website. Wins are shown with scores; semi-final and final losses are shown kindly; other losses, the lotto, payments and car pooling are never suggested (add your own lotto item under In every edition).</div>
   </div>`;
 }
 function renderIssue() {
   setIssueParam(I.issue.issue_id);
   const ins = I.stories.filter(s => s.included), outs = I.stories.filter(s => !s.included);
   const iss = I.issue;
-  $('app').innerHTML = band(C.settings.title, 'Issue ' + iss.issue_no + ' · ' + wk(iss.week_start, iss.week_end), 'home') + `<div class="wrap">
-    <div class="card wk"><div><b>Issue ${iss.issue_no} · ${esc(wk(iss.week_start, iss.week_end))}</b><div class="m">${iss.suggested_at ? 'Suggested ' + esc(nice(iss.suggested_at)) + ' · ' : ''}${I.stories.length} stories found</div></div>${pill(iss.status)}</div>
+  $('app').innerHTML = band(C.settings.title, 'Edition ' + iss.issue_no + ' · ' + wk(iss.week_start, iss.week_end), 'home') + `<div class="wrap">
+    <div class="card wk"><div><b>Edition ${iss.issue_no} · ${esc(wk(iss.week_start, iss.week_end))}</b><div class="m">${iss.suggested_at ? 'Suggested ' + esc(nice(iss.suggested_at)) + ' · ' : ''}${I.stories.length} stories found</div></div>${pill(iss.status)}</div>
     ${iss.status === 'approved' ? `<div class="row2"><b>Download PDF</b><a href="${esc(iss.pdf_url)}" target="_blank" rel="noopener">Open</a></div>
       <div class="row2"><b>Share link</b><button class="lk" data-a="copy">Copy link</button></div>` : ''}
-    <h2>In this issue <span>Tap a story to read or edit it · drag ⋮⋮ to reorder</span></h2>
+    <h2>In this edition <span>Tap a story to read or edit it · drag ⋮⋮ to reorder</span></h2>
     <div id="inList">${ins.map(stCard).join('') || '<div class="note">Nothing ticked yet.</div>'}</div>
     <h2>Suggested, not included <span>Tick to add</span></h2>
     <div id="outList">${outs.map(stCard).join('') || '<div class="note">Everything is in.</div>'}</div>
@@ -342,9 +342,9 @@ const stdUrl = p => p ? SUPABASE_URL + '/storage/v1/object/public/newsletter/' +
 let stdIdx = -1, stdDraft = null;
 function renderStd() {
   const x = stdDraft;
-  $('app').innerHTML = band('In every issue', x.kicker || x.headline || 'New item', 'settings') + `<div class="wrap">
-    <div class="row2" style="margin-top:0"><b>Add to each new issue</b><button class="sw${x.active ? ' on' : ''}" id="xOn" aria-label="On"></button></div>
-    <div class="lbl">Place in the issue</div>
+  $('app').innerHTML = band('In every edition', x.kicker || x.headline || 'New item', 'settings') + `<div class="wrap">
+    <div class="row2" style="margin-top:0"><b>Add to each new edition</b><button class="sw${x.active ? ' on' : ''}" id="xOn" aria-label="On"></button></div>
+    <div class="lbl">Place in the paper</div>
     <div class="seg" id="xPlace">${[['short', 'Short box'], ['story', 'Story']].map(([k, l]) => `<button data-p="${k}" class="${x.placement === k ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div class="lbl">Name <span style="text-transform:none;letter-spacing:0;font-weight:500">(small heading above the headline)</span></div><input class="fld" id="xKicker" value="${esc(x.kicker || '')}" maxlength="120" placeholder="e.g. Club Lotto">
     <div class="lbl">Headline</div><input class="fld big" id="xHead" value="${esc(x.headline || '')}" maxlength="120" placeholder="e.g. This week’s jackpot">
@@ -352,7 +352,7 @@ function renderStd() {
     <div class="lbl">Background</div>${swatches(x.bg || (x.placement === 'story' ? 'none' : 'club2'))}
     ${linkFields(x.link_label, x.link_url)}
     <div class="lbl">Photo or logo</div><div class="photo">${x.photo_path ? `<img src="${esc(stdUrl(x.photo_path))}" alt=""><button data-a="stdnophoto">Remove</button>` : ''}<label>${x.photo_path ? 'Change' : '+ Add a photo'}<input type="file" accept="image/*" id="xPhoto" hidden></label></div>
-    <div class="note">Each new issue gets this ticked, near the end. You can change the text for one week (this week’s jackpot, say) in that issue without changing it here.</div>
+    <div class="note">Each new edition gets this ticked, near the end. You can change the text for one week (this week’s jackpot, say) in that edition without changing it here.</div>
     ${stdIdx >= 0 ? '<button class="add" style="margin-top:16px;color:#d9363e" data-a="stddelete">Delete this item</button>' : ''}
   </div>
   <div class="bar"><div class="in"><button class="btn" data-a="settings">Cancel</button><button class="btn pri" data-a="stdsave">Save</button></div></div>`;
@@ -374,7 +374,7 @@ function readStd() {
 }
 async function saveStd(list) {
   const d = await busy('Saving…', () => api({ action: 'settings', settings: { title: C.settings.title, strap: C.settings.strap, website_url: C.settings.website_url, standing: list } }));
-  if (d) { C = d; view = 'settings'; render(); toast('Saved. Any draft issue has it too.'); }
+  if (d) { C = d; view = 'settings'; render(); toast('Saved. Any draft edition has it too.'); }
 }
 function renderStory() {
   const s = story(storyId); if (!s) { view = 'issue'; return render(); }
@@ -384,12 +384,12 @@ function renderStory() {
   else if (s.source === 'results' && d.rows) src = `<b>Results</b> · ${d.rows.length} games`;
   else if (s.source === 'results' && d.count) src = `<b>Results</b> · ${d.count} Go Games blitzes`;
   else if (s.source === 'website' || s.source === 'instagram') src = `<b>${s.source === 'website' ? 'Club website' : 'Club Instagram (from the website)'}</b>${d.title ? ' · ' + esc(d.title) : ''}<br>${esc((d.text || '').slice(0, 600))}${d.url ? `<br><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.url)}</a>` : ''}`;
-  else if (s.kind === 'standing') src = '<b>From In every issue</b><br>Changes here are for this issue only. To change it for every issue, edit it in Settings on the newsletter home screen.';
+  else if (s.kind === 'standing') src = '<b>From In every edition</b><br>Changes here are for this edition only. To change it for every edition, edit it in Settings on the newsletter home screen.';
   else src = '<b>Written by you</b>';
   const box = s.kind === 'wins_box' || s.kind === 'fixtures';
   $('app').innerHTML = band('Story', s.kicker || (box ? s.headline : 'Your story'), 'backissue') + `<div class="wrap">
-    <div class="row2" style="margin-top:0"><b>Include in this issue</b><button class="sw${s.included ? ' on' : ''}" id="eInc" aria-label="Include"></button></div>
-    ${box ? '' : `<div class="lbl">Place in the issue</div>
+    <div class="row2" style="margin-top:0"><b>Include in this edition</b><button class="sw${s.included ? ' on' : ''}" id="eInc" aria-label="Include"></button></div>
+    ${box ? '' : `<div class="lbl">Place in the paper</div>
     <div class="seg" id="ePlace">${[['lead', 'Lead story'], ['story', 'Story'], ['short', 'Short']].map(([k, l]) => `<button data-p="${k}" class="${s.placement === k ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div class="lbl">Small heading above</div><input class="fld" id="eKicker" value="${esc(s.kicker || '')}" maxlength="120">`}
     <div class="lbl">Headline</div><input class="fld big" id="eHead" value="${esc(s.headline || '')}" maxlength="120">
@@ -420,7 +420,7 @@ function renderStory() {
 }
 function renderPreview() {
   const iss = I.issue;
-  $('app').innerHTML = band('Preview issue ' + iss.issue_no, wk(iss.week_start, iss.week_end) + ' · ' + I.stories.filter(s => s.included).length + ' stories', 'backissue') + `<div class="wrap">
+  $('app').innerHTML = band('Preview edition ' + iss.issue_no, wk(iss.week_start, iss.week_end) + ' · ' + I.stories.filter(s => s.included).length + ' stories', 'backissue') + `<div class="wrap">
     <div class="pv"><iframe id="pvFrame" title="Preview"></iframe></div>
     ${iss.status !== 'approved' ? '<div class="chk w">Not published yet. Check it over, then approve to publish it and get the share link.</div>' : ''}
     ${iss.status === 'approved' ? `<div class="chk">✓ Approved ${esc(nice(iss.approved_at))} · <a href="${esc(iss.pdf_url)}" target="_blank" rel="noopener">open the PDF</a></div>
@@ -516,7 +516,7 @@ document.addEventListener('click', async e => {
   if (a === 'openweek') { const d = await busy('Finding this week’s stories… (up to a minute)', () => api({ action: 'open', week_start: el.dataset.w })); if (d) { I = d; view = 'issue'; render(); } return; }
   if (a === 'openissue') { const d = await busy('Opening…', () => api({ action: 'get', issue_id: id })); if (d) { I = d; view = 'issue'; render(); } return; }
   if (a === 'delissue') {
-    if (!el.dataset.sure) { el.dataset.sure = '1'; el.textContent = 'Tap again to delete Issue ' + I.issue.issue_no + ' and its stories'; return; }
+    if (!el.dataset.sure) { el.dataset.sure = '1'; el.textContent = 'Tap again to delete Edition ' + I.issue.issue_no + ' and its stories'; return; }
     const d = await busy('Deleting…', () => api({ action: 'delete_issue', issue_id: I.issue.issue_id }));
     if (d) { C = d; I = null; view = 'home'; render(); toast('Draft deleted'); } return;
   }

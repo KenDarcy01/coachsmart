@@ -155,7 +155,7 @@ serve(async (req) => {
       }
       case "delete_issue": {
         const iss = await issueOf(sb, clubId, body.issue_id);
-        if (iss.status === "approved") throw new Error("Approved issues can't be deleted. Tap Make changes first.");
+        if (iss.status === "approved") throw new Error("Published editions can't be deleted. Tap Make changes first.");
         await sb.from("newsletter_issues").delete().eq("issue_id", iss.issue_id);
         return ok(await clubData(sb, clubId));
       }
@@ -246,7 +246,7 @@ async function clubData(sb: any, clubId: number) {
 
 async function issueOf(sb: any, clubId: number, id: any) {
   const { data } = await sb.from("newsletter_issues").select("*").eq("issue_id", Number(id) || 0).eq("club_id", clubId).maybeSingle();
-  if (!data) throw new Error("Issue not found.");
+  if (!data) throw new Error("Newsletter not found.");
   return data;
 }
 async function storyOf(sb: any, clubId: number, id: any) {
@@ -337,9 +337,9 @@ async function issueData(sb: any, iss: any) {
 }
 
 async function publicIssue(sb: any, token: string) {
-  if (!/^[0-9a-f-]{36}$/i.test(token)) throw new Error("Issue not found.");
+  if (!/^[0-9a-f-]{36}$/i.test(token)) throw new Error("Newsletter not found.");
   const { data: iss } = await sb.from("newsletter_issues").select("*").eq("share_token", token).eq("status", "approved").maybeSingle();
-  if (!iss) throw new Error("Issue not found.");
+  if (!iss) throw new Error("Newsletter not found.");
   const d = await issueData(sb, iss);
   const { club } = d;
   return {
