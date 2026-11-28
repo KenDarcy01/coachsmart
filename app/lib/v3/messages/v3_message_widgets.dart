@@ -490,9 +490,8 @@ class _V3NewsCardsState extends State<V3NewsCards> {
         duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
   }
 
-  VoidCallback _tap(AppMessage m) => widget.onItem == null
-      ? widget.onTap
-      : () => widget.onItem!(m);
+  VoidCallback _tap(AppMessage m) =>
+      widget.onItem == null ? widget.onTap : () => widget.onItem!(m);
 
   void _pause() =>
       _pausedUntil = DateTime.now().add(const Duration(seconds: 10));
@@ -823,7 +822,7 @@ class _V3FundraiserRowState extends State<V3FundraiserRow> {
       child: Column(
         children: [
           SizedBox(
-            height: 62,
+            height: 74,
             child: Listener(
               onPointerDown: (_) => _pausedUntil =
                   DateTime.now().add(const Duration(seconds: 10)),
@@ -872,10 +871,10 @@ class _FundraiserTile extends StatelessWidget {
     final thumb = m.imageUrl.isEmpty
         ? badge
         : ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(9),
             child: Image.network(m.imageUrl,
-                width: 40,
-                height: 40,
+                width: 96,
+                height: 48,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => badge),
           );
@@ -887,7 +886,7 @@ class _FundraiserTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: V3.amberLine),
@@ -895,7 +894,7 @@ class _FundraiserTile extends StatelessWidget {
           child: Row(
             children: [
               thumb,
-              const SizedBox(width: 11),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

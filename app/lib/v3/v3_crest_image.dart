@@ -22,6 +22,44 @@ class V3CrestImage extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
+      child: u.isEmpty ? empty : _outlined(u, empty),
+    );
+  }
+
+  // Ken 2026-11-28: white edge that follows the crest's own shape,
+  // about 4% of its size (1px on a 22px chip crest, 2px on a 48px header).
+  Widget _outlined(String u, Widget empty) {
+    final w = (size * 0.06).clamp(1.2, 3.5);
+    Widget img() => _img(u, empty);
+    const dirs = [
+      Offset(1, 0),
+      Offset(-1, 0),
+      Offset(0, 1),
+      Offset(0, -1),
+      Offset(0.7, 0.7),
+      Offset(-0.7, 0.7),
+      Offset(0.7, -0.7),
+      Offset(-0.7, -0.7)
+    ];
+    return Stack(clipBehavior: Clip.none, children: [
+      for (final d in dirs)
+        Positioned.fill(
+          child: Transform.translate(
+            offset: d * w,
+            child: ColorFiltered(
+                colorFilter:
+                    const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                child: img()),
+          ),
+        ),
+      Positioned.fill(child: img()),
+    ]);
+  }
+
+  Widget _img(String u, Widget empty) {
+    return SizedBox(
+      width: size,
+      height: size,
       child: u.isEmpty
           ? empty
           // On the web, CachedNetworkImage draws through an HTML platform

@@ -65,8 +65,7 @@ class ClubResultsData {
   final Map<int, String> colours;
 
   Color? colourOf(int? clubId) {
-    final m =
-        RegExp(r'^#?([0-9a-fA-F]{6})$').firstMatch(colours[clubId] ?? '');
+    final m = RegExp(r'^#?([0-9a-fA-F]{6})$').firstMatch(colours[clubId] ?? '');
     if (m == null) return null;
     final c = Color(0xFF000000 | int.parse(m.group(1)!, radix: 16));
     final l = c.computeLuminance();
@@ -123,6 +122,11 @@ class V3ClubHome extends StatelessWidget {
 
   bool get _multi => clubs.length > 1;
 
+  // Ken 2026-11-28: no "All" - one club's page at a time, so its
+  // news, notices and sponsor never mix with another club's.
+  int get _sel =>
+      selectedClub == 0 && clubs.isNotEmpty ? clubs.first.clubId : selectedClub;
+
   FollowedClub? _club(int? id) {
     for (final c in clubs) {
       if (c.clubId == id) return c;
@@ -131,8 +135,7 @@ class V3ClubHome extends StatelessWidget {
   }
 
   bool _inScope(LiveMatchRow m) {
-    if (selectedClub != 0) return m.clubId == selectedClub;
-    return clubs.any((c) => c.clubId == m.clubId);
+    return m.clubId == _sel;
   }
 
   @override
@@ -145,13 +148,7 @@ class V3ClubHome extends StatelessWidget {
         upcoming.addAll(rows.where(_inScope));
       }
     }
-    final sponsorClub = selectedClub != 0
-        ? selectedClub
-        : clubs.map((c) => c.clubId).firstWhere(
-            (id) => V3Sponsors.forClub(id, V3SponsorPlace.home) != null,
-            orElse: () => 0);
-    final sponsor = V3Sponsors.forClub(
-        sponsorClub == 0 ? null : sponsorClub, V3SponsorPlace.home);
+    final sponsor = V3Sponsors.forClub(_sel, V3SponsorPlace.home);
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -162,6 +159,15 @@ class V3ClubHome extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(12, 4, 12, 24 + bottomInset),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
+              // Club partner first (Ken 2026-11-28).
+              if (sponsor != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 6),
+                  child: V3SponsorCard(
+                      key: ValueKey('club-sponsor-${sponsor.id}'),
+                      sponsor: sponsor,
+                      place: V3SponsorPlace.home),
+                ),
               ...topCards,
               if (d == null)
                 const Padding(
@@ -190,14 +196,6 @@ class V3ClubHome extends StatelessWidget {
                 else
                   _upcomingCard(upcoming.take(upcomingOnHome).toList()),
               ],
-              if (sponsor != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 14),
-                  child: V3SponsorCard(
-                      key: ValueKey('club-sponsor-${sponsor.id}'),
-                      sponsor: sponsor,
-                      place: V3SponsorPlace.home),
-                ),
               if (onJoinTeam != null) ...[
                 const SizedBox(height: 14),
                 _joinCard(),
@@ -210,8 +208,8 @@ class V3ClubHome extends StatelessWidget {
   }
 
   Widget _header() {
-    if (!_multi && clubs.isNotEmpty) {
-      final c = clubs.first;
+    if (clubs.isNotEmpty) {
+      final c = _club(_sel) ?? clubs.first;
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
         child: Row(children: [
@@ -252,9 +250,8 @@ class V3ClubHome extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
           children: [
-            _chip(0, 'All', null),
             for (final c in clubs) ...[
-              const SizedBox(width: 8),
+              if (c != clubs.first) const SizedBox(width: 8),
               _chip(c.clubId, FollowedClub.chipLabel(c, clubs), c.crest),
             ],
           ],
@@ -262,7 +259,7 @@ class V3ClubHome extends StatelessWidget {
       );
 
   Widget _chip(int id, String label, String? crest) {
-    final on = selectedClub == id;
+    final on = _sel == id;
     return Material(
       color: V3.card,
       shape: StadiumBorder(
@@ -271,7 +268,7 @@ class V3ClubHome extends StatelessWidget {
       child: InkWell(
         customBorder: const StadiumBorder(),
         // Tapping the picked club goes back to All.
-        onTap: () => onSelectClub(on && id != 0 ? 0 : id),
+        onTap: () => onSelectClub(id),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -412,7 +409,10 @@ class V3ClubHome extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         child: Row(children: [
-          _diary(t, results?.colourOf(m.clubId), today,
+          _diary(
+              t,
+              results?.colourOf(m.clubId),
+              today,
               Text(clockTime(t),
                   style:
                       V3.tight(15, weight: FontWeight.w700, color: V3.green))),
@@ -503,10 +503,8 @@ class V3ClubHome extends StatelessWidget {
         )
       ];
     }
-    final rows = r.results
-        .where((x) => selectedClub == 0 || x.clubId == selectedClub)
-        .take(upcomingOnHome)
-        .toList();
+    final rows =
+        r.results.where((x) => x.clubId == _sel).take(upcomingOnHome).toList();
     if (rows.isEmpty) {
       return [_emptyCard('No results in the last two weeks.')];
     }
@@ -606,7 +604,8 @@ class V3ClubHome extends StatelessWidget {
   /// (the time, or WON / LOST / DREW).
   Widget _diary(DateTime? t, Color? band, bool today, Widget below) {
     final d = t == null ? null : dublin(t);
-    final top = today ? 'TODAY' : (d == null ? '' : DateFormat('EEE').format(d));
+    final top =
+        today ? 'TODAY' : (d == null ? '' : DateFormat('EEE').format(d));
     // Same club-colour band on today's card too (Ken, 2026-11-27).
     final b = band ?? V3.green;
     final onBand = b.computeLuminance() > 0.5 ? V3.bg : Colors.white;
@@ -635,9 +634,7 @@ class V3ClubHome extends StatelessWidget {
               padding: const EdgeInsets.only(top: 3),
               child: Text(d == null ? '–' : '${d.day}',
                   style: V3.tight(21,
-                      weight: FontWeight.w800,
-                      color: V3.bg,
-                      height: 1.05)),
+                      weight: FontWeight.w800, color: V3.bg, height: 1.05)),
             ),
             Padding(
               padding: const EdgeInsets.only(bottom: 4),

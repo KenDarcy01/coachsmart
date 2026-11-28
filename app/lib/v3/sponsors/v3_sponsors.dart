@@ -228,7 +228,8 @@ class _V3SponsorCardState extends State<V3SponsorCard> {
     final screen = MediaQuery.sizeOf(context);
     final top = box.localToGlobal(Offset.zero).dy;
     final h = box.size.height;
-    final shown = (top + h).clamp(0.0, screen.height) - top.clamp(0.0, screen.height);
+    final shown =
+        (top + h).clamp(0.0, screen.height) - top.clamp(0.0, screen.height);
     if (h > 0 && shown >= h / 2) {
       _visibleMs += 250;
       if (_visibleMs >= 1000) {
@@ -288,10 +289,10 @@ class _V3SponsorCardState extends State<V3SponsorCard> {
                 // in proportion to the card's (14px card, ~72px tall; 48px
                 // tile -> 9px). Ken, 2026-11-25: 4px looked crammed.
                 Container(
-                  width: 108,
+                  width: 96,
                   height: 48,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  clipBehavior: Clip.antiAlias,
+                  padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(9),
@@ -310,7 +311,8 @@ class _V3SponsorCardState extends State<V3SponsorCard> {
                       Text(_label.toUpperCase(),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: V3.inter(10.5,
+                          style: V3
+                              .inter(10.5,
                                   weight: FontWeight.w700, color: V3.green)
                               .copyWith(letterSpacing: 1.2)),
                       const SizedBox(height: 3),

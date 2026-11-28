@@ -362,8 +362,8 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       final r = await SupaFlow.client.rpc('get_club_home_results',
           params: {'p_club_ids': ids, 'p_days': 14});
       if (!mounted) return;
-      setState(() => _clubResults =
-          ClubResultsData.fromJson(r is Map ? r : const {}));
+      setState(() =>
+          _clubResults = ClubResultsData.fromJson(r is Map ? r : const {}));
     } catch (_) {
       if (mounted && _clubResults == null) {
         setState(() => _clubResults = ClubResultsData.empty);
@@ -757,76 +757,30 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
 
   // ---- greeting (option B, Ken 2026-11-12) ---------------------------------
 
-  /// Events today, and events from tomorrow to the end of this week
-  /// (Monday to Sunday), not cancelled or deleted, across all teams.
-  (int, int) get _todayAndRestOfWeek {
-    final today = DateTime(_now.year, _now.month, _now.day);
-    final tomorrow = today.add(const Duration(days: 1));
-    final weekEnd = today.add(Duration(days: 8 - today.weekday));
-    var todayN = 0, restN = 0;
-    for (final e in _home.events) {
-      if (e.eventStatus == 'deleted' || isCancelled(e)) continue;
-      final t = eventLocalTime(e);
-      if (t == null || t.isBefore(today) || !t.isBefore(weekEnd)) continue;
-      if (t.isBefore(tomorrow)) {
-        todayN++;
-      } else {
-        restN++;
-      }
-    }
-    return (todayN, restN);
-  }
-
-  /// Upcoming events still waiting for this user's answer, all teams.
-  int get _toReply => _home.events
-      .where((e) => e.eventStatus != 'deleted' && needsReply(e))
-      .length;
-
   Widget _greeting() {
     final h = _now.hour;
     final part = h < 12 ? 'morning' : (h < 18 ? 'afternoon' : 'evening');
     final name = _home.firstName.trim();
-    final (todayN, restN) = _todayAndRestOfWeek;
-    final String week;
-    if (todayN == 0 && restN == 0) {
-      week = 'Nothing on this week';
-    } else {
-      final today = todayN == 0
-          ? 'Nothing today'
-          : (todayN == 1 ? '1 event today' : '$todayN events today');
-      week = restN == 0
-          ? '$today · no more this week'
-          : '$today · $restN more this week';
-    }
-    final toReply = _toReply;
+    final team = _selectedTeam == 0 ? null : _selectedTeam;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             name.isEmpty ? 'Good $part' : 'Good $part, $name',
             style: V3.tight(26, weight: FontWeight.w700, height: 1.15),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 4),
-          Text(
-            DateFormat('EEEE d MMMM').format(_now),
-            style: V3.inter(15, color: const Color(0xFFA1A1A2)),
-          ),
-          const SizedBox(height: 2),
-          // Today's count, then what is left this week (Ken, 2026-11-12).
-          Text(week, style: V3.inter(15, weight: FontWeight.w600)),
-          // How many still need an answer, or "all up to date" when none
-          // do (Ken, 2026-11-12).
-          const SizedBox(height: 2),
-          Text(
-            toReply == 0
-                ? "You're all up to date"
-                : (toReply == 1
-                    ? '1 event to reply to'
-                    : '$toReply events to reply to'),
-            style: V3.inter(15, weight: FontWeight.w600, color: V3.green),
-          ),
+          // The club partner replaces the date and counts (Ken 2026-11-28).
+          if (V3Sponsors.forHome(team) case final sp?) ...[
+            const SizedBox(height: 12),
+            V3SponsorCard(
+                key: ValueKey('events-sponsor-${sp.id}-${team ?? 0}'),
+                sponsor: sp,
+                place: V3SponsorPlace.home,
+                teamId: team),
+          ],
         ],
       ),
     );
@@ -885,17 +839,22 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
           setState(() => _clubShowResults = v);
         },
         topCards: [
+          // Fundraisers straight under the club partner (Ken 2026-11-28).
+          if (_msgs.fundraisers.where(_mine).isNotEmpty)
+            V3FundraiserRow(
+                items: _msgs.fundraisers.where(_mine).toList(),
+                onTap: _openFundraiser),
           // Important messages stay here until they end (Ken, 2026-11-26).
-          for (final m in _msgs.pinned)
+          for (final m in _msgs.pinned.where(_mine))
             Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 4),
               child: V3PinnedImportant(m, key: ValueKey('pinned-${m.id}')),
             ),
-          if (_msgs.news.isNotEmpty)
+          if (_msgs.news.where(_mine).isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 2),
               child: V3NewsCards(
-                  news: _msgs.news,
+                  news: _msgs.news.where(_mine).toList(),
                   onTap: _openNews,
                   onItem: _openNewsItem,
                   stacked: true),
@@ -904,14 +863,21 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
           if (_socialInScope.isNotEmpty)
             V3ClubSocialNews(
                 key: ValueKey('social-$_selectedClub'), posts: _socialInScope),
-          if (_msgs.fundraisers.isNotEmpty)
-            V3FundraiserRow(items: _msgs.fundraisers, onTap: _openFundraiser),
         ],
       );
 
-  List<ClubSocialPost> get _socialInScope => _selectedClub == 0
-      ? _social
-      : _social.where((p) => p.clubId == _selectedClub).toList();
+  // One club's page at a time, never mixed (Ken 2026-11-28).
+  int get _clubOnScreen {
+    final cs = _followerOnly ? _followed : _myClubs;
+    return _selectedClub == 0 && cs.isNotEmpty
+        ? cs.first.clubId
+        : _selectedClub;
+  }
+
+  bool _mine(AppMessage m) => m.clubId == null || m.clubId == _clubOnScreen;
+
+  List<ClubSocialPost> get _socialInScope =>
+      _social.where((p) => p.clubId == _clubOnScreen).toList();
 
   // ---- timeline (design §5.3 to §6.8) -------------------------------------
 
@@ -934,18 +900,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
         children.add(
             V3FundraiserRow(items: _msgs.fundraisers, onTap: _openFundraiser));
       }
-      final team = _selectedTeam == 0 ? null : _selectedTeam;
-      final sponsor = V3Sponsors.forHome(team);
-      if (sponsor != null) {
-        children.add(Padding(
-          padding: const EdgeInsets.only(top: 10, bottom: 4),
-          child: V3SponsorCard(
-              key: ValueKey('sponsor-${sponsor.id}-${team ?? 0}'),
-              sponsor: sponsor,
-              place: V3SponsorPlace.home,
-              teamId: team),
-        ));
-      }
+      // The club partner sits under the greeting now (Ken 2026-11-28).
     }
     // The greeting above the chips now heads the page; the "Events" title
     // went with option B (Ken, 2026-11-12).
@@ -981,7 +936,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         // Centred as in the version Ken picked (2026-11-12 06:44).
-        SliverToBoxAdapter(child: Center(child: _greeting())),
+        SliverToBoxAdapter(child: _greeting()),
         SliverPersistentHeader(
           pinned: true,
           delegate: _PinnedChips(_chipBar()),
